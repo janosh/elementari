@@ -1,0 +1,51 @@
+{
+  "name": "periodic-table",
+  "description": "Periodic table of elements written in Svelte",
+  "author": "Janosh Riebesell <janosh.riebesell@gmail.com>",
+  "homepage": "https://ptable-elements.netlify.app",
+  "repository": "https://github.com/janosh/periodic-table",
+  "license": "MIT",
+  "version": "0.1.8",
+  "type": "module",
+  "svelte": "PeriodicTable.svelte",
+  "bugs": "https://github.com/janosh/periodic-table/issues",
+  "scripts": {
+    "dev": "svelte-kit dev",
+    "build": "svelte-kit build",
+    "preview": "svelte-kit preview",
+    "package": "svelte-kit package",
+    "serve": "yarn build && yarn preview",
+    "check": "svelte-check"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^1.0.0-next.32",
+    "@sveltejs/kit": "^1.0.0-next.345",
+    "@typescript-eslint/eslint-plugin": "^5.26.0",
+    "@typescript-eslint/parser": "^5.26.0",
+    "eslint": "^8.16.0",
+    "eslint-plugin-svelte3": "^4.0.0",
+    "hastscript": "^7.0.2",
+    "prettier": "^2.6.2",
+    "prettier-plugin-svelte": "^2.7.0",
+    "rehype-autolink-headings": "^6.1.1",
+    "rehype-slug": "^5.0.1",
+    "svelte": "^3.48.0",
+    "svelte-check": "^2.7.1",
+    "svelte-github-corner": "^0.1.0",
+    "svelte-preprocess": "^4.10.6",
+    "svelte2tsx": "^0.5.10",
+    "typescript": "^4.7.2",
+    "vite": "^2.9.9"
+  },
+  "keywords": [
+    "svelte",
+    "periodic table",
+    "chemistry",
+    "data viz",
+    "plotting",
+    "component"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

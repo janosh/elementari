@@ -1,0 +1,82 @@
+<script lang="ts">
+  import { fade } from 'svelte/transition'
+  import { active_category } from '../stores'
+
+  export let open = false
+  export let collapsible = true
+
+  const custom_colors: Record<string, string> = {
+    'diatomic-nonmetal': `#ff8c00`, // darkorange
+    'noble-gas': `#9932cc`, // darkorchid
+    'alkali-metal': `#006400`, // darkgreen
+    'alkaline-earth-metal': `#483d8b`, // darkslateblue
+    metalloid: `#b8860b`, // darkgoldenrod
+    'polyatomic-nonmetal': `#a52a2a`, // brown
+    'transition-metal': `#008080`, // teal
+    'post-transition-metal': `#938d4a`,
+    lanthanide: `#58748e`,
+    actinide: `#6495ed`, // cornflowerblue
+    experimental: `#808080`, // gray
+  }
+
+  $: if (typeof document !== `undefined`) {
+    for (const [key, val] of Object.entries(custom_colors)) {
+      document.documentElement.style.setProperty(`--${key}-bg-color`, val)
+    }
+  }
+</script>
+
+<div class="grid">
+  <h2
+    on:click={() => (open = !open)}
+    title={!open && collapsible ? `Click to open color picker` : null}
+    style:cursor={collapsible ? `pointer` : `default`}
+  >
+    Customize Colors
+  </h2>
+  {#if open || !collapsible}
+    {#each Object.keys(custom_colors) as category}
+      <label
+        for="{category}-color"
+        transition:fade={{ duration: 200 }}
+        on:mouseenter={() => ($active_category = category)}
+        on:focus={() => ($active_category = category)}
+        on:mouseleave={() => ($active_category = null)}
+        on:blur={() => ($active_category = null)}
+      >
+        <input type="color" id="{category}-color" bind:value={custom_colors[category]} />
+        {category.replaceAll(`-`, ` `)}
+      </label>
+    {/each}
+  {/if}
+</div>
+
+<style>
+  div.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 12em);
+    gap: 2vw;
+  }
+  div.grid > label {
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+    text-transform: capitalize;
+    font-weight: lighter;
+    cursor: pointer;
+  }
+  div.grid > label:hover {
+    filter: brightness(130%);
+  }
+  div.grid > label > input {
+    height: 3em;
+    width: 3em;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+  }
+  h2 {
+    margin: 0;
+    white-space: nowrap;
+  }
+</style>

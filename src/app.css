@@ -1,0 +1,70 @@
+:root {
+  --page-bg: #090019;
+  --diatomic-nonmetal-bg-color: #ff8c00;
+  --noble-gas-bg-color: darkorchid;
+  --alkali-metal-bg-color: darkgreen;
+  --alkaline-earth-metal-bg-color: darkslateblue;
+  --metalloid-bg-color: darkgoldenrod;
+  --polyatomic-nonmetal-bg-color: brown;
+  --transition-metal-bg-color: teal;
+  --post-transition-metal-bg-color: #938d4a;
+  --lanthanide-bg-color: #58748e;
+  --actinide-bg-color: cornflowerblue;
+  --experimental-bg-color: gray;
+}
+body {
+  background: var(--page-bg);
+  padding: 4em;
+  font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  margin: auto;
+  color: #eee;
+  line-height: 3ex;
+}
+/* outer div = hydration target */
+body > div {
+  display: flex;
+  margin: auto;
+}
+ul li {
+  margin: 1ex 0;
+}
+a {
+  color: cornflowerblue;
+  text-decoration: none;
+}
+a:hover {
+  color: orange;
+}
+code {
+  overflow-wrap: break-word;
+  padding: 1pt 3pt;
+  border-radius: 3pt;
+  font-size: 1.3em;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+pre code {
+  background-color: transparent;
+}
+pre {
+  border-radius: 1ex;
+  font-size: 0.7em;
+}
+blockquote {
+  border-left: 3pt solid cornflowerblue;
+  padding: 1px 8pt;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 1em 0;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 100px;
+}
+/* style heading anchors added by rehype-autolink-headings, see svelte.config.js */
+:where(h2, h3, h4, h5, h6) a[aria-hidden='true'] {
+  transition: 0.3s;
+  margin-left: 4pt;
+  opacity: 0;
+}
+:where(h2, h3, h4, h5, h6):hover a[aria-hidden='true'] {
+  opacity: 1;
+}

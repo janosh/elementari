@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Svelte Periodic Table</title>
+    <meta name="author" content="Janosh Riebesell" />
+    <meta
+      name="description"
+      content="Interactive periodic table of elements written in Svelte"
+    />
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/prism-vsc-dark-plus.css" />
+
+    %sveltekit.head%
+  </head>
+
+  <body>
+    <svg style="display: none">
+      <!-- https://primer.style/octicons/link-16 -->
+      <symbol id="octicon-link" fill="currentColor">
+        <path
+          d="M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0z"
+        />
+      </symbol>
+    </svg>
+
+    <div>%sveltekit.body%</div>
+  </body>
+</html>

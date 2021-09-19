@@ -1,0 +1,15 @@
+// https://github.com/sveltejs/language-tools/blob/master/docs/preprocessors/typescript.md
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node", // needed for import { ... } from 'svelte' in TS files
+
+    // To have warnings/errors of the Svelte compiler at the correct position,
+    // enable source maps by default.
+    "sourceMap": true,
+
+    "forceConsistentCasingInFileNames": true
+  }
+}
