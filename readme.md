@@ -5,6 +5,8 @@
 
 A dynamic Periodic Table component written in Svelte.
 
+![Screenshot of periodic table](static/2022-06-01-screenshot.png)
+
 ## Usage
 
 Copy the `src/lib/` folder into your Svelte project and import the `PeriodicTable` component:
