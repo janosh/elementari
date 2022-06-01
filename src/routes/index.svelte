@@ -1,7 +1,21 @@
 <script lang="ts">
   import GitHubCorner from 'svelte-github-corner'
+  import Select from 'svelte-multiselect'
   import '../app.css'
   import Table from '../lib/PeriodicTable.svelte'
+  import { Element } from '../types'
+
+  let selected_heatmap: (keyof Element)[] = []
+
+  const heatmap_options = [
+    [`atomic_mass`, `Atomic Mass`],
+    [`atomic_radius`, `Atomic Radius`],
+    [`electronegativity`, `Electronegativity`],
+    [`density`, `Density`],
+    [`boiling_point`, `Boiling Point`],
+    [`melting_point`, `Melting Point`],
+    [`year`, `Year of Discovery`],
+  ].map(([value, label]) => ({ value, label }))
 </script>
 
 <GitHubCorner href="https://github.com/janosh/periodic-table" />
@@ -9,18 +23,19 @@
 <main>
   <h1>Periodic Table of Elements</h1>
 
-  <Table showNames />
+  <Select
+    options={heatmap_options}
+    maxSelect={1}
+    bind:selectedValues={selected_heatmap}
+    placeholder="Select a heat map"
+  />
 
-  <h2>Todos</h2>
-  <ul>
-    <li>support plotting heatmaps</li>
-    <li>add detail pages with additional stats and properties for each element</li>
-    <li>
-      by popular request, show lethal dose (LD50) for hovered element in
-      ActiveElement.svelte
-    </li>
-  </ul>
+  <Table showNames heatmap={selected_heatmap[0] ?? false} />
 </main>
+
+<footer>
+  <a href="https://github.com/janosh/periodic-table">MIT License 2022</a>
+</footer>
 
 <style>
   main {
@@ -29,10 +44,19 @@
   :global(:root) {
     --ghc-color: var(--page-bg);
     --ghc-bg: white;
+    --sms-options-bg: black;
+    --sms-max-width: 16em;
+  }
+  :global(div.multiselect) {
+    margin: auto;
   }
   h1 {
     text-align: center;
     line-height: 1.1;
     font-size: clamp(20pt, 5.5vw, 50pt);
+  }
+  footer {
+    margin: 4em 0;
+    text-align: center;
   }
 </style>

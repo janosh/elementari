@@ -20,14 +20,6 @@ body {
   color: #eee;
   line-height: 3ex;
 }
-/* outer div = hydration target */
-body > div {
-  display: flex;
-  margin: auto;
-}
-ul li {
-  margin: 1ex 0;
-}
 a {
   color: cornflowerblue;
   text-decoration: none;

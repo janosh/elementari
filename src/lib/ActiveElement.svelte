@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Element } from '../types'
 
-  export let element: Element
+  export let element: Element | null
   export let grid_col = `3 / span 10`
   export let grid_row = `1 / span 3`
   export let padding = `1vw 3vw`
@@ -14,36 +14,40 @@
   style:grid-row={grid_row}
   style:padding
 >
-  <h2>{element.number} - {element.name} <small>{element.category}</small></h2>
-  <div class="properties">
-    <div>
-      <p>
-        Atomic Mass
-        <abbr title="Dalton aka atomic mass unit">(u)</abbr>
-      </p>
-      <strong>{element.atomic_mass?.toFixed(2)}</strong>
+  {#if element}
+    <h2>{element.number} - {element.name} <small>{element.category}</small></h2>
+    <div class="properties">
+      <div>
+        <p>
+          Atomic Mass
+          <abbr title="Dalton aka atomic mass unit">(u)</abbr>
+        </p>
+        <strong>{element.atomic_mass?.toFixed(2)}</strong>
+      </div>
+      <div>
+        <p>
+          Density
+          <abbr title="grams per cubic centimeter">(g/cm&sup3;)</abbr>
+        </p>
+        <strong>{element.density?.toFixed(2)}</strong>
+      </div>
+      <div>
+        <p>Phase</p>
+        <strong>{element.phase}</strong>
+      </div>
+      <div>
+        <p>Year of Discovery</p>
+        <strong>
+          {element.year}
+        </strong>
+      </div>
     </div>
-    <div>
-      <p>
-        Density
-        <abbr title="grams per cubic centimeter">(g/cm&sup3;)</abbr>
-      </p>
-      <strong>{element.density?.toFixed(2)}</strong>
-    </div>
-    <div>
-      <p>Phase</p>
-      <strong>{element.phase}</strong>
-    </div>
-    <div>
-      <p>Year of Discovery</p>
-      <strong>
-        {element.year}
-      </strong>
-    </div>
-  </div>
+  {:else}
+    <h2 style="text-align: center; margin: 2em 0;">Try hovering an element!</h2>
+  {/if}
 </div>
 
-{#if show_photo}
+{#if show_photo && element}
   <img
     id="element-photo"
     src="https://images-of-elements.com/s/{element.name.toLowerCase()}.jpg"

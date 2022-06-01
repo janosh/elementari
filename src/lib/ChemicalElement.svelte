@@ -6,6 +6,7 @@
   export let style = ``
   export let showNumber = true
   export let showName = true
+  export let color = ``
 
   $: category = element.category.replaceAll(` `, `-`)
 </script>
@@ -15,6 +16,7 @@
   class:active={$active_category === element.category.replaceAll(` `, `-`)}
   {style}
   on:mouseenter
+  style:background-color={color}
 >
   {#if showNumber}
     <span class="atomic-number">
