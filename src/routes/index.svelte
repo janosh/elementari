@@ -6,17 +6,21 @@
   import { Element } from '../types'
 
   let selected_heatmap: (keyof Element)[] = []
+  let windowWidth: number
 
-  const heatmap_options = [
-    [`atomic_mass`, `Atomic Mass`],
-    [`atomic_radius`, `Atomic Radius`],
-    [`electronegativity`, `Electronegativity`],
-    [`density`, `Density`],
-    [`boiling_point`, `Boiling Point`],
-    [`melting_point`, `Melting Point`],
-    [`year`, `Year of Discovery`],
-  ].map(([value, label]) => ({ value, label }))
+  const heatmap_options: Record<string, keyof Element> = {
+    'Atomic Mass': `atomic_mass`,
+    'Atomic Radius': `atomic_radius`,
+    Electronegativity: `electronegativity`,
+    Density: `density`,
+    'Boiling Point': `boiling_point`,
+    'Melting Point': `melting_point`,
+    'Year of Discovery': `year`,
+  }
+  $: heatmap_name = heatmap_options[selected_heatmap[0]] ?? null
 </script>
+
+<svelte:window bind:innerWidth={windowWidth} />
 
 <GitHubCorner href="https://github.com/janosh/periodic-table" />
 
@@ -24,13 +28,13 @@
   <h1>Periodic Table of Elements</h1>
 
   <Select
-    options={heatmap_options}
+    options={Object.keys(heatmap_options)}
     maxSelect={1}
-    bind:selectedValues={selected_heatmap}
+    bind:selected={selected_heatmap}
     placeholder="Select a heat map"
   />
 
-  <Table showNames heatmap={selected_heatmap[0] ?? false} />
+  <Table showNames={windowWidth > 1000} {heatmap_name} />
 </main>
 
 <footer>

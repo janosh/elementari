@@ -7,7 +7,7 @@
   import ColorCustomizer from './ColorCustomizer.svelte'
   import elements from './periodic-table-data'
 
-  export let showNames = true
+  export let show_names = true
   export let active_element: Element | null = null
 
   export let heatmap: keyof Element | false = false
@@ -25,7 +25,7 @@
     <ChemicalElement
       {element}
       on:mouseenter={() => (active_element = element)}
-      showName={showNames}
+      showName={show_names}
       style="grid-column: {element.column}; grid-row: {element.row};"
       {color}
     />
