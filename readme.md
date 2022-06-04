@@ -1,6 +1,6 @@
 # Periodic Table
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/0238699e-17a8-4423-85de-a5ca30baff0d/deploy-status)](https://app.netlify.com/sites/periodic-table/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/42b5fd04-c538-4e3c-bd69-73e383989cfd/deploy-status)](https://app.netlify.com/sites/ptable-elements/deploys)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/janosh/periodic-table/main.svg?badge_token=nUqJfPCFS4uyMwcFSDIfdQ)](https://results.pre-commit.ci/latest/github/janosh/periodic-table/main?badge_token=nUqJfPCFS4uyMwcFSDIfdQ)
 
 A dynamic Periodic Table component written in Svelte.
