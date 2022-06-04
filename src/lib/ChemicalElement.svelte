@@ -1,24 +1,28 @@
 <script lang="ts">
-  import { active_category } from '../stores'
+  import { symbol } from 'd3-shape'
+  import { active_category, active_element } from '../stores'
   import { Element } from '../types'
 
   export let element: Element
   export let style = ``
-  export let showNumber = true
-  export let showName = true
+  export let show_number = true
+  export let show_name = true
   export let color = ``
+  export let value: number | undefined = undefined
+  export let precision = 2
 
   $: category = element.category.replaceAll(` `, `-`)
 </script>
 
 <div
   class="element {category}"
-  class:active={$active_category === element.category.replaceAll(` `, `-`)}
+  class:active={$active_category === element.category.replaceAll(` `, `-`) ||
+    $active_element?.name === element.name}
   {style}
   on:mouseenter
   style:background-color={color}
 >
-  {#if showNumber}
+  {#if show_number}
     <span class="atomic-number">
       {element.number}
     </span>
@@ -26,9 +30,13 @@
   <span class="symbol">
     {element.symbol}
   </span>
-  {#if showName}
+  {#if value}
+    <span class="value">
+      {parseFloat(value.toFixed(precision))}
+    </span>
+  {:else if show_name}
     <span class="name">
-      {@html element.name.replace(/(.{12})..+/, `$1&hellip;`)}
+      {element.name}
     </span>
   {/if}
 </div>
@@ -61,10 +69,16 @@
   .symbol {
     font-size: min(2vw, 19pt);
   }
-  .name {
+  span.name,
+  span.value {
     position: absolute;
-    font-weight: lighter;
     bottom: 2pt;
+    font-weight: lighter;
+  }
+  span.value {
+    font-size: max(8pt, min(10pt, 0.8vw));
+  }
+  span.name {
     font-size: max(5pt, min(7pt, 0.65vw));
   }
   /* category colors */
