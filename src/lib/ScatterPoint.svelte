@@ -5,15 +5,16 @@
   export let x: number
   export let y: number
   export let fill = `gray`
+  export let active = false
 
-  const tX = tweened(0, { duration: 400, easing: cubicOut })
+  const tX = tweened(0, { duration: 400, easing: cubicOut, local: true })
   const tY = tweened(0, { duration: 400, easing: cubicOut })
 
   $: tX.set(x)
   $: tY.set(y)
 </script>
 
-<g transform="translate({$tX} {$tY})" {fill} on:mouseenter>
+<g transform="translate({$tX} {$tY})" {fill} on:mouseenter class:active>
   <circle cx="0" cy="0" r="3" />
 </g>
 
@@ -23,7 +24,7 @@
     stroke: transparent;
     stroke-width: 5px;
   }
-  g:hover circle {
+  :is(g:hover, g.active) circle {
     fill: orange;
     transform: scale(2);
   }

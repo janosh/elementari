@@ -1,13 +1,15 @@
 <script lang="ts">
   import { extent } from 'd3-array'
   import { scaleLinear } from 'd3-scale'
-  import { active_element } from '../../stores'
-  import { Element } from '../../types'
-  import Datapoint from './Datapoint.svelte'
+  import elements from '../periodic-table-data.ts'
+  import { active_element, color_scale, heatmap } from '../stores'
+  import { Element } from '../types'
   import Line from './Line.svelte'
+  import Datapoint from './ScatterPoint.svelte'
 
-  export let data: [number, number, Element][]
-  export let colorscale: (y: number) => string | undefined = () => undefined
+  export let style = ``
+
+  $: data = elements.map((el) => [el.number, el[$heatmap], el])
 
   const padding = 10 // pixels
 
@@ -24,17 +26,26 @@
     .domain(yrange)
     .range([height - padding, padding])
 
+  let scaled_data: [number, number, string, Element][]
   $: scaled_data = data
     .filter(([x, y]) => !(isNaN(x) || isNaN(y) || x === null || y === null))
-    .map(([x, y, ...rest]) => [x_scale(x), y_scale(y), colorscale(y), ...rest])
+    .map(([x, y, ...rest]) => [x_scale(x), y_scale(y), ...rest])
 </script>
 
-<div class="scatter" bind:clientWidth={width} bind:clientHeight={height}>
+<div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
   {#if width && height}
-    <svg {width} {height}>
+    <svg>
       <Line data={scaled_data} />
-      {#each scaled_data as [x, y, fill, element]}
-        <Datapoint {x} {y} {fill} on:mouseenter={() => ($active_element = element)} />
+      {#each scaled_data as [x, y, element]}
+        {@const fill = $color_scale(y)}
+        {@const active = $active_element?.name === element.name}
+        <Datapoint
+          {x}
+          {y}
+          {fill}
+          on:mouseenter={() => ($active_element = element)}
+          {active}
+        />
       {/each}
     </svg>
   {/if}
@@ -46,5 +57,8 @@
     height: 100%;
     display: flex;
     overflow: hidden;
+  }
+  svg {
+    width: 100%;
   }
 </style>

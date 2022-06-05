@@ -1,20 +1,21 @@
 <script lang="ts">
-  import { symbol } from 'd3-shape'
-  import { active_category, active_element } from '../stores'
+  import { active_category, active_element, color_scale, heatmap } from '../stores'
   import { Element } from '../types'
 
   export let element: Element
   export let style = ``
   export let show_number = true
   export let show_name = true
-  export let color = ``
   export let value: number | undefined = undefined
   export let precision = 2
 
   $: category = element.category.replaceAll(` `, `-`)
+
+  $: color = $heatmap ? (value ? $color_scale?.(value) : `transparent`) : undefined
 </script>
 
-<div
+<a
+  href={element.name.toLowerCase()}
   class="element {category}"
   class:active={$active_category === element.category.replaceAll(` `, `-`) ||
     $active_element?.name === element.name}
@@ -39,7 +40,7 @@
       {element.name}
     </span>
   {/if}
-</div>
+</a>
 
 <style>
   .element {
@@ -51,6 +52,7 @@
     place-content: center;
     background-color: var(--experimental-bg-color);
     border-radius: 1pt;
+    color: white;
   }
   .element.active,
   .element:hover {
