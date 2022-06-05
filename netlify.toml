@@ -4,4 +4,4 @@ publish = "build"
 
 [build.environment]
 NODE_VERSION = "18.0.0"
-YARN_VERSION = "1.22.10"
+YARN_VERSION = "1.22.19"
