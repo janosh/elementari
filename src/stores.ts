@@ -7,6 +7,10 @@ import { Element } from './types'
 export const active_category = writable<string | null>(null)
 
 export const active_element = writable<Element | null>(null)
+export const last_element = writable<Element | null>(null)
+active_element.subscribe((el) => {
+  if (el) last_element.set(el)
+})
 
 export const heatmap = writable<string | null>(null)
 

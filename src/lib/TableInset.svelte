@@ -9,8 +9,7 @@
 
 <style>
   aside {
-    width: 100%;
-    height: 100%;
+    display: grid;
     box-sizing: border-box;
   }
 </style>

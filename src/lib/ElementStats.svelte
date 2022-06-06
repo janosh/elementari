@@ -1,48 +1,48 @@
 <script lang="ts">
-  import { active_element as element } from '../stores'
+  import { last_element } from '../stores'
 
   export let padding = `1vw 3vw`
   export let precision = 2
+  $: element = $last_element
 </script>
 
-{#if $element}
-  <h2 style:padding>
-    {$element?.number} - {$element?.name} <small>{$element?.category}</small>
-  </h2>
-  <div style:padding>
-    <section>
-      <p>
-        Atomic Mass
-        <abbr title="Dalton aka atomic mass unit">(u)</abbr>
-      </p>
-      <strong>{parseFloat($element?.atomic_mass?.toFixed(precision))}</strong>
-    </section>
-    <section>
-      <p>
-        Density
-        <abbr title="grams per cubic centimeter">(g/cm&sup3;)</abbr>
-      </p>
-      <strong>{parseFloat($element?.density?.toFixed(precision))}</strong>
-    </section>
-    <section>
-      <p>Phase</p>
-      <strong>{$element?.phase}</strong>
-    </section>
-    <section>
-      <p>Year of Discovery</p>
-      <strong>
-        {$element?.year}
-      </strong>
-    </section>
+{#if element}
+  <div style:padding style="overflow: hidden;">
+    <h2>
+      {element.number} - {element.name} <small>{element.category}</small>
+    </h2>
+    <div style="display: flex;">
+      <section>
+        <p>
+          Atomic Mass
+          <abbr title="Dalton aka atomic mass unit">(u)</abbr>
+        </p>
+        <strong>{parseFloat(element.atomic_mass?.toFixed(precision))}</strong>
+      </section>
+      <section>
+        <p>
+          Density
+          <abbr title="grams per cubic centimeter">(g/cm&sup3;)</abbr>
+        </p>
+        <strong>{parseFloat(element.density?.toFixed(precision))}</strong>
+      </section>
+      <section>
+        <p>Phase</p>
+        <strong>{element.phase}</strong>
+      </section>
+      <section>
+        <p>Year of Discovery</p>
+        <strong>
+          {element.year}
+        </strong>
+      </section>
+    </div>
   </div>
 {:else}
   <h3 style="text-align: center;">Try hovering an element!</h3>
 {/if}
 
 <style>
-  div {
-    display: flex;
-  }
   div > section {
     width: 25%;
   }
@@ -55,21 +55,21 @@
     font-size: clamp(6pt, 1.2vw, 15pt);
   }
   h2 {
-    margin: 0 0 2vw;
     font-size: clamp(9pt, 3vw, 25pt);
     white-space: nowrap;
   }
   h2 small {
     margin-left: 8pt;
     font-weight: 100;
+    opacity: 0.7;
   }
   abbr {
     font-size: 0.9vw;
     text-decoration: none;
   }
   h3 {
-    margin: 0 0 2vw;
-    font-size: clamp(9pt, 3vw, 25pt);
+    font-size: clamp(9pt, 3vw, 20pt);
     white-space: nowrap;
+    align-self: center;
   }
 </style>

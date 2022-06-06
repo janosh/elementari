@@ -11,7 +11,7 @@
 
   $: category = element.category.replaceAll(` `, `-`)
 
-  $: color = $heatmap ? (value ? $color_scale?.(value) : `transparent`) : undefined
+  $: bg_color = value ? $color_scale(value) : `transparent`
 </script>
 
 <a
@@ -21,7 +21,8 @@
     $active_element?.name === element.name}
   {style}
   on:mouseenter
-  style:background-color={color}
+  on:mouseleave
+  style:background-color={$heatmap ? bg_color : null}
 >
   {#if show_number}
     <span class="atomic-number">

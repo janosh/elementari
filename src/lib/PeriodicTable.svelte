@@ -14,7 +14,7 @@
 <div class="periodic-table">
   <TableInset>
     {#if $heatmap}
-      <ScatterPlot />
+      <ScatterPlot on:hover={(e) => ($active_element = e.detail.element)} />
     {:else}
       <ElementStats />
     {/if}
@@ -24,6 +24,7 @@
     <ChemicalElement
       {element}
       on:mouseenter={() => ($active_element = element)}
+      on:mouseleave={() => ($active_element = null)}
       show_name={show_names}
       style="grid-column: {element.column}; grid-row: {element.row};"
       value={element[$heatmap]}

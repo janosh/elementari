@@ -7,7 +7,7 @@
   export let fill = `gray`
   export let active = false
 
-  const tX = tweened(0, { duration: 400, easing: cubicOut, local: true })
+  const tX = tweened(0, { duration: 400, easing: cubicOut })
   const tY = tweened(0, { duration: 400, easing: cubicOut })
 
   $: tX.set(x)

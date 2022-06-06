@@ -1,6 +1,7 @@
 <script lang="ts">
   import { extent } from 'd3-array'
   import { scaleLinear } from 'd3-scale'
+  import { createEventDispatcher } from 'svelte'
   import elements from '../periodic-table-data.ts'
   import { active_element, color_scale, heatmap } from '../stores'
   import { Element } from '../types'
@@ -9,6 +10,10 @@
 
   export let style = ``
 
+  const dispatch = createEventDispatcher<{ hover: { element: Element } }>()
+  type $$Events = { hover: CustomEvent<{ element: Element }> }
+
+  let data: [number, number, Element][]
   $: data = elements.map((el) => [el.number, el[$heatmap], el])
 
   const padding = 10 // pixels
@@ -26,7 +31,7 @@
     .domain(yrange)
     .range([height - padding, padding])
 
-  let scaled_data: [number, number, string, Element][]
+  let scaled_data: [number, number, Element][]
   $: scaled_data = data
     .filter(([x, y]) => !(isNaN(x) || isNaN(y) || x === null || y === null))
     .map(([x, y, ...rest]) => [x_scale(x), y_scale(y), ...rest])
@@ -37,14 +42,13 @@
     <svg>
       <Line data={scaled_data} />
       {#each scaled_data as [x, y, element]}
-        {@const fill = $color_scale(y)}
         {@const active = $active_element?.name === element.name}
         <Datapoint
           {x}
           {y}
-          {fill}
-          on:mouseenter={() => ($active_element = element)}
+          fill={$color_scale?.(y)}
           {active}
+          on:mouseenter={() => dispatch(`hover`, { element })}
         />
       {/each}
     </svg>
