@@ -1,18 +1,21 @@
 <script lang="ts">
   import { active_element } from '../stores'
   import { Element } from '../types'
+  import ElementTile from './ElementTile.svelte'
 
   export let style = ``
   // element defaults to active_element store but can be pinned by passing it as prop
-  export let element: Element | null = $active_element
+  export let element: Element | undefined = undefined
 
-  $: src = `https://images-of-elements.com/s/${element?.name?.toLowerCase()}.jpg`
+  $: elem = element ?? $active_element
+
+  $: src = `https://images-of-elements.com/s/${elem?.name?.toLowerCase()}.jpg`
+  let hidden = false
+  $: src, (hidden = false) // reset hidden to false when src changes
 </script>
 
-{#if element}
-  {#key src}
-    <img {src} alt={element?.name} onerror="this.style.display='none'" {style} />
-  {/key}
+{#if elem}
+  <img {src} alt={element?.name} on:error={() => (hidden = true)} {style} {hidden} />
 {/if}
 
 <style>

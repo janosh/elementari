@@ -10,6 +10,8 @@
   let x_angle = 0
   let y_angle = 0
   let auto_rotate: 'x' | 'y' | 'both' | 'none' = `none`
+  let selected: string[] = []
+  $: $heatmap = heatmap_labels[selected[0]]
 </script>
 
 <svelte:window bind:innerWidth={windowWidth} />
@@ -19,8 +21,7 @@
 <Select
   options={Object.keys(heatmap_labels)}
   maxSelect={1}
-  on:add={(e) => ($heatmap = heatmap_labels[e.detail.option])}
-  on:remove={() => ($heatmap = null)}
+  bind:selected
   placeholder="Select a heat map"
 />
 

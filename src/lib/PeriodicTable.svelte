@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { category_colors } from '../colors'
   import elements from '../periodic-table-data.ts'
-  import { active_element, heatmap } from '../stores'
-  import ChemicalElement from './ChemicalElement.svelte'
+  import { active_element, color_scale, heatmap } from '../stores'
   import ColorCustomizer from './ColorCustomizer.svelte'
   import ElementPhoto from './ElementPhoto.svelte'
   import ElementStats from './ElementStats.svelte'
+  import ElementTile from './ElementTile.svelte'
   import ScatterPlot from './ScatterPlot.svelte'
   import TableInset from './TableInset.svelte'
 
@@ -21,14 +22,18 @@
   </TableInset>
 
   {#each elements as element}
-    <ChemicalElement
-      {element}
+    {@const value = element[$heatmap]}
+    {@const heatmap_color = value ? $color_scale(value) : `transparent`}
+    {@const default_color = category_colors[element.category.replaceAll(` `, `-`)]}
+    {@const bg_color = $heatmap ? heatmap_color : default_color}
+    <a
+      href={element.name.toLowerCase()}
+      style="grid-column: {element.column}; grid-row: {element.row};"
       on:mouseenter={() => ($active_element = element)}
       on:mouseleave={() => ($active_element = null)}
-      show_name={show_names}
-      style="grid-column: {element.column}; grid-row: {element.row};"
-      value={element[$heatmap]}
-    />
+    >
+      <ElementTile {element} show_name={show_names} {value} {bg_color} />
+    </a>
   {/each}
   <div class="spacer" />
 

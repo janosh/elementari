@@ -1,26 +1,13 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
+  import { category_colors } from '../colors'
   import { active_category } from '../stores'
 
   export let open = false
   export let collapsible = true
 
-  const custom_colors: Record<string, string> = {
-    'diatomic-nonmetal': `#ff8c00`, // darkorange
-    'noble-gas': `#9932cc`, // darkorchid
-    'alkali-metal': `#006400`, // darkgreen
-    'alkaline-earth-metal': `#483d8b`, // darkslateblue
-    metalloid: `#b8860b`, // darkgoldenrod
-    'polyatomic-nonmetal': `#a52a2a`, // brown
-    'transition-metal': `#008080`, // teal
-    'post-transition-metal': `#938d4a`,
-    lanthanide: `#58748e`,
-    actinide: `#6495ed`, // cornflowerblue
-    experimental: `#808080`, // gray
-  }
-
   $: if (typeof document !== `undefined`) {
-    for (const [key, val] of Object.entries(custom_colors)) {
+    for (const [key, val] of Object.entries(category_colors)) {
       document.documentElement.style.setProperty(`--${key}-bg-color`, val)
     }
   }
@@ -35,7 +22,7 @@
     Customize Colors
   </h2>
   {#if open || !collapsible}
-    {#each Object.keys(custom_colors) as category}
+    {#each Object.keys(category_colors) as category}
       <label
         for="{category}-color"
         transition:fade={{ duration: 200 }}
@@ -44,7 +31,11 @@
         on:mouseleave={() => ($active_category = null)}
         on:blur={() => ($active_category = null)}
       >
-        <input type="color" id="{category}-color" bind:value={custom_colors[category]} />
+        <input
+          type="color"
+          id="{category}-color"
+          bind:value={category_colors[category]}
+        />
         {category.replaceAll(`-`, ` `)}
       </label>
     {/each}

@@ -31,7 +31,7 @@
 
 <h1>{element.name}</h1>
 <h2>{element.category}</h2>
-{selected}
+
 <Select
   options={Object.keys(heatmap_labels)}
   maxSelect={1}
@@ -47,10 +47,11 @@
 
 <div class="properties">
   {#each key_vals as [label, value]}
-    <div>
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </div>
+    {#if value}<div>
+        <strong>{value}</strong>
+        <small>{label}</small>
+      </div>
+    {/if}
   {/each}
 </div>
 
@@ -84,7 +85,7 @@
     place-content: center;
   }
   div.properties strong {
-    font-size: 16pt;
+    font-size: 14pt;
   }
   div.properties small {
     display: block;

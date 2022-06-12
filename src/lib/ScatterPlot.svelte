@@ -31,22 +31,23 @@
     .domain(yrange)
     .range([height - padding, padding])
 
-  let scaled_data: [number, number, Element][]
+  let scaled_data: [number, number, string, Element][]
+  // make sure to apply colorscale to y values before scaling
   $: scaled_data = data
     .filter(([x, y]) => !(isNaN(x) || isNaN(y) || x === null || y === null))
-    .map(([x, y, ...rest]) => [x_scale(x), y_scale(y), ...rest])
+    .map(([x, y, elem]) => [x_scale(x), y_scale(y), $color_scale?.(y), elem])
 </script>
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
   {#if width && height}
     <svg>
       <Line data={scaled_data} />
-      {#each scaled_data as [x, y, element]}
+      {#each scaled_data as [x, y, fill, element]}
         {@const active = $active_element?.name === element.name}
         <Datapoint
           {x}
           {y}
-          fill={$color_scale?.(y)}
+          {fill}
           {active}
           on:mouseenter={() => dispatch(`hover`, { element })}
         />

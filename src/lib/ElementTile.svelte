@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { active_category, active_element, color_scale, heatmap } from '../stores'
+  import { active_category, active_element } from '../stores'
   import { Element } from '../types'
 
   export let element: Element
+  export let bg_color: string
   export let style = ``
   export let show_number = true
   export let show_name = true
@@ -10,19 +11,14 @@
   export let precision = 2
 
   $: category = element.category.replaceAll(` `, `-`)
-
-  $: bg_color = value ? $color_scale(value) : `transparent`
 </script>
 
-<a
-  href={element.name.toLowerCase()}
-  class="element {category}"
+<div
+  class="element-tile {category}"
   class:active={$active_category === element.category.replaceAll(` `, `-`) ||
     $active_element?.name === element.name}
   {style}
-  on:mouseenter
-  on:mouseleave
-  style:background-color={$heatmap ? bg_color : null}
+  style:background-color={bg_color}
 >
   {#if show_number}
     <span class="atomic-number">
@@ -41,10 +37,10 @@
       {element.name}
     </span>
   {/if}
-</a>
+</div>
 
 <style>
-  .element {
+  div.element-tile {
     position: relative;
     transition: 0.4s;
     aspect-ratio: 1;
@@ -55,11 +51,11 @@
     border-radius: 1pt;
     color: white;
   }
-  .element.active,
-  .element:hover {
+  div.element-tile.active,
+  div.element-tile:hover {
     filter: brightness(130%);
   }
-  .element span {
+  div.element-tile span {
     line-height: 1em;
   }
   .atomic-number {
@@ -83,37 +79,5 @@
   }
   span.name {
     font-size: max(5pt, min(7pt, 0.65vw));
-  }
-  /* category colors */
-  /* onMount values defined in app.css, controlled by ColorCustomizer.svelte */
-  .element.diatomic-nonmetal {
-    background-color: var(--diatomic-nonmetal-bg-color);
-  }
-  .element.noble-gas {
-    background-color: var(--noble-gas-bg-color);
-  }
-  .element.alkali-metal {
-    background-color: var(--alkali-metal-bg-color);
-  }
-  .element.alkaline-earth-metal {
-    background-color: var(--alkaline-earth-metal-bg-color);
-  }
-  .element.metalloid {
-    background-color: var(--metalloid-bg-color);
-  }
-  .element.polyatomic-nonmetal {
-    background-color: var(--polyatomic-nonmetal-bg-color);
-  }
-  .element.transition-metal {
-    background-color: var(--transition-metal-bg-color);
-  }
-  .element.post-transition-metal {
-    background-color: var(--post-transition-metal-bg-color);
-  }
-  .element.lanthanide {
-    background-color: var(--lanthanide-bg-color);
-  }
-  .element.actinide {
-    background-color: var(--actinide-bg-color);
   }
 </style>

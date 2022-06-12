@@ -8,3 +8,6 @@ package
 
 # deploy config
 .netlify
+
+# screen recordings
+*.mp4
