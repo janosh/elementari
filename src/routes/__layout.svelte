@@ -1,11 +1,18 @@
 <script lang="ts">
+  import { page } from '$app/stores'
   import GitHubCorner from 'svelte-github-corner'
   import '../app.css'
 </script>
 
 <GitHubCorner href="https://github.com/janosh/periodic-table" />
-
-<slot />
+{#if $page.url.pathname !== `/`}
+  <a href="/" class="back" sveltekit:prefetch>&laquo; back</a>
+  <main>
+    <slot />
+  </main>
+{:else}
+  <slot />
+{/if}
 
 <footer>
   <a href="https://github.com/janosh/periodic-table/blob/main/license">
@@ -29,8 +36,20 @@
     opacity: 0.7;
     padding: 1ex;
   }
-  footer {
-    margin: 6em 0 0;
-    text-align: center;
+  main {
+    margin: auto;
+    max-width: 50em;
+  }
+  a.back {
+    padding: 2pt 1ex;
+    border-radius: 4pt;
+    background: rgba(255, 255, 255, 0.1);
+    transition: color 0.3s, background-color 0.3s;
+    position: absolute;
+    top: 2em;
+    left: 2em;
+  }
+  a.back:hover {
+    background: rgba(255, 255, 255, 0.2);
   }
 </style>
