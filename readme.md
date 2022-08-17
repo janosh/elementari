@@ -5,6 +5,8 @@
 
 Interactive Periodic Table component written in Svelte.
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/janosh/periodic-table?file=readme.md)
+
 ![Screenshot of periodic table](static/2022-08-08-screenshot.png)
 
 ## Heatmap
