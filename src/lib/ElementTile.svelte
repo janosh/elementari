@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { pretty_num } from './labels'
+
   import { active_category, active_element, last_element } from './stores'
   import type { ChemicalElement } from './types'
 
@@ -7,7 +9,6 @@
   export let show_number = true
   export let show_name = true
   export let value: number | undefined = undefined
-  export let precision = 2
 
   $: category = element.category.replaceAll(` `, `-`)
   // background color defaults to category color (initialized in colors.ts, user editable in ColorCustomizer.ts)
@@ -30,7 +31,7 @@
   </span>
   {#if value}
     <span class="value">
-      {parseFloat(value.toFixed(precision))}
+      {pretty_num(value)}
     </span>
   {:else if show_name}
     <span class="name">

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { bisector, extent } from 'd3-array'
   import { scaleLinear } from 'd3-scale'
-  import { element_property_labels } from './labels'
+  import { element_property_labels, pretty_num } from './labels'
   import Line from './Line.svelte'
   import elements from './periodic-table-data.ts'
   import Datapoint from './ScatterPoint.svelte'
@@ -111,7 +111,7 @@
           <foreignObject x={x + 5} {y} width="170" height="100">
             <strong>{atomic_num} - {tooltip_point[2].name}</strong>
             {#if raw_y}
-              <br />{heatmap_label} = {parseFloat(raw_y.toFixed(2))}{heatmap_unit ?? ``}
+              <br />{heatmap_label} = {pretty_num(raw_y)}{heatmap_unit ?? ``}
             {/if}
           </foreignObject>
         {/if}
@@ -131,6 +131,7 @@
     fill: white;
     font-weight: lighter;
     overflow: visible;
+    z-index: 1;
   }
   g.tick {
     font-size: 9pt;

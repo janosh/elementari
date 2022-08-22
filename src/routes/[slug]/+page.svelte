@@ -2,7 +2,7 @@
   import BohrAtom from '$lib/BohrAtom.svelte'
   import ElementPhoto from '$lib/ElementPhoto.svelte'
   import ElementStats from '$lib/ElementStats.svelte'
-  import { element_property_labels, heatmap_labels } from '$lib/labels'
+  import { element_property_labels, heatmap_labels, pretty_num } from '$lib/labels'
   import PropertySelect from '$lib/PropertySelect.svelte'
   import ScatterPlot from '$lib/ScatterPlot.svelte'
   import { active_element } from '$lib/stores'
@@ -15,13 +15,11 @@
 
   $: key_vals = Object.entries(element_property_labels).map(([key, [label, unit]]) => {
     let value = element[key as keyof ChemicalElement]
-    if (typeof value === `number`) value = parseFloat(value.toFixed(2))
+    if (typeof value === `number`) {
+      value = pretty_num(value)
+    }
     if (Array.isArray(value)) value = value.join(`, `)
     if (unit) {
-      if (label === `Density`) {
-        if (element.phase === `Gas`) unit = `g/liter`
-        else unit = `g/cm³`
-      }
       value = `${value} &thinsp;${unit}`
     }
     return [label, value]
@@ -46,7 +44,7 @@
 <PropertySelect selected={[initial_heatmap]} />
 
 <section>
-  <ElementPhoto style="border-radius: 4pt;" />
+  <ElementPhoto />
 
   <ScatterPlot ylim={[0, null]} />
 </section>
