@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { last_element } from '../stores'
+  import { last_element } from './stores'
 
   export let padding = `1vw 2vw`
   export let precision = 2

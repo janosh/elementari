@@ -2,17 +2,16 @@
   import BohrAtom from '$lib/BohrAtom.svelte'
   import ElementPhoto from '$lib/ElementPhoto.svelte'
   import ElementStats from '$lib/ElementStats.svelte'
+  import { element_property_labels, heatmap_labels } from '$lib/labels'
   import PropertySelect from '$lib/PropertySelect.svelte'
   import ScatterPlot from '$lib/ScatterPlot.svelte'
-  import { element_property_labels, heatmap_labels } from '../../labels'
-  import { active_element } from '../../stores'
-  import type { ChemicalElement } from '../../types'
+  import { active_element } from '$lib/stores'
+  import type { ChemicalElement } from '$lib/types'
   import type { PageData } from './$types'
 
   export let data: PageData
 
-  $: ({ element } = data)
-  $: $active_element = element
+  $: [$active_element, element] = [data.element, data.element]
 
   $: key_vals = Object.entries(element_property_labels).map(([key, [label, unit]]) => {
     let value = element[key as keyof ChemicalElement]
