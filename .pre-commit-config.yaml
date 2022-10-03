@@ -33,4 +33,4 @@ repos:
       - id: codespell
         stages: [commit, commit-msg]
         exclude: yarn.lock
-        args: [--ignore-words-list, 'te,ba,nd']
+        args: [--ignore-words-list, 'te,ba,nd,ore']
