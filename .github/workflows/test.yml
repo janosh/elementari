@@ -18,13 +18,13 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@v3
         with:
-          cache: yarn
+          cache: pnpm
 
       - name: Install dependencies
         run: |
-          yarn
+          pnpm
           npx playwright install
 
       - name: Run tests
         id: tests
-        run: yarn test
+        run: pnpm test
