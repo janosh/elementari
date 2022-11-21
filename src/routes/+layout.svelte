@@ -12,14 +12,7 @@
 
 <GitHubCorner href={repository} />
 
-{#if $page.url.pathname !== `/`}
-  <a href="." class="back">&laquo; back</a>
-  <main>
-    <slot />
-  </main>
-{:else}
-  <slot />
-{/if}
+<slot />
 
 <Footer />
 
@@ -39,21 +32,5 @@
   :global(div.multiselect input::placeholder) {
     opacity: 0.7;
     padding: 1ex;
-  }
-  main {
-    margin: auto;
-    max-width: 75em;
-  }
-  a.back {
-    padding: 2pt 1ex;
-    border-radius: 4pt;
-    background: rgba(255, 255, 255, 0.1);
-    transition: color 0.3s, background-color 0.3s;
-    position: absolute;
-    top: 2em;
-    left: 2em;
-  }
-  a.back:hover {
-    background: rgba(255, 255, 255, 0.2);
   }
 </style>
