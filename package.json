@@ -2,7 +2,7 @@
   "name": "periodic-table",
   "description": "Interactive periodic table of elements",
   "author": "Janosh Riebesell <janosh.riebesell@gmail.com>",
-  "homepage": "https://ptable-elements.netlify.app",
+  "homepage": "https://janosh.github.io/periodic-table",
   "repository": "https://github.com/janosh/periodic-table",
   "license": "MIT",
   "version": "0.1.0",
