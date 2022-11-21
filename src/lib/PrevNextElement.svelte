@@ -13,7 +13,7 @@
 
 <ul data-sveltekit-noscroll>
   <li>
-    <a href="/{prev.name.toLowerCase()}">
+    <a href={prev.name.toLowerCase()}>
       <h3>
         <Icon icon="carbon:previous-filled" inline />
         Previous
@@ -23,7 +23,7 @@
     </a>
   </li>
   <li style="text-align: right;">
-    <a href="/{next.name.toLowerCase()}">
+    <a href={next.name.toLowerCase()}>
       <h3>
         Next
         <Icon icon="carbon:next-filled" inline />

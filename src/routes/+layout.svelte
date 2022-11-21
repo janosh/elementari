@@ -2,13 +2,18 @@
   import { page } from '$app/stores'
   import Footer from '$lib/Footer.svelte'
   import GitHubCorner from 'svelte-github-corner'
-  import { repository } from '../../package.json'
+  import { repository, name } from '../../package.json'
   import '../app.css'
 </script>
 
+<svelte:head>
+  <base href={import.meta.env.CI ? `/${name}/` : ``} />
+</svelte:head>
+
 <GitHubCorner href={repository} />
+
 {#if $page.url.pathname !== `/`}
-  <a href="/" class="back">&laquo; back</a>
+  <a href="." class="back">&laquo; back</a>
   <main>
     <slot />
   </main>

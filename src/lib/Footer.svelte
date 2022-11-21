@@ -19,7 +19,7 @@
     </a>
   {/if}
   <strong>&ensp;&bull;&ensp;</strong>
-  <a href="/bohr-atoms">
+  <a href="bohr-atoms">
     <Icon icon="mdi:atom-variant" />
     Bohr Atoms
   </a>

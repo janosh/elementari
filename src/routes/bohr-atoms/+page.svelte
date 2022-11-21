@@ -31,7 +31,7 @@
   {#each elements as { shells, symbol, number, name }}
     <li>
       <strong>
-        <a href="/{name.toLowerCase()}">{number}</a>
+        <a href={name.toLowerCase()}>{number}</a>
       </strong>
       <BohrAtom {shells} {symbol} {name} {electron_speed} />
     </li>
