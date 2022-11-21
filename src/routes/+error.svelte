@@ -1,28 +1,22 @@
 <script lang="ts">
-  import { dev } from '$app/environment'
   import { page } from '$app/stores'
+  import { homepage, name } from '../../package.json'
 </script>
 
 <svelte:head>
-  <title>{$page.status}</title>
+  <title>Error {$page.status} &bull; {name}</title>
 </svelte:head>
 
 <div>
-  {#if $page.status === 404}
-    <h1>👨‍🔬 🥽 The element of surprise! 🧪 💥</h1>
-    <h2>⛔ &nbsp;{$page.status}: Page '{$page.params.slug}' not found</h2>
+  <h1>Error {$page.status}: {$page.error?.message}</h1>
+  {#if $page.status >= 500}
     <p>
-      Back to
-      <a href="/">landing page</a>.
+      If page reloading doesn't help, please raise an issue on
+      <a href="{homepage}/issues" target="_blank" rel="noreferrer">GitHub</a>. Thanks! 🙏
     </p>
-  {:else}
-    <h1>⛔ &nbsp;{$page.status}</h1>
   {/if}
 
-  {#if dev && $page.error?.stack}
-    <h2>Stack Trace</h2>
-    <pre>{$page.error.stack}</pre>
-  {/if}
+  <p>Back to <a href=".">landing page</a>.</p>
 </div>
 
 <style>
@@ -32,22 +26,10 @@
     padding: 5em 3em 1em;
     margin: auto;
     text-align: center;
-    min-height: 50vh;
-  }
-  h2 {
-    margin-top: 2em;
   }
   p {
     text-align: center;
     max-width: 35em;
     margin: auto;
-  }
-  pre {
-    overflow: scroll;
-    font-size: 0.9em;
-    white-space: pre-wrap;
-    background: var(--accentBg);
-    padding: 5pt 1em;
-    border-radius: 3pt;
   }
 </style>
