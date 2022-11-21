@@ -1,6 +1,8 @@
 name: GitHub Pages
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   # GH pages doesn't support PR previews yet but plans to add
