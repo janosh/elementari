@@ -2,7 +2,7 @@
   import BohrAtom from '$lib/BohrAtom.svelte'
   import elements from '$lib/element-data.yml'
 
-  let electron_speed = 2
+  let electron_speed = 1
 </script>
 
 <h1>Bohr Atoms</h1>
