@@ -93,7 +93,7 @@
       transform: rotateX(360deg) rotateY(360deg);
     }
   }
-  a[href='/bohr-atoms'] {
+  a[href='bohr-atoms'] {
     position: absolute;
     bottom: 93%;
     right: 8%;
