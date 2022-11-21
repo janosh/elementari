@@ -75,7 +75,7 @@
   </p>
 {/if}
 
-<PropertySelect selected={[initial_heatmap]} />
+<PropertySelect value={initial_heatmap} />
 
 <section class="viz">
   <ElementPhoto
