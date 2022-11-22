@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths'
   import { page } from '$app/stores'
   import { homepage, name } from '../../package.json'
 </script>
@@ -16,7 +17,7 @@
     </p>
   {/if}
 
-  <p>Back to <a href=".">landing page</a>.</p>
+  <p>Back to <a href={base}>landing page</a>.</p>
 </div>
 
 <style>

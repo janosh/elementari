@@ -10,5 +10,9 @@ export default {
 
   kit: {
     adapter: adapter(),
+
+    paths: {
+      base: import.meta.env?.CI ? `/periodic-table/` : ``,
+    },
   },
 }

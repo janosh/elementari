@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { base } from '$app/paths'
   import Footer from '$lib/Footer.svelte'
   import GitHubCorner from 'svelte-github-corner'
-  import { repository, name } from '../../package.json'
+  import { repository } from '../../package.json'
   import '../app.css'
 </script>
 
 <svelte:head>
-  <base href={import.meta.env.CI ? `/${name}/` : ``} />
+  <base href={base} />
 </svelte:head>
 
 <GitHubCorner href={repository} />

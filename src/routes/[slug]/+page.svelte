@@ -34,7 +34,7 @@
   // set atomic radius as initial heatmap
   const initial_heatmap = Object.keys(heatmap_labels)[1] as keyof ChemicalElement
 
-  $: head_title = `${element.name} | Periodic Table`
+  $: head_title = `${element.name} &bull; Periodic Table`
 
   let orbiting = true
   let window_width: number
