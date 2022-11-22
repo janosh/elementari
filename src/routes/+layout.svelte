@@ -8,6 +8,8 @@
 
 <svelte:head>
   <base href={base} />
+  <link rel="icon" href="{base}/favicon.svg" />
+  <link rel="stylesheet" href="{base}/prism-vsc-dark-plus.css" />
 </svelte:head>
 
 <GitHubCorner href={repository} />
