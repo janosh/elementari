@@ -12,7 +12,7 @@ export default {
     adapter: adapter(),
 
     paths: {
-      base: import.meta.env?.CI ? `/periodic-table/` : ``,
+      base: process.env?.CI ? `/periodic-table/` : ``,
     },
   },
 }
