@@ -10,11 +10,5 @@ export default {
 
   kit: {
     adapter: adapter(),
-
-    paths: {
-      base: process.env?.CI ? `/periodic-table` : ``,
-    },
   },
 }
-
-console.log(`process.env`, process.env)

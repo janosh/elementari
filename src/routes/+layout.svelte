@@ -1,16 +1,9 @@
 <script lang="ts">
-  import { base } from '$app/paths'
   import Footer from '$lib/Footer.svelte'
   import GitHubCorner from 'svelte-github-corner'
   import { repository } from '../../package.json'
   import '../app.css'
 </script>
-
-<svelte:head>
-  <base href={base} />
-  <link rel="icon" href="{base}/favicon.svg" />
-  <link rel="stylesheet" href="{base}/prism-vsc-dark-plus.css" />
-</svelte:head>
 
 <GitHubCorner href={repository} />
 
