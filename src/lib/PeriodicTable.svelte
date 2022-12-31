@@ -51,7 +51,7 @@
       />
     </a>
   {/each}
-  <!-- provide vertical offset for lathanices + actinides -->
+  <!-- provide vertical offset for lanthanides + actinides -->
   <div class="spacer" />
 
   {#if show_photo}
@@ -66,8 +66,9 @@
   div.periodic-table {
     display: grid;
     grid-template-columns: repeat(18, 1fr);
-    gap: min(0.2vw, 3pt);
+    gap: 0.3cqw;
     position: relative;
+    container-type: inline-size;
   }
   div.spacer {
     grid-row: 8;
