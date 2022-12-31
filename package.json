@@ -15,7 +15,9 @@
     "preview": "vite preview",
     "serve": "vite build && vite preview",
     "check": "svelte-check",
-    "test": "vitest --run tests/unit/*.ts && playwright test tests/*.ts"
+    "test": "vitest --run tests/unit/*.ts && playwright test tests/*.ts",
+    "test:unit": "vitest tests/unit/*.ts",
+    "test:e2e": "playwright test tests/*.ts"
   },
   "devDependencies": {
     "@iconify/svelte": "^3.0.1",
