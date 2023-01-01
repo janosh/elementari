@@ -2,7 +2,7 @@
   import Icon from './Icon.svelte'
 
   export let element_name: string | null = null
-  // style applies to missing_msg div
+  // style applies to img and missing_msg div
   export let style: string | null = null
   export let missing_msg = `No image for `
 
