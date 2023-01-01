@@ -88,7 +88,7 @@
 
     <!-- on:mouseleave makes ScatterPlot always show current element unless user actively hovers another element -->
     <ScatterPlot
-      ylim={[0, null]}
+      y_lim={[0, null]}
       on:mouseleave={() => ($active_element = element)}
       style="min-height: min(50vmin, 400px);"
     />

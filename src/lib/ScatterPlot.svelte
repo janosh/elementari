@@ -1,16 +1,17 @@
 <script lang="ts">
   import { bisector, extent } from 'd3-array'
+  import type { ScaleLinear } from 'd3-scale'
   import { scaleLinear } from 'd3-scale'
   import elements from './element-data.yml'
   import { element_property_labels, pretty_num } from './labels'
   import Line from './Line.svelte'
   import ScatterPoint from './ScatterPoint.svelte'
-  import { active_element, color_scale, heatmap } from './stores'
+  import { active_element, heatmap } from './stores'
   import type { ChemicalElement, PlotPoint } from './types'
 
   export let style = ``
-  export let xlim: [number | null, number | null] = [null, null]
-  export let ylim: [number | null, number | null] = [null, null]
+  export let x_lim: [number | null, number | null] = [null, null]
+  export let y_lim: [number | null, number | null] = [null, null]
   export let pad_top = 5
   export let pad_bottom = 30
   export let pad_left = 50
@@ -18,31 +19,35 @@
   export let on_hover_point: ((point: PlotPoint) => void) | null = null
   export let x_label = `Atomic Number`
   export let x_label_y = 0
+  export let color_scale: ScaleLinear<number, number, never> | null = null
+  // either array of length 118 (one heat value for each element) or object with
+  // element symbol as key and heat value as value
+  export let y_values: number[]
 
   let data_points: PlotPoint[]
-  $: data_points = elements.map((el) => [el.number, el[$heatmap], el])
+  $: data_points = elements.map((elem, idx) => [elem.number, y_values[idx], elem])
 
   const axis_label_offset = { x: 15, y: 20 } // pixels
 
   let width: number
   let height: number
   // determine x/y-range from data but default to x/y-lim if defined
-  $: xrange = extent(data_points, (point) => point[0]).map((x, idx) => xlim[idx] ?? x)
-  $: yrange = extent(data_points, (point) => point[1]).map((y, idx) => ylim[idx] ?? y)
+  $: x_range = extent(data_points, (point) => point[0]).map((x, idx) => x_lim[idx] ?? x)
+  $: y_range = extent(data_points, (point) => point[1]).map((y, idx) => y_lim[idx] ?? y)
 
   $: x_scale = scaleLinear()
-    .domain(xrange)
+    .domain(x_range)
     .range([pad_left, width - pad_right])
 
   $: y_scale = scaleLinear()
-    .domain(yrange)
+    .domain(y_range)
     .range([height - pad_bottom, pad_top])
 
   let scaled_data: [number, number, string, ChemicalElement][]
   // make sure to apply colorscale to y values before scaling
   $: scaled_data = data_points
     .filter(([x, y]) => !(isNaN(x) || isNaN(y) || x === null || y === null))
-    .map(([x, y, elem]) => [x_scale(x), y_scale(y), $color_scale?.(y), elem])
+    .map(([x, y, elem]) => [x_scale(x), y_scale(y), color_scale?.(y), elem])
 
   $: [heatmap_label, heatmap_unit] = element_property_labels[$heatmap] ?? []
 
@@ -78,7 +83,7 @@
     >
       <Line
         points={scaled_data.map(([x, y]) => [x, y])}
-        origin={[x_scale(xrange[0]), y_scale(yrange[0])]}
+        origin={[x_scale(x_range[0]), y_scale(y_range[0])]}
       />
       {#each scaled_data as [x, y, fill]}
         <ScatterPoint {x} {y} {fill} />
