@@ -6,7 +6,7 @@
 
   export let style = ``
 
-  $: element = $last_element // used to decide whether to show user tip to hover an element tile
+  $: element = $last_element // variable needed to decide whether to show user tip
 
   const icon_phase_map = {
     Solid: `mdi:cube-outline`,

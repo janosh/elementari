@@ -4,6 +4,7 @@
   import EasterEgg from '$lib/EasterEgg.svelte'
   import elements from '$lib/element-data.yml'
   import ElementStats from '$lib/ElementStats.svelte'
+  import { property_labels } from '$lib/labels'
   import PeriodicTable from '$lib/PeriodicTable.svelte'
   import PropertySelect from '$lib/PropertySelect.svelte'
   import ScatterPlot from '$lib/ScatterPlot.svelte'
@@ -17,6 +18,8 @@
   let x_angle = 0
   let y_angle = 0
   let auto_rotate: 'x' | 'y' | 'both' | 'none' = `none`
+
+  $: [y_label, y_unit] = property_labels[$heatmap] ?? []
 </script>
 
 <svelte:head>
@@ -51,6 +54,8 @@
         <ScatterPlot
           y_lim={[0, null]}
           y_values={elements.map((el) => el[$heatmap])}
+          {y_label}
+          {y_unit}
           on_hover_point={(point) => ($active_element = point[2])}
           x_label_y={42}
           {color_scale}

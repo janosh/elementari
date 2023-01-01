@@ -3,10 +3,10 @@
   import type { ScaleLinear } from 'd3-scale'
   import { scaleLinear } from 'd3-scale'
   import elements from './element-data.yml'
-  import { element_property_labels, pretty_num } from './labels'
+  import { pretty_num } from './labels'
   import Line from './Line.svelte'
   import ScatterPoint from './ScatterPoint.svelte'
-  import { active_element, heatmap } from './stores'
+  import { active_element } from './stores'
   import type { ChemicalElement, PlotPoint } from './types'
 
   export let style = ``
@@ -23,6 +23,8 @@
   // either array of length 118 (one heat value for each element) or object with
   // element symbol as key and heat value as value
   export let y_values: number[]
+  export let y_label: string
+  export let y_unit = ``
 
   let data_points: PlotPoint[]
   $: data_points = elements.map((elem, idx) => [elem.number, y_values[idx], elem])
@@ -48,8 +50,6 @@
   $: scaled_data = data_points
     .filter(([x, y]) => !(isNaN(x) || isNaN(y) || x === null || y === null))
     .map(([x, y, elem]) => [x_scale(x), y_scale(y), color_scale?.(y), elem])
-
-  $: [heatmap_label, heatmap_unit] = element_property_labels[$heatmap] ?? []
 
   let tooltip_point: PlotPoint
   let hovered = false
@@ -109,14 +109,14 @@
             <line x1={pad_left} x2={width - pad_right} />
             <text x={pad_left - axis_label_offset.y}>
               {tick}
-              {#if heatmap_unit && idx === y_scale.ticks(5).length - 1}
-                &zwnj;&ensp;{heatmap_unit}
+              {#if y_unit && idx === y_scale.ticks(5).length - 1}
+                &zwnj;&ensp;{y_unit}
               {/if}
             </text>
           </g>
         {/each}
         <text x={-height / 2} y={13} transform="rotate(-90)" class="label y">
-          {heatmap_label ?? ``}
+          {y_label ?? ``}
         </text>
       </g>
 
@@ -129,7 +129,7 @@
             <div>
               <strong>{atomic_num} - {tooltip_point[2].name}</strong>
               {#if raw_y}
-                <br />{heatmap_label} = {pretty_num(raw_y)}{heatmap_unit ?? ``}
+                <br />{y_label} = {pretty_num(raw_y)} {y_unit ?? ``}
               {/if}
             </div>
           </foreignObject>
