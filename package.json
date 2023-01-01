@@ -18,7 +18,8 @@
     "package": "svelte-package",
     "test": "vitest --run tests/unit/*.ts && playwright test tests/*.ts",
     "test:unit": "vitest tests/unit/*.ts",
-    "test:e2e": "playwright test tests/*.ts"
+    "test:e2e": "playwright test tests/*.ts",
+    "changelog": "npx auto-changelog --package --output changelog.md --unreleased-only --hide-credit --commit-limit false"
   },
   "devDependencies": {
     "@iconify/svelte": "^3.0.1",
@@ -52,6 +53,7 @@
     "svelte-github-corner": "^0.1.0",
     "svelte-multiselect": "^8.2.1",
     "svelte-preprocess": "^5.0.0",
+    "svelte-toc": "^0.5.1",
     "svelte2tsx": "^0.6.0",
     "typescript": "^4.9.4",
     "vite": "^4.0.3",

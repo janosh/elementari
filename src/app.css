@@ -21,6 +21,12 @@ body {
   margin: auto;
   color: #eee;
 }
+main {
+  margin: auto;
+  margin-bottom: 3em;
+  width: 100%;
+  max-width: 50em;
+}
 a {
   color: cornflowerblue;
   text-decoration: none;
@@ -64,4 +70,12 @@ button {
 }
 :where(h2, h3, h4, h5, h6):hover a[aria-hidden='true'] {
   opacity: 1;
+}
+
+/* svelte-toc styles */
+aside.toc.desktop {
+  position: fixed;
+  top: 3em;
+  left: calc(50vw + 50em / 2);
+  max-width: 16em;
 }
