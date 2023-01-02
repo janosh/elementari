@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file. Dates are d
 
 <!-- auto-changelog-above -->
 
+#### [v0.1.1](https://github.com/janosh/periodic-table/compare/v0.1.0...v0.1.1)
+
+> 2023-01-01
+
+- revert #13 `src/lib/element-data.{yml -&gt; ts}` [`b3d11f9`](https://github.com/janosh/periodic-table/commit/b3d11f9218dca5a3a6b48d5387f735065e222e45)
+- add npm install cmd to readme [`278d17f`](https://github.com/janosh/periodic-table/commit/278d17f6323dc8051158c256446dc2872cade6ba)
+- move non-package components to new src/site dir [`ddeef16`](https://github.com/janosh/periodic-table/commit/ddeef16a26ae44e4d3fa997f8fa6b76eaee284de)
+
 #### 0.1.0
+
+> 2023-01-01
 
 - NPM Release [`#16`](https://github.com/janosh/periodic-table/pull/16)
 - Deploy site to GitHub Pages [`#15`](https://github.com/janosh/periodic-table/pull/15)
