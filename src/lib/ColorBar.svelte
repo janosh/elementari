@@ -71,7 +71,7 @@
     gap: var(--cbar-gap, 5pt);
     margin: var(--cbar-margin);
     padding: var(--cbar-padding);
-    width: var(--cbar-width, max-content);
+    width: var(--cbar-wrapper-width);
   }
   div.colorbar > div {
     position: relative;
