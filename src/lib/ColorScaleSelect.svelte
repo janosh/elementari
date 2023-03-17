@@ -7,6 +7,7 @@
   export let selected: string[] = [`Viridis`]
   export let minSelect: number = 0
   export let placeholder = `Select a color scale`
+  export let cbar_props: Record<string, unknown> = {}
 
   const options = Object.keys(d3sc)
     .filter((key) => key.startsWith(`interpolate`))
@@ -22,6 +23,6 @@
   {placeholder}
   {...$$props}
 >
-  <ColorBar slot="option" let:option text={option} />
-  <ColorBar slot="selected" let:option text={option} />
+  <ColorBar slot="option" let:option text={option} {...cbar_props} />
+  <ColorBar slot="selected" let:option text={option} {...cbar_props} />
 </Select>
