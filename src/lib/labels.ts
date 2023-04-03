@@ -48,6 +48,7 @@ export const heatmap_labels: Partial<Record<string, keyof ChemicalElement>> =
 export const default_precision: [string, string] = [`,.3~s`, `.3~g`]
 
 export const pretty_num = (num: number, precision?: string) => {
+  if (num === null) return ``
   if (!precision) {
     const [gt_1_fmt, lt_1_fmt] = default_precision
     return format(Math.abs(num) >= 1 ? gt_1_fmt : lt_1_fmt)(num)
