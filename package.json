@@ -27,6 +27,7 @@
     "@sveltejs/kit": "^1.15.0",
     "d3-array": "^3.2.3",
     "d3-color": "^3.1.0",
+    "d3-format": "^3.1.0",
     "d3-interpolate-path": "^2.3.0",
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.0.0",
