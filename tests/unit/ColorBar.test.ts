@@ -3,7 +3,7 @@ import * as d3sc from 'd3-scale-chromatic'
 import { describe, expect, test, vi } from 'vitest'
 import { doc_query } from '.'
 
-const valid_cscale_names = Object.keys(d3sc)
+const valid_color_scale_keys = Object.keys(d3sc)
   .map((key) => key.split(`interpolate`)[1])
   .filter(Boolean)
   .join(`, `)
@@ -49,7 +49,7 @@ describe(`ColorBar`, () => {
     })
 
     expect(spy).toHaveBeenCalledWith(
-      `Color scale 'purposely invalid color scale' not found, supported color scale names are ${valid_cscale_names}`
+      `Color scale 'purposely invalid color scale' not found, supported color scale names are ${valid_color_scale_keys}`
     )
   })
 })

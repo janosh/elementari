@@ -41,15 +41,17 @@
     }
   }
 
+  const valid_color_scale_keys = Object.keys(d3sc)
+    .map((key) => key.split(`interpolate`)[1])
+    .filter(Boolean)
+    .join(`, `)
+
   $: if (typeof color_scale == `string`) {
-    color_scale = d3sc[`interpolate${color_scale}`]
-    if (color_scale === undefined) {
-      const list_valid = Object.keys(d3sc)
-        .map((key) => key.split(`interpolate`)[1])
-        .filter(Boolean)
-        .join(`, `)
+    if (`interpolate${color_scale}` in d3sc) {
+      color_scale = d3sc[`interpolate${color_scale}`]
+    } else {
       console.error(
-        `Color scale '${color_scale}' not found, supported color scale names are ${list_valid}`
+        `Color scale '${color_scale}' not found, supported color scale names are ${valid_color_scale_keys}`
       )
     }
   }
@@ -74,7 +76,7 @@
   <!-- don't pass unsanitized user input into label! -->
   {#if label}<span style={label_style}>{@html label}</span>{/if}
   <div style:background="linear-gradient({grad_dir}, {ramped})" {style}>
-    {#each tick_labels as tick_label, idx}
+    {#each tick_labels || [] as tick_label, idx}
       <span style="left: calc(100% * {idx} / {tick_labels?.length - 1}); {tick_pos}">
         {pretty_num(tick_label)}
       </span>
