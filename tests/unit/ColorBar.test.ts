@@ -13,13 +13,13 @@ describe(`ColorBar`, () => {
     new ColorBar({
       target: document.body,
       props: {
-        text: `Test`,
+        label: `Test`,
         color_scale: `Viridis`,
         tick_labels: 5,
         range: [0, 100],
-        text_side: `left`,
+        label_side: `left`,
         style: `width: 200px;`,
-        text_style: `font-weight: bold;`,
+        label_style: `font-weight: bold;`,
         wrapper_style: `margin: 10px;`,
       },
     })
@@ -44,12 +44,12 @@ describe(`ColorBar`, () => {
     new ColorBar({
       target: document.body,
       props: {
-        color_scale: `invalid color scale`,
+        color_scale: `purposely invalid color scale`,
       },
     })
 
     expect(spy).toHaveBeenCalledWith(
-      `Color scale 'invalid color scale' not found, supported color scale names are ${valid_cscale_names}`
+      `Color scale 'purposely invalid color scale' not found, supported color scale names are ${valid_cscale_names}`
     )
   })
 })
