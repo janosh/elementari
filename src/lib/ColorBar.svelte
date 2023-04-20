@@ -51,7 +51,7 @@
       color_scale = d3sc[`interpolate${color_scale}`]
     } else {
       console.error(
-        `Color scale '${color_scale}' not found, supported color scale names are ${valid_color_scale_keys}, falling back on 'Viridis'`
+        `Color scale '${color_scale}' not found, supported color scale names are ${valid_color_scale_keys}. Falling back on 'Viridis'.`
       )
       color_scale = d3sc.interpolateViridis
     }

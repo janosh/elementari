@@ -47,7 +47,7 @@ describe(`ColorBar`, () => {
     })
 
     expect(spy).toHaveBeenCalledWith(
-      `Color scale 'purposely invalid color scale' not found, supported color scale names are ${valid_color_scale_keys}`
+      `Color scale 'purposely invalid color scale' not found, supported color scale names are ${valid_color_scale_keys}. Falling back on 'Viridis'.`
     )
   })
 })
