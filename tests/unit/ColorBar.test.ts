@@ -43,9 +43,7 @@ describe(`ColorBar`, () => {
 
     new ColorBar({
       target: document.body,
-      props: {
-        color_scale: `purposely invalid color scale`,
-      },
+      props: { color_scale: `purposely invalid color scale` },
     })
 
     expect(spy).toHaveBeenCalledWith(

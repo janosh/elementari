@@ -13,18 +13,20 @@ Here's a `ColorBar` with tick labels:
   ]
 </script>
 
-{#each bars as [color_scale, tick_side, tick_labels, range]}
-  <ColorBar
-    label="{color_scale}<br>&bull; tick side={tick_side}<br>&bull; range={range}"
-    {color_scale}
-    {tick_side}
-    {tick_labels}
-    {range}
-    label_style="white-space: nowrap; padding-right: 1em;"
-    --cbar-width="100%"
-    --cbar-padding="2em"
-  />
-{/each}
+<div style="border: 0.1px dashed white;">
+  {#each bars as [color_scale, tick_side, tick_labels, range, width]}
+    <ColorBar
+      label="{color_scale}<br>&bull; tick side={tick_side}<br>&bull; range={range}"
+      {color_scale}
+      {tick_side}
+      {tick_labels}
+      {range}
+      label_style="white-space: nowrap; padding-right: 1em;"
+      --cbar-width="100%"
+      --cbar-padding="2em"
+    />
+  {/each}
+</div>
 ```
 
 `ColorBar` supports `label_side = ['top', 'bottom', 'left', 'right']`
