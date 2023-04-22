@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { element_data, type ElementSymbol } from '$lib'
   import { Canvas, OrbitControls, T } from '@threlte/core'
-  import type { ColorRepresentation } from 'three'
-  import type { Structure } from './structure'
+  import { atomic_colors, atomic_radii, type Structure } from './structure'
 
   // output of pymatgen.core.Structure.as_dict()
   export let structure: Structure
@@ -43,13 +41,6 @@
   }
 
   const lattice = structure.lattice.matrix
-
-  const atomic_radii: Record<ElementSymbol, number> = Object.fromEntries(
-    element_data.map((el) => [el.symbol, el.atomic_radius / 2])
-  )
-  const atomic_colors: Record<ElementSymbol, ColorRepresentation> = Object.fromEntries(
-    element_data.map((el) => [el.symbol, el.jmol_color])
-  )
 
   $: ({ a, b, c } = structure.lattice)
 </script>

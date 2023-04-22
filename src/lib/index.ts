@@ -17,6 +17,7 @@ export { default as PropertySelect } from './PropertySelect.svelte'
 export { default as ScatterPlot } from './ScatterPlot.svelte'
 export { default as ScatterPoint } from './ScatterPoint.svelte'
 export { default as Structure } from './Structure.svelte'
+export { default as StructureCard } from './StructureCard.svelte'
 export { default as TableInset } from './TableInset.svelte'
 export { default as element_data } from './element-data'
 export * from './structure'
@@ -28,12 +29,12 @@ export type ElementSymbol = (typeof elem_symbols)[number]
 export type ChemicalElement = {
   'cpk-hex': string | null
   appearance: string
-  atomic_mass: number
-  atomic_radius: number
-  boiling_point: number | null
+  atomic_mass: number // in atomic units (u)
+  atomic_radius: number // in Angstrom (A)
+  boiling_point: number | null // in kelvin (K)
   category: Category
   column: number // aka group, in range 1 - 18
-  covalent_radius: number
+  covalent_radius: number // in Angstrom (A)
   density: number
   discoverer: string
   electron_affinity: number
