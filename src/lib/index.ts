@@ -44,7 +44,6 @@ export type ChemicalElement = {
   electronegativity: number | null
   first_ionization: number | null // in electron volts (eV)
   ionization_energies: number[]
-  jmol_color: number[] | null
   melting_point: number | null
   metal: boolean | null
   metalloid: boolean | null
