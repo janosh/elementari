@@ -35,7 +35,7 @@
     // if (![r, g, b].every((c) => c >= 0 && c <= 255)) {
     //   console.error(`invalid RGB color: ${clr}, parsed to rgb=${r},${g},${b}`)
     // }
-    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 // https://stackoverflow.com/a/596243
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 // https://stackoverflow.com/a/596243
   }
 
   function get_bg_color(
