@@ -1,7 +1,7 @@
 import { session_store } from 'svelte-zoo/stores'
 import { writable } from 'svelte/store'
 import type { Category, ChemicalElement } from '.'
-import { default_category_colors } from './colors'
+import { default_category_colors, default_element_colors } from './colors'
 
 export const active_category = writable<Category | null>(null)
 
@@ -19,4 +19,9 @@ export const show_icons = session_store<boolean>(`show-icons`, true)
 export const category_colors = session_store<Record<string, string>>(
   `category-colors`,
   { ...default_category_colors }
+)
+
+export const element_colors = session_store<typeof default_element_colors>(
+  `element-colors`,
+  { ...default_element_colors }
 )
