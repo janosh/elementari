@@ -17,6 +17,7 @@
     <Tooltip
       text={element_data.find((el) => el.symbol == elem)?.name}
       --zoo-tooltip-bg="rgba(255, 255, 255, 0.3)"
+      tip_style="font-size: initial; padding: 0 5pt;"
     >
       <label
         bind:this={labels[idx]}

@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { Canvas, OrbitControls, T } from '@threlte/core'
+  import { Canvas, T } from '@threlte/core'
+  import { OrbitControls } from '@threlte/extras'
+
   import { Tooltip } from 'svelte-zoo'
-  import Icon from './Icon.svelte'
-  import StructureLegend from './StructureLegend.svelte'
   import { element_color_schemes } from './colors'
+  import Icon from './Icon.svelte'
   import { element_colors } from './stores'
   import {
     alphabetical_formula,
@@ -11,6 +12,7 @@
     get_elements,
     type PymatgenStructure,
   } from './structure'
+  import StructureLegend from './StructureLegend.svelte'
 
   // output of pymatgen.core.Structure.as_dict()
   export let structure: PymatgenStructure | undefined = undefined
@@ -199,7 +201,7 @@
           zoomSpeed={zoom_speed}
           enablePan={pan_speed > 0}
           panSpeed={pan_speed}
-          target={{ x: a / 2, y: b / 2, z: c / 2 }}
+          target={[a / 2, b / 2, c / 2]}
           bind:controls={orbit_controls}
           maxZoom={max_zoom}
           minZoom={min_zoom}
