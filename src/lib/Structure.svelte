@@ -125,74 +125,70 @@
     on:mouseenter={() => (hovered = true)}
     on:mouseleave={() => (hovered = false)}
   >
-    <div class="controls" class:visible={hovered || visible_buttons}>
-      <section>
-        <!-- TODO show only when camera was moved -->
-        <button class="reset-camera" on:click={orbit_controls?.reset}>{reset_text}</button
-        >
-        <button
-          on:click={() => (controls_open = !controls_open)}
-          bind:this={toggle_controls_btn}
-          class="controls-toggle"
-        >
-          <slot name="controls-toggle" {controls_open}>
-            {controls_open ? `Close` : `Controls`}
-          </slot>
-        </button>
-      </section>
-
-      <form bind:this={controls} class:open={controls_open}>
+    <section class:visible={visible_buttons}>
+      <!-- TODO show only when camera was moved -->
+      <button class="reset-camera" on:click={orbit_controls?.reset}>{reset_text}</button>
+      <button
+        on:click={() => (controls_open = !controls_open)}
+        bind:this={toggle_controls_btn}
+        class="controls-toggle"
+      >
+        <slot name="controls-toggle" {controls_open}>
+          {controls_open ? `Close` : `Controls`}
+        </slot>
+      </button>
+    </section>
+    <dialog bind:this={controls} open={controls_open}>
+      <label>
+        Atom radius
+        <input type="range" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={same_size_atoms} />
+        Scale atoms according to atomic radius (if false, all atoms have same size)
+      </label>
+      <label>
+        Show unit cell as
+        <select bind:value={show_cell}>
+          <option value="surface">surface</option>
+          <option value="wireframe">wireframe</option>
+          <option value={null}>none</option>
+        </select>
+      </label>
+      {#if show_cell}
         <label>
-          Atom radius
-          <input type="range" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
+          Unit cell opacity
+          <input type="range" min="0" max="1" step="0.05" bind:value={cell_opacity} />
         </label>
-        <label>
-          <input type="checkbox" bind:checked={same_size_atoms} />
-          Scale atoms according to atomic radius (if false, all atoms have same size)
-        </label>
-        <label>
-          Show unit cell as
-          <select bind:value={show_cell}>
-            <option value="surface">surface</option>
-            <option value="wireframe">wireframe</option>
-            <option value={null}>none</option>
-          </select>
-        </label>
-        {#if show_cell}
-          <label>
-            Unit cell opacity
-            <input type="range" min="0" max="1" step="0.05" bind:value={cell_opacity} />
-          </label>
-        {/if}
-        <label>
-          <input type="checkbox" bind:checked={show_vectors} />
-          Show lattice vectors
-        </label>
-        <label>
-          Zoom speed
-          <input type="range" min="0" max="2" step="0.01" bind:value={zoom_speed} />
-        </label>
-        <label>
-          <Tooltip text="pan by clicking and dragging while holding cmd, ctrl or shift">
-            Pan speed
-          </Tooltip>
-          <input type="range" min="0" max="2" step="0.01" bind:value={pan_speed} />
-        </label>
-        <!-- color scheme -->
-        <label>
-          Color scheme
-          <select bind:value={color_scheme}>
-            {#each Object.keys(element_color_schemes) as key}
-              <option value={key}>{key}</option>
-            {/each}
-          </select>
-        </label>
-        <button type="button" on:click={download_json} title="Download Structure as JSON">
-          <Icon icon="mdi:download" />
-          Download Structure as JSON
-        </button>
-      </form>
-    </div>
+      {/if}
+      <label>
+        <input type="checkbox" bind:checked={show_vectors} />
+        Show lattice vectors
+      </label>
+      <label>
+        Zoom speed
+        <input type="range" min="0" max="2" step="0.01" bind:value={zoom_speed} />
+      </label>
+      <label>
+        <Tooltip text="pan by clicking and dragging while holding cmd, ctrl or shift">
+          Pan speed
+        </Tooltip>
+        <input type="range" min="0" max="2" step="0.01" bind:value={pan_speed} />
+      </label>
+      <!-- color scheme -->
+      <label>
+        Color scheme
+        <select bind:value={color_scheme}>
+          {#each Object.keys(element_color_schemes) as key}
+            <option value={key}>{key}</option>
+          {/each}
+        </select>
+      </label>
+      <button type="button" on:click={download_json} title="Download Structure as JSON">
+        <Icon icon="mdi:download" />
+        Download Structure as JSON
+      </button>
+    </dialog>
 
     <Canvas>
       <T.PerspectiveCamera makeDefault position={camera_position}>
@@ -260,39 +256,20 @@
     --controls-transition-duration: 0.3s;
   }
 
-  .controls {
+  section {
     position: absolute;
-    z-index: var(--controls-z-index, 1);
-    top: var(--controls-top, 8pt);
-    right: var(--controls-right, 8pt);
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity var(--controls-transition-duration),
-      visibility var(--controls-transition-duration) linear;
-  }
-
-  .controls.visible {
-    visibility: visible;
-    opacity: 1;
-  }
-
-  .structure:hover .controls {
-    visibility: visible;
-    opacity: 1;
-  }
-
-  @media screen and (max-width: 500px) {
-    .controls {
-      visibility: visible;
-      opacity: 1;
-    }
-  }
-  .controls > section {
+    top: 1ex;
+    right: 1ex;
     display: flex;
     justify-content: end;
     gap: 1ex;
   }
-  .controls > form {
+
+  dialog {
+    position: absolute;
+    left: unset;
+    background: transparent;
+    border: none;
     display: grid;
     gap: 1ex;
     visibility: hidden;
@@ -300,20 +277,21 @@
     transition: visibility var(--controls-transition-duration),
       opacity var(--controls-transition-duration);
     box-sizing: border-box;
+    top: var(--controls-top, 30pt);
+    right: var(--controls-right, 6pt);
     background-color: var(--controls-bg, rgba(0, 0, 0, 0.7));
     padding: var(--controls-padding, 6pt 9pt);
     border-radius: var(--controls-border-radius, 3pt);
     width: var(--controls-width, 18em);
     max-width: var(--controls-max-width, 90cqw);
-    margin: var(--controls-margin, 1ex 0 0 0);
   }
-  .controls > form > button {
-    width: max-content;
-    background-color: rgba(255, 255, 255, 0.4);
-  }
-  .controls > form.open {
+  dialog[open] {
     visibility: visible;
     opacity: 1;
+  }
+  dialog button {
+    width: max-content;
+    background-color: rgba(255, 255, 255, 0.4);
   }
   select {
     margin-left: 5pt;
