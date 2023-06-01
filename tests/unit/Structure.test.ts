@@ -10,12 +10,12 @@ describe(`Structure`, () => {
   test(`open control panel when clicking toggle button`, async () => {
     new Structure({ target: document.body, props: { structure } })
 
-    const form = doc_query<HTMLDivElement>(`div.controls form`)
-    expect(form.classList.contains(`open`)).toBe(false)
+    const dialog = doc_query<HTMLDialogElement>(`dialog`)
+    expect(dialog.open).toBe(false)
     doc_query<HTMLButtonElement>(`button.controls-toggle`).click()
     await tick()
 
-    expect(form.classList.contains(`open`)).toBe(true)
+    expect(dialog.open).toBe(true)
   })
 
   test(`JSON file download when clicking download button`, async () => {

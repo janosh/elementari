@@ -132,6 +132,7 @@
         </slot>
       </button>
     </section>
+
     <dialog bind:this={controls} open={controls_open}>
       <label>
         Atom radius
