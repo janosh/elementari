@@ -85,10 +85,10 @@
       style="background-color: rgba(0, 0, 0, 0.5); padding: 3pt 1ex; width: max-content;"
     >
       {#each species as { element, occu, oxidation_state }}
-        <strong>{element}{oxidation_state ?? ''}</strong>: ({xyz
+        <strong>{element}{oxidation_state ?? ``}</strong>: ({xyz
           .map((num) => pretty_num(num))
-          .join(', ')})
-        {occu == 1 ? '' : `occu=${occu}`}
+          .join(`, `)})
+        {occu == 1 ? `` : `occu=${occu}`}
       {/each}
     </div>
   </HTML>
