@@ -1,18 +1,14 @@
 <script lang="ts">
-  import { Canvas, T } from '@threlte/core'
-  import { OrbitControls } from '@threlte/extras'
+  import { Canvas } from '@threlte/core'
 
   import { Tooltip } from 'svelte-zoo'
-  import { element_color_schemes } from './colors'
   import Icon from './Icon.svelte'
-  import { element_colors } from './stores'
-  import {
-    alphabetical_formula,
-    atomic_radii,
-    get_elements,
-    type PymatgenStructure,
-  } from './structure'
   import StructureLegend from './StructureLegend.svelte'
+  import StructureScene from './StructureScene.svelte'
+  import { element_color_schemes } from './colors'
+  import { element_colors } from './stores'
+  import type { PymatgenStructure } from './structure'
+  import { alphabetical_formula, get_elements } from './structure'
 
   // output of pymatgen.core.Structure.as_dict()
   export let structure: PymatgenStructure | undefined = undefined
@@ -25,9 +21,6 @@
   export let camera_position: [number, number, number] = [10, 10, 10]
   // zoom level of the camera
   export let initial_zoom: number | undefined = undefined
-  export let orbit_controls: OrbitControls | undefined = undefined
-  export let max_zoom: number | undefined = undefined
-  export let min_zoom: number | undefined = undefined
   // zoom speed. set to 0 to disable zooming.
   export let zoom_speed: number = 0.3
   // pan speed. set to 0 to disable panning.
@@ -50,10 +43,6 @@
   export let cell_opacity: number | undefined = undefined
   // whether to show the lattice vectors
   export let show_vectors: boolean = true
-  // lattice vector colors
-  export let vector_colors: [string, string, string] = [`red`, `green`, `blue`]
-  // lattice vector origin (all arrows start from this point)
-  export let vector_origin: { x: number; y: number; z: number } = { x: -1, y: -1, z: -1 }
   // bindable width of the canvas
   export let width: number = 0
   // bindable height of the canvas
@@ -62,6 +51,7 @@
   export let color_scheme: 'Jmol' | 'Vesta' = `Vesta`
   export let hovered: boolean = false
 
+  // interactivity()
   $: $element_colors = element_color_schemes[color_scheme]
 
   function on_keydown(event: KeyboardEvent) {
@@ -83,7 +73,6 @@
       cb() // invoke callback
     }
 
-  $: orbit_controls?.saveState() // record orbit target for reset
   $: visible_buttons =
     reveal_buttons == true ||
     (typeof reveal_buttons == `number` && reveal_buttons < width)
@@ -127,7 +116,12 @@
   >
     <section class:visible={visible_buttons}>
       <!-- TODO show only when camera was moved -->
-      <button class="reset-camera" on:click={orbit_controls?.reset}>{reset_text}</button>
+      <button
+        class="reset-camera"
+        on:click={() => {
+          console.log('TODO implement reset view and controls')
+        }}>{reset_text}</button
+      >
       <button
         on:click={() => (controls_open = !controls_open)}
         bind:this={toggle_controls_btn}
@@ -191,50 +185,16 @@
     </dialog>
 
     <Canvas>
-      <T.PerspectiveCamera makeDefault position={camera_position}>
-        <OrbitControls
-          enableZoom={zoom_speed > 0}
-          zoomSpeed={zoom_speed}
-          enablePan={pan_speed > 0}
-          panSpeed={pan_speed}
-          target={[a / 2, b / 2, c / 2]}
-          bind:controls={orbit_controls}
-          maxZoom={max_zoom}
-          minZoom={min_zoom}
-        />
-      </T.PerspectiveCamera>
-
-      <T.DirectionalLight position={[3, 10, 10]} />
-      <T.DirectionalLight position={[-3, 10, -10]} intensity={0.2} />
-      <T.AmbientLight intensity={0.2} />
-
-      {#each structure?.sites ?? [] as { xyz, species }}
-        {@const elem = species[0].element}
-        {@const radius = (same_size_atoms ? 1 : atomic_radii[elem]) * atom_radius}
-        <T.Mesh position={xyz} transparent opacity={1}>
-          <T.SphereGeometry args={[radius, 20, 20]} />
-          <T.MeshStandardMaterial color={$element_colors[elem]} />
-        </T.Mesh>
-      {/each}
-
-      {#if show_cell}
-        <T.Mesh position={[a / 2, b / 2, c / 2]}>
-          <T.BoxGeometry args={[a, b, c]} />
-          <T.MeshBasicMaterial
-            transparent
-            opacity={cell_opacity ?? (show_cell == `surface` ? 0.2 : 1)}
-            wireframe={show_cell == `wireframe`}
-          />
-        </T.Mesh>
-      {/if}
-
-      {#if show_vectors}
-        {#each structure?.lattice?.matrix ?? [] as [a, b, c], idx}
-          <T.ArrowHelper
-            args={[{ x: a, y: b, z: c }, vector_origin, 3, vector_colors[idx], 1, 0.5]}
-          />
-        {/each}
-      {/if}
+      <StructureScene
+        {...$$restProps}
+        {structure}
+        {pan_speed}
+        {cell_opacity}
+        {camera_position}
+        {zoom_speed}
+        {show_cell}
+        {show_vectors}
+      />
     </Canvas>
 
     <StructureLegend elements={get_elements(structure)} />
