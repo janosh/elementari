@@ -119,7 +119,7 @@
       <button
         class="reset-camera"
         on:click={() => {
-          console.log(`TODO implement reset view and controls`)
+          // TODO implement reset view and controls
         }}>{reset_text}</button
       >
       <button
