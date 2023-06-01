@@ -41,7 +41,7 @@
   // TODO whether to make the canvas fill the whole screen
   // export let fullscreen: boolean = false
   // whether to show the structure's lattice cell as a wireframe
-  export let show_cell: 'surface' | 'wireframe' | null = 'wireframe'
+  export let show_cell: 'surface' | 'wireframe' | null = `wireframe`
   // the control panel DOM element
   export let controls: HTMLElement | undefined = undefined
   // the button to toggle the control panel
@@ -51,21 +51,21 @@
   // whether to show the lattice vectors
   export let show_vectors: boolean = true
   // lattice vector colors
-  export let vector_colors: [string, string, string] = ['red', 'green', 'blue']
+  export let vector_colors: [string, string, string] = [`red`, `green`, `blue`]
   // lattice vector origin (all arrows start from this point)
   export let vector_origin: { x: number; y: number; z: number } = { x: -1, y: -1, z: -1 }
   // bindable width of the canvas
   export let width: number = 0
   // bindable height of the canvas
   export let height: number = 0
-  export let reset_text: string = 'Reset view'
-  export let color_scheme: 'Jmol' | 'Vesta' = 'Vesta'
+  export let reset_text: string = `Reset view`
+  export let color_scheme: 'Jmol' | 'Vesta' = `Vesta`
   export let hovered: boolean = false
 
   $: $element_colors = element_color_schemes[color_scheme]
 
   function on_keydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
+    if (event.key === `Escape`) {
       controls_open = false
     }
   }
@@ -86,12 +86,12 @@
   $: orbit_controls?.saveState() // record orbit target for reset
   $: visible_buttons =
     reveal_buttons == true ||
-    (typeof reveal_buttons == 'number' && reveal_buttons < width)
+    (typeof reveal_buttons == `number` && reveal_buttons < width)
 
   // Function to download data to a file
   function download(data: string, filename: string, type: string) {
     const file = new Blob([data], { type: type })
-    const anchor = document.createElement('a')
+    const anchor = document.createElement(`a`)
     const url = URL.createObjectURL(file)
     anchor.href = url
     anchor.download = filename
@@ -101,12 +101,12 @@
   }
 
   function download_json() {
-    if (!structure) alert('No structure to download')
+    if (!structure) alert(`No structure to download`)
     const data = JSON.stringify(structure, null, 2)
     const filename = structure?.id
       ? `${structure?.id} (${alphabetical_formula(structure)}).json`
       : `${alphabetical_formula(structure)}.json`
-    download(data, filename, 'application/json')
+    download(data, filename, `application/json`)
   }
 </script>
 
@@ -136,7 +136,7 @@
           class="controls-toggle"
         >
           <slot name="controls-toggle" {controls_open}>
-            {controls_open ? 'Close' : 'Controls'}
+            {controls_open ? `Close` : `Controls`}
           </slot>
         </button>
       </section>
@@ -226,8 +226,8 @@
           <T.BoxGeometry args={[a, b, c]} />
           <T.MeshBasicMaterial
             transparent
-            opacity={cell_opacity ?? (show_cell == 'surface' ? 0.2 : 1)}
-            wireframe={show_cell == 'wireframe'}
+            opacity={cell_opacity ?? (show_cell == `surface` ? 0.2 : 1)}
+            wireframe={show_cell == `wireframe`}
           />
         </T.Mesh>
       {/if}

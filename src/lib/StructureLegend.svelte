@@ -7,7 +7,7 @@
   import { element_colors } from './stores'
 
   export let elements: ElementSymbol[] = []
-  export let elem_color_picker_title: string = 'Double click to reset color'
+  export let elem_color_picker_title: string = `Double click to reset color`
   export let labels: HTMLLabelElement[] = []
   export let style: string | null = null
 </script>
