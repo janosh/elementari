@@ -235,6 +235,7 @@
     gap: 1ex;
     visibility: hidden;
     opacity: 0;
+    text-align: var(--controls-text-align, left);
     transition: visibility var(--controls-transition-duration),
       opacity var(--controls-transition-duration);
     box-sizing: border-box;
