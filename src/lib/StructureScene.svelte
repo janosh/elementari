@@ -38,7 +38,7 @@
   export let vector_origin: { x: number; y: number; z: number } = { x: -1, y: -1, z: -1 }
   export let hovered_site: number | null = null
   export let active_site: number | null = null
-  export let precision: string = '.3~f'
+  export let precision: string = `.3~f`
   export let hover_show_atom_idx: boolean = true
 
   $: ({ a, b, c } = structure?.lattice ?? { a: 0, b: 0, c: 0 })
@@ -120,7 +120,7 @@
       {#each species as { element, occu, oxidation_state }}
         {@const oxi_state =
           oxidation_state &&
-          Math.abs(oxidation_state) + (oxidation_state > 0 ? '+' : '-')}
+          Math.abs(oxidation_state) + (oxidation_state > 0 ? `+` : `-`)}
         <strong>{element}{oxi_state ?? ``}</strong>
         {occu == 1 ? `` : `(occu=${occu})`}
       {/each}
