@@ -86,8 +86,8 @@
     <T.MeshStandardMaterial color={$element_colors[elem]} />
   </T.Mesh>
 {/each}
-{#if active_site && structure?.sites[active_site]}
-  {@const { xyz, species } = structure?.sites[active_site]}
+{#if active_site && structure?.sites?.[active_site]}
+  {@const { xyz, species } = structure?.sites?.[active_site] ?? {}}
   {@const elem = species[0].element}
   {@const radius = 1.1 * (same_size_atoms ? 1 : atomic_radii[elem]) * atom_radius}
   <T.Mesh position={xyz}>
@@ -98,7 +98,7 @@
 
 <!-- highlight active and hovered sites -->
 {#each [[hovered_site, 0.2], [active_site, 0.3]] as [site_idx, opacity]}
-  {@const site = site_idx && structure?.sites[site_idx]}
+  {@const site = site_idx && structure?.sites?.[site_idx]}
   {#if site}
     {@const { xyz, species } = site}
     {@const elem = species[0].element}
@@ -111,7 +111,7 @@
 {/each}
 
 {#if hovered_site}
-  {@const { idx, xyz = [], species = [] } = structure?.sites[hovered_site] ?? {}}
+  {@const { idx, xyz = [], species = [] } = structure?.sites?.[hovered_site] ?? {}}
   <HTML position={xyz} pointerEvents="none">
     <div>
       {#if hover_show_atom_idx && idx}
@@ -155,5 +155,6 @@
     width: max-content;
     box-sizing: border-box;
     border-radius: 5pt;
+    pointer-events: none;
   }
 </style>

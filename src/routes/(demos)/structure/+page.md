@@ -74,10 +74,9 @@
 <ul>
   {#each structures as structure}
     {@const { id } = structure}
+    {@const href = `https://materialsproject.org/materials/${id}`}
     <li>
-      <h2>
-        <a href="https://materialsproject.org/materials/{id}">{id}</a>
-      </h2>
+      <h2><a {href}>{id}</a></h2>
       <Structure {structure} />
     </li>
   {/each}
