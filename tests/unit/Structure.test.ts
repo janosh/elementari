@@ -28,7 +28,7 @@ describe(`Structure`, () => {
     const spy = vi.spyOn(document.body, `appendChild`)
 
     doc_query<HTMLButtonElement>(
-      `button[title='Download Structure as JSON']`
+      `button[title='Save structure to JSON']`
     ).click()
     await tick()
 
