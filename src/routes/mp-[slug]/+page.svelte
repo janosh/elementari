@@ -18,7 +18,7 @@
     placeholder="Enter MP material ID"
     bind:value={mp_id}
     on:keydown={async (event) => {
-      if (event.key === 'Enter') data = await fetch_zipped(aws_url)
+      if (event.key === `Enter`) data = await fetch_zipped(aws_url)
     }}
   />
   <button on:click={async () => (data = await fetch_zipped(aws_url))}>
@@ -29,15 +29,15 @@
     <div>
       <button
         on:click={() => {
-          if (!data) return alert('No data to download')
-          download(JSON.stringify(data, null, 2), `${mp_id}.json`, 'application/json')
+          if (!data) return alert(`No data to download`)
+          download(JSON.stringify(data, null, 2), `${mp_id}.json`, `application/json`)
         }}>JSON</button
       >
       <button
         on:click={async () => {
           const blob = await fetch_zipped(aws_url, { unzip: false })
           if (!blob) return
-          download(blob, `${mp_id}.json.gz`, 'application/gzip')
+          download(blob, `${mp_id}.json.gz`, `application/gzip`)
         }}>Zipped JSON</button
       >
     </div>
