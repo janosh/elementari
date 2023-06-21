@@ -1,4 +1,5 @@
 export const summary_bucket = `https://materialsproject-build.s3.amazonaws.com/collections/2022-10-28/summary`
+export const task_bucket = `https://materialsproject-parsed.s3.amazonaws.com/tasks`
 
 export async function decompress(blob: ReadableStream<Uint8Array> | null) {
   // @ts-expect-error - TS doesn't know about DecompressionStream yet!
