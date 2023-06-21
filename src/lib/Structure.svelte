@@ -55,6 +55,7 @@
   export let allow_file_drop: boolean = true
   export let tips_modal: HTMLDialogElement | undefined = undefined
   export let enable_tips: boolean = true
+  export let save_json_btn_text: string = `Save structure to JSON`
 
   // interactivity()
   $: $element_colors = element_color_schemes[color_scheme]
@@ -200,9 +201,9 @@
           {/each}
         </select>
       </label>
-      <button type="button" on:click={download_json} title="Download Structure as JSON">
+      <button type="button" on:click={download_json} title={save_json_btn_text}>
         <Icon icon="mdi:download" />
-        Save structure to JSON
+        {save_json_btn_text}
       </button>
     </dialog>
 

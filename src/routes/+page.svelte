@@ -91,7 +91,14 @@
   <ColorCustomizer collapsible={false} />
 {/if}
 
-<h2 id={mp_id[0]}><a {href}>{mp_id}</a></h2>
+<h2 id={mp_id[0]} style="margin: 3em 0 1em;"><a {href}>{mp_id}</a></h2>
+<a
+  href="mp-1234"
+  class="btn"
+  style="margin: 1em auto; display: block; max-width: max-content;"
+>
+  View WIP materials detail pages
+</a>
 <Structure {structure} />
 
 <h2>More Demos</h2>
