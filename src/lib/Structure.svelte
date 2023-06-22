@@ -2,6 +2,7 @@
   import Iconify from '@iconify/svelte'
   import { Canvas } from '@threlte/core'
   import { Tooltip } from 'svelte-zoo'
+  import type { ElementSymbol } from '.'
   import Icon from './Icon.svelte'
   import StructureLegend from './StructureLegend.svelte'
   import StructureScene from './StructureScene.svelte'
@@ -56,6 +57,10 @@
   export let tips_modal: HTMLDialogElement | undefined = undefined
   export let enable_tips: boolean = true
   export let save_json_btn_text: string = `Save structure to JSON`
+  // boolean or map from element symbols to labels
+  // use slot='atom-label' to include HTML and event handlers
+  export let atom_labels: boolean | Record<ElementSymbol, string | number> = false
+  export let atom_labels_style: string | null = null
 
   // interactivity()
   $: $element_colors = element_color_schemes[color_scheme]
@@ -162,7 +167,12 @@
       </label>
       <label>
         <input type="checkbox" bind:checked={same_size_atoms} />
-        Scale atoms according to atomic radius (if false, all atoms have same size)
+        Scale according to atomic radii
+        <small> (if false, all atoms have same size)</small>
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={atom_labels} />
+        Show atom labels
       </label>
       <label>
         Show unit cell as
@@ -217,7 +227,18 @@
         {zoom_speed}
         {show_cell}
         {show_vectors}
-      />
+        let:elem
+      >
+        <!-- above let:elem needed to fix false positive eslint no-undef -->
+        <slot slot="atom-label" let:elem>
+          {#if atom_labels}
+            <span class="atom-label" style={atom_labels_style}>
+              <!-- eslint-ignore-next-line no-undef -->
+              {atom_labels === true ? elem : atom_labels[elem]}
+            </span>
+          {/if}
+        </slot>
+      </StructureScene>
     </Canvas>
 
     <StructureLegend elements={get_elem_amounts(structure)} />
@@ -336,5 +357,10 @@
   }
   dialog[role='tooltip'] p {
     margin: 0;
+  }
+  .atom-label {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 2pt;
+    padding: 0 3pt;
   }
 </style>
