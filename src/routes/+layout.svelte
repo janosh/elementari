@@ -1,29 +1,13 @@
 <script lang="ts">
-  import { afterNavigate, goto } from '$app/navigation'
+  import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { element_data } from '$lib'
   import { repository } from '$root/package.json'
-  import { Footer } from '$site'
+  import { DemoNav, Footer } from '$site'
   import { demos } from '$site/stores'
   import { CmdPalette } from 'svelte-multiselect'
   import { CopyButton, GitHubCorner } from 'svelte-zoo'
   import '../app.css'
-
-  afterNavigate(() => {
-    for (const node of document.querySelectorAll(`pre > code`)) {
-      // skip if <pre> already contains a button (presumably for copy)
-      const pre = node.parentElement
-      if (!pre || pre.querySelector(`button`)) continue
-
-      new CopyButton({
-        target: pre,
-        props: {
-          content: node.textContent ?? ``,
-          style: `position: absolute; top: 1ex; right: 1ex;`,
-        },
-      })
-    }
-  })
 
   const routes = Object.keys(import.meta.glob(`./**/+page.{svx,svelte,md}`)).map(
     (filename) => {
@@ -49,8 +33,10 @@
 </script>
 
 <CmdPalette {actions} placeholder="Go to..." />
-
 <GitHubCorner href={repository} />
+<CopyButton global />
+
+<DemoNav />
 
 {#if !$page.error && $page.url.pathname !== `/`}
   <a href="." aria-label="Back to index page">&laquo; home</a>
