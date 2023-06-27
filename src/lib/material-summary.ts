@@ -25,7 +25,7 @@ export type XAS = {
   spectrum_type: string
 }
 
-export type MaterialSummary = {
+export type SummaryDoc = {
   builder_meta: BuilderMeta
   nsites: number
   elements: string[]

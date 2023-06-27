@@ -18,10 +18,10 @@
     placeholder="Enter MP material ID"
     bind:value={mp_id}
     on:keydown={async (event) => {
-      if (event.key === `Enter`) data = await fetch_zipped(aws_url)
+      if (event.key === `Enter`) data.summary = await fetch_zipped(aws_url)
     }}
   />
-  <button on:click={async () => (data = await fetch_zipped(aws_url))}>
+  <button on:click={async () => (data.summary = await fetch_zipped(aws_url))}>
     Fetch material
   </button>
   <span class="download">
@@ -29,8 +29,12 @@
     <div>
       <button
         on:click={() => {
-          if (!data) return alert(`No data to download`)
-          download(JSON.stringify(data, null, 2), `${mp_id}.json`, `application/json`)
+          if (!data.summary) return alert(`No data to download`)
+          download(
+            JSON.stringify(data.summary, null, 2),
+            `${mp_id}.json`,
+            `application/json`
+          )
         }}>JSON</button
       >
       <button
@@ -42,10 +46,10 @@
       >
     </div>
   </span>
-  <StructureCard structure={data.structure}>
+  <StructureCard structure={data.summary.structure}>
     <a slot="title" {href}>{mp_id}</a>
   </StructureCard>
-  <Structure structure={data.structure} />
+  <Structure structure={data.summary.structure} />
 </main>
 
 <style>
