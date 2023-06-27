@@ -15,14 +15,18 @@
       return { route: `/${parts.slice(1, -1).join(`/`)}`, filename }
     }
   )
+  let mp_id = `/mp-756175`
 
   if (routes.length < 3) {
     console.error(`Too few demo routes found: ${routes.length}`)
   }
 
-  $demos = routes
-    .filter(({ filename }) => filename.includes(`/(demos)/`))
-    .map(({ route }) => route)
+  $demos = [
+    ...routes
+      .filter(({ filename }) => filename.includes(`/(demos)/`))
+      .map(({ route }) => route),
+    mp_id,
+  ]
 
   const actions = routes
     .map(({ route }) => route)
@@ -36,7 +40,7 @@
 <GitHubCorner href={repository} />
 <CopyButton global />
 
-<DemoNav />
+<DemoNav labels={{ [mp_id]: `/mp-details-pages` }} />
 
 {#if !$page.error && $page.url.pathname !== `/`}
   <a href="." aria-label="Back to index page">&laquo; home</a>
@@ -48,7 +52,7 @@
 
 <style>
   a[href='.'] {
-    font-size: 15pt;
+    font-size: 13pt;
     position: absolute;
     top: 2em;
     left: 2em;
