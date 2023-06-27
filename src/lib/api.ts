@@ -1,5 +1,6 @@
 export const summary_bucket = `https://materialsproject-build.s3.amazonaws.com/collections/2022-10-28/summary`
 export const task_bucket = `https://materialsproject-parsed.s3.amazonaws.com/tasks`
+export const bonds_bucket = `https://materialsproject-build.s3.amazonaws.com/collections/2022-10-28/bonds`
 
 export async function decompress(blob: ReadableStream<Uint8Array> | null) {
   // @ts-expect-error - TS doesn't know about DecompressionStream yet!
@@ -8,7 +9,10 @@ export async function decompress(blob: ReadableStream<Uint8Array> | null) {
   return await new Response(stream).text()
 }
 
-export async function fetch_zipped(url: string, { unzip = true } = {}) {
+export async function fetch_zipped<T>(
+  url: string,
+  { unzip = true } = {}
+): Promise<T | Blob | undefined> {
   try {
     const response = await fetch(url)
     if (!response.ok) {
