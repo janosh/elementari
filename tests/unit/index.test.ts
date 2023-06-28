@@ -2,7 +2,7 @@ import * as lib from '$lib'
 import { ElementScatter, PeriodicTable } from '$lib'
 import * as labels from '$lib/labels'
 import FilePeriodicTable from '$lib/periodic-table/PeriodicTable.svelte'
-import FileElementScatter from '$lib/scatter/ElementScatter.svelte'
+import FileElementScatter from '$lib/plot/ElementScatter.svelte'
 import { expect, test } from 'vitest'
 
 test(`PeriodicTable is named and default export`, () => {

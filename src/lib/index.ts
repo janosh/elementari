@@ -1,16 +1,13 @@
 import type { categories, elem_symbols } from './labels'
 
 export { default as BohrAtom } from './BohrAtom.svelte'
-export { default as ColorBar } from './ColorBar.svelte'
-export { default as ColorScaleSelect } from './ColorScaleSelect.svelte'
 export { default as Icon } from './Icon.svelte'
 export { default as Nucleus } from './Nucleus.svelte'
 export * from './element'
 export { default as element_data } from './element/data'
 export * from './labels'
 export * from './periodic-table'
-export * from './scatter'
-export { default as ScatterPoint } from './scatter/ScatterPoint.svelte'
+export * from './plot'
 export * from './structure'
 
 export type Category = (typeof categories)[number]
