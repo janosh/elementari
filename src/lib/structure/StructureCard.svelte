@@ -10,7 +10,7 @@
 
 <InfoCard
   data={[
-    { title: `formula`, value: alphabetical_formula(structure) },
+    { title: `Formula`, value: alphabetical_formula(structure) },
     { title: `Number of atoms`, value: structure?.sites.length },
     { title: `Volume`, value: volume, unit: `Å³` },
     { title: `Density`, value: density(structure), unit: `g/cm³` },
