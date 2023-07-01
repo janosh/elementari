@@ -252,29 +252,11 @@
       </StructureScene>
     </Canvas>
 
-    <StructureLegend elements={get_elem_amounts(structure)} />
+    <StructureLegend elements={get_elem_amounts(structure)} bind:tips_modal />
 
     <div class="bottom-left">
       <slot name="bottom-left" {structure} />
     </div>
-
-    {#if enable_tips}
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <dialog
-        bind:this={tips_modal}
-        on:click={tips_modal?.close}
-        on:keydown={tips_modal?.close}
-        role="tooltip"
-      >
-        <slot name="tips-modal">
-          <p>Drop a JSON file onto the canvas to load a new structure.</p>
-          <p>
-            Click on an atom to make it active. Then hover another atom to get its
-            distance to the active atom.
-          </p>
-        </slot>
-      </dialog>
-    {/if}
   </div>
 {:else if structure}
   <p class="warn">No sites found in structure</p>
@@ -369,24 +351,6 @@
   p.warn {
     font-size: larger;
     text-align: center;
-  }
-  dialog[role='tooltip'] {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    margin: 0;
-    padding: 4pt 1em;
-    background-color: rgb(25, 25, 25);
-    color: white;
-    border-radius: 5px;
-    transition: all 0.3s;
-  }
-  dialog[role='tooltip']::backdrop {
-    background: rgba(0, 0, 0, 0.4);
-  }
-  dialog[role='tooltip'] p {
-    margin: 0;
   }
   .atom-label {
     background: rgba(0, 0, 0, 0.4);
