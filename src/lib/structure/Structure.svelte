@@ -231,7 +231,6 @@
         {zoom_speed}
         {show_cell}
         {show_vectors}
-        let:elem
       >
         <!-- above let:elem needed to fix false positive eslint no-undef -->
         <slot slot="atom-label" let:elem>
