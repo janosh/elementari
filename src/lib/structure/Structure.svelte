@@ -46,14 +46,14 @@
   // the button to toggle the control panel
   export let toggle_controls_btn: HTMLButtonElement | undefined = undefined
   // cell opacity
-  export let cell_opacity: number | undefined = undefined
+  export let cell_opacity: number | undefined = 0.15
   // whether to show the lattice vectors
   export let show_vectors: boolean = true
   // bindable width of the canvas
   export let width: number = 0
   // bindable height of the canvas
   export let height: number = 0
-  export let reset_text: string = `Reset view`
+  // export let reset_text: string = `Reset view`
   export let color_scheme: 'Jmol' | 'Vesta' = `Vesta`
   export let hovered: boolean = false
   export let dragover: boolean = false
@@ -140,12 +140,12 @@
   >
     <section class:visible={visible_buttons}>
       <!-- TODO show only when camera was moved -->
-      <button
+      <!-- <button
         class="reset-camera"
         on:click={() => {
           // TODO implement reset view and controls
         }}>{reset_text}</button
-      >
+      > -->
       <button
         on:click={() => (controls_open = !controls_open)}
         bind:this={toggle_controls_btn}
@@ -164,15 +164,19 @@
       {/if}
     </section>
 
-    <dialog bind:this={controls} open={controls_open}>
+    <dialog class="controls" bind:this={controls} open={controls_open}>
       <label>
         Atom radius
+        <small> (Å)</small>
+        <input type="number" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
         <input type="range" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
       </label>
       <label>
         <input type="checkbox" bind:checked={same_size_atoms} />
-        Scale according to atomic radii
-        <small> (if false, all atoms have same size)</small>
+        <span>
+          Scale sites according to atomic radii
+          <small> (if false, all atoms have same size)</small>
+        </span>
       </label>
       <label>
         <input type="checkbox" bind:checked={atom_labels} />
@@ -189,6 +193,7 @@
       {#if show_cell}
         <label>
           Unit cell opacity
+          <input type="number" min="0" max="1" step="0.05" bind:value={cell_opacity} />
           <input type="range" min="0" max="1" step="0.05" bind:value={cell_opacity} />
         </label>
       {/if}
@@ -198,12 +203,14 @@
       </label>
       <label>
         Zoom speed
+        <input type="number" min="0" max="2" step="0.01" bind:value={zoom_speed} />
         <input type="range" min="0" max="2" step="0.01" bind:value={zoom_speed} />
       </label>
       <label>
         <Tooltip text="pan by clicking and dragging while holding cmd, ctrl or shift">
           Pan speed
         </Tooltip>
+        <input type="number" min="0" max="2" step="0.01" bind:value={pan_speed} />
         <input type="range" min="0" max="2" step="0.01" bind:value={pan_speed} />
       </label>
       <!-- color scheme -->
@@ -231,12 +238,13 @@
         {zoom_speed}
         {show_cell}
         {show_vectors}
+        bind:atom_radius
+        bind:same_size_atoms
       >
         <!-- above let:elem needed to fix false positive eslint no-undef -->
-        <slot slot="atom-label" let:elem>
+        <slot slot="atom-label" name="atom-label" let:elem>
           {#if atom_labels}
             <span class="atom-label" style={atom_labels_style}>
-              <!-- eslint-ignore-next-line no-undef -->
               {atom_labels === true ? elem : atom_labels[elem]}
             </span>
           {/if}
@@ -304,7 +312,7 @@
     gap: 1ex;
   }
 
-  dialog {
+  dialog.controls {
     position: absolute;
     left: unset;
     background: transparent;
@@ -322,14 +330,33 @@
     background-color: var(--controls-bg, rgba(0, 0, 0, 0.7));
     padding: var(--controls-padding, 6pt 9pt);
     border-radius: var(--controls-border-radius, 3pt);
-    width: var(--controls-width, 18em);
+    width: var(--controls-width, 20em);
     max-width: var(--controls-max-width, 90cqw);
   }
-  dialog[open] {
+  dialog.controls label {
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+  }
+  dialog.controls input[type='range'] {
+    margin-left: auto;
+  }
+  dialog.controls input[type='number'] {
+    background-color: rgba(255, 255, 255, 0.15);
+    width: 2em;
+    text-align: center;
+    border-radius: 3pt;
+    border: none;
+  }
+  input::-webkit-inner-spin-button {
+    display: none;
+  }
+
+  dialog.controls[open] {
     visibility: visible;
     opacity: 1;
   }
-  dialog button {
+  dialog.controls button {
     width: max-content;
     background-color: rgba(255, 255, 255, 0.4);
   }
