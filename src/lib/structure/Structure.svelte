@@ -40,13 +40,16 @@
   // TODO whether to make the canvas fill the whole screen
   // export let fullscreen: boolean = false
   // whether to show the structure's lattice cell as a wireframe
+  export let show_atoms: boolean = true
+  export let show_bonds: boolean = true
+  export let bond_thickness: number | undefined = undefined
   export let show_cell: 'surface' | 'wireframe' | null = `wireframe`
+  export let cell_opacity: number | undefined = 0.15
+  export let cell_line_width: number = 1
   // the control panel DOM element
   export let controls: HTMLElement | undefined = undefined
   // the button to toggle the control panel
   export let toggle_controls_btn: HTMLButtonElement | undefined = undefined
-  // cell opacity
-  export let cell_opacity: number | undefined = 0.15
   // whether to show the lattice vectors
   export let show_vectors: boolean = true
   // bindable width of the canvas
@@ -165,6 +168,31 @@
     </section>
 
     <dialog class="controls" bind:this={controls} open={controls_open}>
+      <div style="display: flex; align-items: center; gap: 4pt; flex-wrap: wrap;">
+        Show <label>
+          <input type="checkbox" bind:checked={show_atoms} />
+          atoms
+        </label>
+        <label>
+          <input type="checkbox" bind:checked={show_bonds} />
+          bonds
+        </label>
+        <label>
+          <input type="checkbox" bind:checked={show_vectors} />
+          lattice vectors
+        </label>
+      </div>
+      <label>
+        Show unit cell as
+        <select bind:value={show_cell}>
+          <option value="surface">surface</option>
+          <option value="wireframe">wireframe</option>
+          <option value={null}>none</option>
+        </select>
+      </label>
+
+      <hr />
+
       <label>
         Atom radius
         <small> (Å)</small>
@@ -179,16 +207,16 @@
         </span>
       </label>
       <label>
+        Bond thickness
+        <input type="number" min="0.1" max="3" step="0.1" bind:value={bond_thickness} />
+        <input type="range" min="0.1" max="3" step="0.1" bind:value={bond_thickness} />
+      </label>
+
+      <hr />
+
+      <label>
         <input type="checkbox" bind:checked={atom_labels} />
         Show atom labels
-      </label>
-      <label>
-        Show unit cell as
-        <select bind:value={show_cell}>
-          <option value="surface">surface</option>
-          <option value="wireframe">wireframe</option>
-          <option value={null}>none</option>
-        </select>
       </label>
       {#if show_cell}
         <label>
@@ -197,10 +225,9 @@
           <input type="range" min="0" max="1" step="0.05" bind:value={cell_opacity} />
         </label>
       {/if}
-      <label>
-        <input type="checkbox" bind:checked={show_vectors} />
-        Show lattice vectors
-      </label>
+
+      <hr />
+
       <label>
         Zoom speed
         <input type="number" min="0" max="2" step="0.01" bind:value={zoom_speed} />
@@ -231,12 +258,15 @@
     <Canvas>
       <StructureScene
         structure={symmetrize_structure(structure)}
+        {show_atoms}
+        {show_bonds}
+        {show_cell}
         {...$$restProps}
         {pan_speed}
         {cell_opacity}
+        {cell_line_width}
         {camera_position}
         {zoom_speed}
-        {show_cell}
         {show_vectors}
         bind:atom_radius
         bind:same_size_atoms
@@ -314,6 +344,13 @@
     border-radius: var(--controls-border-radius, 3pt);
     width: var(--controls-width, 20em);
     max-width: var(--controls-max-width, 90cqw);
+  }
+  dialog.controls hr {
+    width: 100%;
+    height: 0.5px;
+    border: none;
+    background: gray;
+    margin: 0;
   }
   dialog.controls label {
     display: flex;

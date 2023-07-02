@@ -31,6 +31,8 @@
   // TODO whether to make the canvas fill the whole screen
   // export let fullscreen: boolean = false
   // whether to show the structure's lattice cell as a wireframe
+  export let show_atoms: boolean = true
+  export let show_bonds: boolean = true
   export let show_cell: 'surface' | 'wireframe' | null = `wireframe`
   // thickness of the wireframe lines that indicate the lattice's unit cell
   // due to limitations of OpenGL with WebGL renderer, on most platforms linewidth will be 1 regardless of set value
@@ -94,7 +96,7 @@
 <T.DirectionalLight position={[3, 10, 10]} intensity={0.6} />
 <T.AmbientLight intensity={0.3} />
 
-{#if structure?.sites}
+{#if show_atoms && structure?.sites}
   <InstancedMesh>
     <T.MeshStandardMaterial />
     <T.SphereGeometry args={[1, 20, 20]} />
@@ -121,13 +123,15 @@
   </InstancedMesh>
 {/if}
 
-<InstancedMesh>
-  <T.CylinderGeometry args={[bond_thickness, bond_thickness, 1, 16]} />
-  <T.MeshStandardMaterial opacity={bond_opacity} color={bond_color} />
-  {#each bond_pairs ?? [] as [from, to]}
-    <Bond {from} {to} radius={1} />
-  {/each}
-</InstancedMesh>
+{#if show_bonds}
+  <InstancedMesh>
+    <T.CylinderGeometry args={[bond_thickness, bond_thickness, 1, 16]} />
+    <T.MeshStandardMaterial opacity={bond_opacity} color={bond_color} />
+    {#each bond_pairs ?? [] as [from, to]}
+      <Bond {from} {to} radius={1} />
+    {/each}
+  </InstancedMesh>
+{/if}
 
 <!-- highlight active and hovered sites -->
 {#each [{ site: hovered_site, opacity: 0.2 }, { site: active_site, opacity: 0.3 }] as { site, opacity }}
