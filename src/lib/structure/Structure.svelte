@@ -27,6 +27,8 @@
   export let camera_position: [number, number, number] = [10, 10, 10]
   // zoom level of the camera
   export let initial_zoom: number | undefined = undefined
+  // auto rotate speed. set to 0 to disable auto rotation.
+  export let auto_rotate: number = 0
   // zoom speed. set to 0 to disable zooming.
   export let zoom_speed: number = 0.3
   // pan speed. set to 0 to disable panning.
@@ -235,6 +237,11 @@
       <hr />
 
       <label>
+        Auto rotate speed
+        <input type="number" min={0} max={2} step={0.01} bind:value={auto_rotate} />
+        <input type="range" min={0} max={2} step={0.01} bind:value={auto_rotate} />
+      </label>
+      <label>
         Zoom speed
         <input type="number" min={0} max={2} step={0.01} bind:value={zoom_speed} />
         <input type="range" min={0} max={2} step={0.01} bind:value={zoom_speed} />
@@ -267,14 +274,15 @@
         {show_atoms}
         {show_bonds}
         {show_cell}
+        {show_vectors}
         {...$$restProps}
-        {pan_speed}
         {cell_opacity}
         {cell_line_width}
         {bond_radius}
         {camera_position}
+        {auto_rotate}
+        {pan_speed}
         {zoom_speed}
-        {show_vectors}
         bind:atom_radius
         bind:same_size_atoms
       >
