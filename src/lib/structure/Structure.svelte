@@ -42,7 +42,7 @@
   // whether to show the structure's lattice cell as a wireframe
   export let show_atoms: boolean = true
   export let show_bonds: boolean = true
-  export let bond_thickness: number | undefined = undefined
+  export let bond_radius: number | undefined = undefined
   export let show_cell: 'surface' | 'wireframe' | null = `wireframe`
   export let cell_opacity: number | undefined = 0.15
   export let cell_line_width: number = 1
@@ -196,8 +196,8 @@
       <label>
         Atom radius
         <small> (Å)</small>
-        <input type="number" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
-        <input type="range" min="0.1" max="1" step="0.05" bind:value={atom_radius} />
+        <input type="number" min="0.1" max={1} step={0.05} bind:value={atom_radius} />
+        <input type="range" min="0.1" max={1} step={0.05} bind:value={atom_radius} />
       </label>
       <label>
         <input type="checkbox" bind:checked={same_size_atoms} />
@@ -207,9 +207,15 @@
         </span>
       </label>
       <label>
-        Bond thickness
-        <input type="number" min="0.1" max="3" step="0.1" bind:value={bond_thickness} />
-        <input type="range" min="0.1" max="3" step="0.1" bind:value={bond_thickness} />
+        Bond radius
+        <input
+          type="number"
+          min={0.001}
+          max={0.1}
+          step={0.001}
+          bind:value={bond_radius}
+        />
+        <input type="range" min="0.001" max="0.1" step={0.001} bind:value={bond_radius} />
       </label>
 
       <hr />
@@ -221,8 +227,8 @@
       {#if show_cell}
         <label>
           Unit cell opacity
-          <input type="number" min="0" max="1" step="0.05" bind:value={cell_opacity} />
-          <input type="range" min="0" max="1" step="0.05" bind:value={cell_opacity} />
+          <input type="number" min={0} max={1} step={0.05} bind:value={cell_opacity} />
+          <input type="range" min={0} max={1} step={0.05} bind:value={cell_opacity} />
         </label>
       {/if}
 
@@ -230,15 +236,15 @@
 
       <label>
         Zoom speed
-        <input type="number" min="0" max="2" step="0.01" bind:value={zoom_speed} />
-        <input type="range" min="0" max="2" step="0.01" bind:value={zoom_speed} />
+        <input type="number" min={0} max={2} step={0.01} bind:value={zoom_speed} />
+        <input type="range" min={0} max={2} step={0.01} bind:value={zoom_speed} />
       </label>
       <label>
         <Tooltip text="pan by clicking and dragging while holding cmd, ctrl or shift">
           Pan speed
         </Tooltip>
-        <input type="number" min="0" max="2" step="0.01" bind:value={pan_speed} />
-        <input type="range" min="0" max="2" step="0.01" bind:value={pan_speed} />
+        <input type="number" min={0} max={2} step={0.01} bind:value={pan_speed} />
+        <input type="range" min={0} max={2} step={0.01} bind:value={pan_speed} />
       </label>
       <!-- color scheme -->
       <label>
@@ -265,6 +271,7 @@
         {pan_speed}
         {cell_opacity}
         {cell_line_width}
+        {bond_radius}
         {camera_position}
         {zoom_speed}
         {show_vectors}
