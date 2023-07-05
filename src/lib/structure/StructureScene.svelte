@@ -149,7 +149,7 @@
 
 {#if hovered_site}
   <HTML position={hovered_site.xyz} pointerEvents="none">
-    <div>
+    <div class="tooltip">
       {#each hovered_site.species ?? [] as { element, occu, oxidation_state }}
         {@const oxi_state =
           oxidation_state &&
@@ -189,12 +189,12 @@
 {/if}
 
 <style>
-  div {
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 1pt 5pt;
+  div.tooltip {
     width: max-content;
     box-sizing: border-box;
-    border-radius: 5pt;
     pointer-events: none;
+    border-radius: var(--struct-tooltip-border-radius, 5pt);
+    background: var(--struct-tooltip-bg, rgba(0, 0, 0, 0.5));
+    padding: var(--struct-tooltip-padding, 1pt 5pt);
   }
 </style>
