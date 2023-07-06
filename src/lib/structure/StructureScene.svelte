@@ -56,6 +56,13 @@
   export let bond_opacity: number = 0.5
   export let bond_color: string = `white`
   export let max_bond_dist: number = 3
+  // set to null to disable showing distance between hovered and active sites
+  type ActiveHoveredDist = { color: string; width: number; opacity: number }
+  export let active_hovered_dist: ActiveHoveredDist | null = {
+    color: `green`,
+    width: 0.1,
+    opacity: 0.5,
+  }
 
   $: ({ a, b, c } = structure?.lattice ?? { a: 0, b: 0, c: 0 })
   $: hovered_site = structure?.sites?.[hovered_idx ?? -1] ?? null
@@ -76,7 +83,7 @@
   }
 
   // make bonds reactive to atom_radius unless bond_radius is set
-  $: bond_thickness = bond_radius ?? 0.075 * atom_radius
+  $: bond_thickness = bond_radius ?? 0.1 * atom_radius
 </script>
 
 <T.PerspectiveCamera makeDefault position={camera_position}>
@@ -147,6 +154,17 @@
   {/if}
 {/each}
 
+<!-- cylinder between active and hovered site to indicate measured distance -->
+{#if active_site && hovered_site && active_hovered_dist}
+  {@const { color, width, opacity } = active_hovered_dist}
+  <InstancedMesh>
+    <T.CylinderGeometry args={[width, width, 1, 16]} />
+    <T.MeshStandardMaterial {opacity} {color} />
+    <Bond from={active_site.xyz} to={hovered_site.xyz} radius={1} />
+  </InstancedMesh>
+{/if}
+
+<!-- hovered site tooltip -->
 {#if hovered_site}
   <HTML position={hovered_site.xyz} pointerEvents="none">
     <div class="tooltip">
@@ -160,9 +178,10 @@
       ({hovered_site.xyz.map((num) => pretty_num(num, precision)).join(`, `)})
       <!-- distance from hovered to active site -->
       <!-- TODO this doesn't handle periodic boundaries yet, so is currently grossly misleading -->
-      {#if active_site && active_site != hovered_site}
+      {#if active_site && active_site != hovered_site && active_hovered_dist}
         {@const distance = pretty_num(euclidean_dist(hovered_site.xyz, active_site.xyz))}
-        dist={distance} Å
+        <br />
+        dist={distance} Å (no PBC yet)
       {/if}
     </div>
   </HTML>
