@@ -175,7 +175,9 @@
   </HTML>
 {/if}
 
-<Lattice {...structure?.lattice} {...$$restProps} />
+{#if structure?.lattice}
+  <Lattice {...structure?.lattice} {...$$restProps} />
+{/if}
 
 <style>
   div.tooltip {

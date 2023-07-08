@@ -3,6 +3,7 @@
   import { T } from '@threlte/core'
   import { BufferGeometry, Vector3 } from 'three'
 
+  export let matrix: [Vector, Vector, Vector]
   export let show_cell: 'surface' | 'wireframe' | null = `wireframe`
   // thickness of the wireframe lines that indicate the lattice's unit cell
   // due to limitations of OpenGL with WebGL renderer, on most platforms linewidth will be 1 regardless of set value
@@ -11,7 +12,6 @@
   export let cell_line_width: number = 1
   // cell opacity
   export let cell_opacity: number | undefined = undefined
-  export let matrix: [Vector, Vector, Vector] = []
   // whether to show the lattice vectors
   export let show_vectors: boolean = true
   // lattice vector colors

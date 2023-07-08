@@ -384,7 +384,7 @@
     box-sizing: border-box;
     top: var(--struct-controls-top, 30pt);
     right: var(--struct-controls-right, 6pt);
-    background: var(--struct-controls-bg, rgba(0, 0, 0, 0.7));
+    background: var(--struct-controls-bg, rgba(0, 0, 0, 0.8));
     padding: var(--struct-controls-padding, 6pt 9pt);
     border-radius: var(--struct-controls-border-radius, 3pt);
     width: var(--struct-controls-width, 20em);
