@@ -86,7 +86,7 @@
   $: {
     // set camera position based on structure size
     const scale = initial_zoom ?? 1000 / Math.min(width, height)
-    camera_position = [scale * a, 0.5 * scale * b, scale * c]
+    camera_position = [scale * a, scale * b, scale * c]
   }
   const on_window_click =
     (node: (HTMLElement | null)[], cb: () => void) => (event: MouseEvent) => {
