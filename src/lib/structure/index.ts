@@ -3,7 +3,6 @@ import type { ElementSymbol } from '$lib'
 import { pretty_num } from '$lib'
 import element_data from '$lib/element/data'
 
-export { default as Arrow } from './Arrow.svelte'
 export { default as Bond } from './Bond.svelte'
 export { default as Lattice } from './Lattice.svelte'
 export { default as Structure } from './Structure.svelte'
