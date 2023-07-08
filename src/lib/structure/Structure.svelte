@@ -1,11 +1,9 @@
 <script lang="ts">
   import { element_color_schemes } from '$lib/colors'
   import { element_colors } from '$lib/stores'
-  import Iconify from '@iconify/svelte'
   import { Canvas } from '@threlte/core'
   import { Tooltip } from 'svelte-zoo'
   import type { ElementSymbol } from '..'
-  import Icon from '../Icon.svelte'
   import { download } from '../api'
   import type { PymatgenStructure } from '../structure'
   import {
@@ -167,9 +165,7 @@
       </button>
       {#if enable_tips}
         <button class="info-icon" on:click={() => tips_modal?.showModal()}>
-          <slot name="tips-icon">
-            <Iconify icon="mdi:information" inline />
-          </slot>
+          <slot name="tips-icon">&#9432;</slot>
         </button>
       {/if}
     </section>
@@ -294,8 +290,7 @@
         </select>
       </label>
       <button type="button" on:click={download_json} title={save_json_btn_text}>
-        <Icon icon="mdi:download" />
-        {save_json_btn_text}
+        ⬇ {save_json_btn_text}
       </button>
     </dialog>
 
