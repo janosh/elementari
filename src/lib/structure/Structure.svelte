@@ -106,7 +106,7 @@
   }
 
   function on_file_drop(event: DragEvent) {
-    // TODO support dragging CIF files
+    // TODO support dragging CIF/XYZ files
     dragover = false
     if (!allow_file_drop) return
     const file = event.dataTransfer?.items[0].getAsFile()
