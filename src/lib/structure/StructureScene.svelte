@@ -29,7 +29,7 @@
   // determined by the atomic radius of the element
   export let same_size_atoms: boolean = true
   // initial camera position from which to render the scene
-  export let camera_position: Vector = [10, 0, 0]
+  export let camera_position: Vector = [12, 4, 2 * (structure?.lattice?.c ?? 5)]
   // rotation damping factor (how quickly the rotation comes to rest after mouse release)
   export let rotation_damping: number = 0.1
   // zoom level of the camera
@@ -39,9 +39,6 @@
   export let zoom_speed: number = 0.3
   // pan speed. set to 0 to disable panning.
   export let pan_speed: number = 1
-  // TODO whether to make the canvas fill the whole screen
-  // export let fullscreen: boolean = false
-  // whether to show the structure's lattice cell as a wireframe
   export let show_atoms: boolean = true
   export let show_bonds: boolean = true
   export let gizmo: boolean | ComponentProps<Gizmo> = true
@@ -50,10 +47,10 @@
   export let hovered_site: Site | null = null
   export let active_site: Site | null = null
   export let precision: string = `.3~f`
-  export let auto_rotate: number | boolean = 0
+  export let auto_rotate: number | boolean = 0 // auto rotate speed. set to 0 to disable auto rotation.
   export let bond_radius: number | undefined = undefined
   export let bond_opacity: number = 0.5
-  export let bond_color: string = `white`
+  export let bond_color: string = `#ffffff` // must be hex code for <input type='color'>
   export let bonding_strategy: keyof typeof bonding_strategies = `nearest_neighbor`
   export let bonding_options: Record<string, unknown> = {}
   // set to null to disable showing distance between hovered and active sites
@@ -63,13 +60,16 @@
     width: 0.1,
     opacity: 0.5,
   }
-  // field of view of the camera. 50 is THREE.js default
-  export let fov: number = 50
-  export let ambient_light: number = 1.2
-  export let directional_light: number = 2
+  export let fov: number = 50 // field of view of the camera. 50 is THREE.js default
+  export let ambient_light: number = 1.8
+  export let directional_light: number = 2.5
   // number of segments in sphere geometry. higher is smoother but more
   // expensive to render (usually >16, <32)
   export let sphere_segments: number = 20
+
+  // TODO bond_color_mode to be implemented
+  export const bond_color_mode: 'single' | 'split-midpoint' | 'gradient' = `single`
+  export let lattice_props: Omit<ComponentProps<Lattice>, 'matrix'> = {}
 
   $: hovered_site = structure?.sites?.[hovered_idx ?? -1] ?? null
   $: active_site = structure?.sites?.[active_idx ?? -1] ?? null
@@ -222,7 +222,7 @@
 {/if}
 
 {#if structure?.lattice}
-  <Lattice matrix={structure?.lattice?.matrix} {...$$restProps} />
+  <Lattice matrix={structure?.lattice?.matrix} {...lattice_props} />
 {/if}
 
 <style>
