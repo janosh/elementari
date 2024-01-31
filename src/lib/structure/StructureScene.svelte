@@ -11,13 +11,7 @@
   } from '$lib'
   import { element_colors } from '$lib/stores'
   import { T } from '@threlte/core'
-  import {
-    HTML,
-    Instance,
-    InstancedMesh,
-    OrbitControls,
-    interactivity,
-  } from '@threlte/extras'
+  import { HTML, InstancedMesh, OrbitControls, interactivity } from '@threlte/extras'
   import * as bonding_strategies from './bonding'
 
   // output of pymatgen.core.Structure.as_dict()
@@ -65,6 +59,9 @@
   export let fov: number = 50
   export let ambient_light: number = 1.2
   export let directional_light: number = 2
+  // number of segments in sphere geometry. higher is smoother but more
+  // expensive to render (usually >16, <32)
+  export let sphere_segments: number = 20
 
   $: hovered_site = structure?.sites?.[hovered_idx ?? -1] ?? null
   $: active_site = structure?.sites?.[active_idx ?? -1] ?? null
@@ -102,36 +99,48 @@
 <T.AmbientLight intensity={ambient_light} />
 
 {#if show_atoms && structure?.sites}
-  <InstancedMesh>
-    <T.MeshStandardMaterial />
-    <T.SphereGeometry args={[1, 20, 20]} />
-    {#each structure.sites as site, idx}
-      {@const { species, xyz } = site}
-      {@const elem = species[0].element}
+  {#each structure.sites as site, site_idx}
+    {@const { species, xyz } = site}
+    {#each species as { element: elem, occu }, spec_idx}
       {@const radius = (same_size_atoms ? 1 : atomic_radii[elem]) * atom_radius}
-      <Instance
-        position={xyz}
-        color={$element_colors[species[0].element]}
-        on:pointerenter={() => {
-          hovered_idx = idx
-        }}
-        on:pointerleave={() => {
-          hovered_idx = null
-        }}
-        on:click={() => {
-          if (active_idx == idx) active_idx = null
-          else active_idx = idx
-        }}
-        scale={radius}
-      />
-
+      {@const start_angle = species
+        .slice(0, spec_idx)
+        .reduce((total, spec) => total + spec.occu, 0)}
+      <T.Mesh position={xyz}>
+        <T.SphereGeometry
+          args={[
+            0.5,
+            sphere_segments,
+            sphere_segments,
+            2 * Math.PI * start_angle,
+            2 * Math.PI * (start_angle + occu),
+          ]}
+        />
+        <T.MeshStandardMaterial
+          color={$element_colors[elem]}
+          on:pointerenter={() => {
+            hovered_idx = site_idx
+          }}
+          on:pointerleave={() => {
+            hovered_idx = null
+          }}
+          on:click={() => {
+            if (active_idx == site_idx) active_idx = null
+            else active_idx = site_idx
+          }}
+          scale={radius}
+        />
+      </T.Mesh>
       {#if $$slots[`atom-label`]}
-        <HTML center position={xyz}>
-          <slot name="atom-label" {elem} {xyz} {species} />
+        <!-- use polar coordinates + offset if site has partial occupancy to move the text to the side of the corresponding sphere slice -->
+        {@const phi = Math.PI * (start_angle + occu / 2)}
+        {@const pos = add(xyz, scale([0, Math.sin(phi), Math.cos(phi)], 1.3 * radius))}
+        <HTML center position={pos}>
+          <slot name="atom-label" {elem} xyz={pos} {species} />
         </HTML>
       {/if}
     {/each}
-  </InstancedMesh>
+  {/each}
 {/if}
 
 {#if show_bonds}
