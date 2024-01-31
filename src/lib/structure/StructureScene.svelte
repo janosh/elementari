@@ -11,7 +11,14 @@
   } from '$lib'
   import { element_colors } from '$lib/stores'
   import { T } from '@threlte/core'
-  import { HTML, InstancedMesh, OrbitControls, interactivity } from '@threlte/extras'
+  import {
+    Gizmo,
+    HTML,
+    InstancedMesh,
+    OrbitControls,
+    interactivity,
+  } from '@threlte/extras'
+  import type { ComponentProps } from 'svelte'
   import * as bonding_strategies from './bonding'
 
   // output of pymatgen.core.Structure.as_dict()
@@ -37,6 +44,7 @@
   // whether to show the structure's lattice cell as a wireframe
   export let show_atoms: boolean = true
   export let show_bonds: boolean = true
+  export let gizmo: boolean | ComponentProps<Gizmo> = true
   export let hovered_idx: number | null = null
   export let active_idx: number | null = null
   export let hovered_site: Site | null = null
@@ -74,6 +82,14 @@
 
   // make bond thickness reactive to atom_radius unless bond_radius is set
   $: bond_thickness = bond_radius ?? 0.1 * atom_radius
+  const gizmo_defaults = {
+    horizontalPlacement: `left`,
+    turnRate: 0.5,
+    size: 100,
+    paddingX: 10,
+    paddingY: 10,
+  } as const
+  $: gizmo_props = typeof gizmo === `boolean` ? {} : gizmo
 </script>
 
 <T.PerspectiveCamera makeDefault position={camera_position} {fov}>
@@ -94,6 +110,10 @@
     dampingFactor={rotation_damping}
   />
 </T.PerspectiveCamera>
+
+{#if gizmo}
+  <Gizmo {...{ ...gizmo_defaults, ...gizmo_props }} />
+{/if}
 
 <T.DirectionalLight position={[3, 10, 10]} intensity={directional_light} />
 <T.AmbientLight intensity={ambient_light} />
