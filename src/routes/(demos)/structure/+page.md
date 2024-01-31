@@ -14,7 +14,7 @@
   import { structures } from '$site'
   import Select from 'svelte-multiselect'
 
-  let mp_id = `mp-756175`
+  let mp_id = `Bi2Zr2O7-Fm3m`
   let width
   let height
   $: href = `https://materialsproject.org/materials/${mp_id}`
