@@ -29,7 +29,7 @@ repos:
         exclude: ^changelog.md|.*/(structures|molecules)/.*\.json|.py$
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.0.0-alpha.2
+    rev: v9.0.0-beta.2
     hooks:
       - id: eslint
         types: [file]

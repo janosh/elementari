@@ -82,14 +82,13 @@
 
   // make bond thickness reactive to atom_radius unless bond_radius is set
   $: bond_thickness = bond_radius ?? 0.1 * atom_radius
-  const gizmo_defaults = {
+  const gizmo_defaults: Partial<ComponentProps<Gizmo>> = {
     horizontalPlacement: `left`,
-    turnRate: 0.5,
     size: 100,
     paddingX: 10,
     paddingY: 10,
+    toneMapped: true,
   } as const
-  $: gizmo_props = typeof gizmo === `boolean` ? {} : gizmo
 </script>
 
 <T.PerspectiveCamera makeDefault position={camera_position} {fov}>
@@ -112,7 +111,7 @@
 </T.PerspectiveCamera>
 
 {#if gizmo}
-  <Gizmo {...{ ...gizmo_defaults, ...gizmo_props }} />
+  <Gizmo {...{ ...gizmo_defaults, ...(typeof gizmo === `boolean` ? {} : gizmo) }} />
 {/if}
 
 <T.DirectionalLight position={[3, 10, 10]} intensity={directional_light} />

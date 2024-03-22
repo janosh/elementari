@@ -1,7 +1,12 @@
 <script>
   import { FileDetails } from 'svelte-zoo'
 
-  const files = Object.entries(import.meta.glob('$lib/Structure*', { as: 'raw', eager: true })).map(([path, content]) => {
+  const structure_code_files = import.meta.glob('$lib/Structure*', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  })
+  const files = Object.entries(structure_code_files).map(([path, content]) => {
     return { title: path, content }
   })
 </script>
