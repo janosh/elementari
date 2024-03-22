@@ -1,7 +1,12 @@
 <script>
   import { FileDetails } from 'svelte-zoo'
 
-  const files = Object.entries(import.meta.glob('$lib/Structure*', { as: 'raw', eager: true })).map(([path, content]) => {
+  const structure_code_files = import.meta.glob('$lib/Structure*', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  })
+  const files = Object.entries(structure_code_files).map(([path, content]) => {
     return { title: path, content }
   })
 </script>
@@ -14,7 +19,7 @@
   import { structures } from '$site'
   import Select from 'svelte-multiselect'
 
-  let mp_id = `mp-756175`
+  let mp_id = `Bi2Zr2O7-Fm3m`
   let width
   let height
   $: href = `https://materialsproject.org/materials/${mp_id}`
