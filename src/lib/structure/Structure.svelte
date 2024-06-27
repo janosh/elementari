@@ -14,7 +14,8 @@
   // output of pymatgen.core.Structure.as_dict()
   export let structure: Atoms | undefined = undefined
 
-  export let scene_props: ComponentProps<StructureScene> = {} // passed to StructureScene
+  // need to set a default atom_radius so it doesn't initialize to 0
+  export let scene_props: ComponentProps<StructureScene> = { atom_radius: 1 } // passed to StructureScene
   export let lattice_props: ComponentProps<Lattice> = {} // passed to Lattice
 
   // whether to show the controls panel

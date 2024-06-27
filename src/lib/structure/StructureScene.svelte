@@ -25,6 +25,9 @@
   export let structure: Atoms | undefined = undefined
   // scale factor for atomic radii
   export let atom_radius: number = 0.5
+  // multiple of atom_radius (actually atom_radius * the element's atomic radius)
+  // to use as distance for the site label(s) (multiple if site is disordered) from the site's center
+  export let label_radius: number = 1
   // whether to use the same radius for all atoms. if not, the radius will be
   // determined by the atomic radius of the element
   export let same_size_atoms: boolean = true
@@ -152,8 +155,11 @@
       </T.Mesh>
       {#if $$slots[`atom-label`]}
         <!-- use polar coordinates + offset if site has partial occupancy to move the text to the side of the corresponding sphere slice -->
-        {@const phi = Math.PI * (start_angle + occu / 2)}
-        {@const pos = add(xyz, scale([0, Math.sin(phi), Math.cos(phi)], 1.3 * radius))}
+        {@const phi = 2 * Math.PI * (start_angle + occu / 2)}
+        {@const pos = add(
+          xyz,
+          scale([Math.cos(phi), 0, Math.sin(phi)], label_radius * radius),
+        )}
         <HTML center position={pos}>
           <slot name="atom-label" {elem} xyz={pos} {species} />
         </HTML>
