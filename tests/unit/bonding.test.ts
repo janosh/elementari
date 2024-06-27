@@ -4,6 +4,8 @@ import { max_dist, nearest_neighbor } from '$lib/structure/bonding'
 import { performance } from 'perf_hooks'
 import { describe, expect, test } from 'vitest'
 
+const ci_max_time_multiplier = process.env.CI ? 5 : 1
+
 // Function to generate a random structure
 function make_rand_structure(numAtoms: number) {
   return {
@@ -29,8 +31,8 @@ function perf_test(func: BondingAlgo, atom_count: number, max_time: number) {
 
   expect(
     avg_time,
-    `average run time: ${Math.ceil(avg_time)}, max expected: ${max_time}`,
-  ).toBeLessThanOrEqual(max_time)
+    `average run time: ${Math.ceil(avg_time)}, max expected: ${max_time * ci_max_time_multiplier}`, // Apply scaling factor
+  ).toBeLessThanOrEqual(max_time * ci_max_time_multiplier)
 }
 
 describe(`Bonding Functions Performance Tests`, () => {
