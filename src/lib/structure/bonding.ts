@@ -1,5 +1,7 @@
 import type { BondPair, PymatgenStructure } from '$lib'
 
+export type BondingAlgo = typeof max_dist | typeof nearest_neighbor
+
 export function max_dist(
   structure: PymatgenStructure,
   { max_bond_dist = 3, min_bond_dist = 0.4 } = {}, // in Angstroms
