@@ -65,3 +65,130 @@ describe(`Bonding Functions Performance Tests`, () => {
     }
   }
 })
+
+// Helper function to create a simple structure
+const make_struct = (sites: number[][]): PymatgenStructure => ({
+  sites: sites.map((xyz) => ({ xyz })),
+})
+
+describe(`max_dist function`, () => {
+  test(`should return correct bonds for a simple structure`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ])
+    const bonds = max_dist(structure, {
+      max_bond_dist: 1.5,
+      min_bond_dist: 0.5,
+    })
+    expect(bonds).toHaveLength(6)
+    expect(bonds).toContainEqual([[0, 0, 0], [1, 0, 0], 0, 1, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 1, 0], 0, 2, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 0, 1], 0, 3, 1])
+  })
+
+  test(`should not return bonds shorter than min_bond_dist`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [0.3, 0, 0],
+    ])
+    const bonds = max_dist(structure, { max_bond_dist: 1, min_bond_dist: 0.5 })
+    expect(bonds).toHaveLength(0)
+  })
+
+  test(`should not return bonds longer than max_bond_dist`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [2, 0, 0],
+    ])
+    const bonds = max_dist(structure, {
+      max_bond_dist: 1.5,
+      min_bond_dist: 0.5,
+    })
+    expect(bonds).toHaveLength(0)
+  })
+
+  test(`should handle empty structures`, () => {
+    const structure = make_struct([])
+    const bonds = max_dist(structure)
+    expect(bonds).toHaveLength(0)
+  })
+})
+
+describe(`nearest_neighbor function`, () => {
+  test(`should return correct bonds for a simple structure`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [2, 0, 0],
+    ])
+    const bonds = nearest_neighbor(structure, {
+      scaling_factor: 1.1,
+      min_bond_dist: 0.5,
+    })
+    expect(bonds).toHaveLength(4)
+    expect(bonds).toContainEqual([[0, 0, 0], [1, 0, 0], 0, 1, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 1, 0], 0, 2, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 0, 1], 0, 3, 1])
+  })
+
+  test(`should not return bonds shorter than min_bond_dist`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [0.05, 0, 0],
+      [1, 0, 0],
+    ])
+    const bonds = nearest_neighbor(structure, {
+      scaling_factor: 1.2,
+      min_bond_dist: 0.1,
+    })
+    expect(bonds).toHaveLength(2)
+    expect(bonds).toContainEqual([[0, 0, 0], [1, 0, 0], 0, 2, 1])
+  })
+
+  test(`should handle structures with multiple equidistant nearest neighbors`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ])
+    const bonds = nearest_neighbor(structure, {
+      scaling_factor: 1.1,
+      min_bond_dist: 0.5,
+    })
+    expect(bonds).toHaveLength(3)
+    expect(bonds).toContainEqual([[0, 0, 0], [1, 0, 0], 0, 1, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 1, 0], 0, 2, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 0, 1], 0, 3, 1])
+  })
+
+  test(`should handle empty structures`, () => {
+    const structure = make_struct([])
+    const bonds = nearest_neighbor(structure)
+    expect(bonds).toHaveLength(0)
+  })
+
+  test(`should respect the scaling_factor`, () => {
+    const structure = make_struct([
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [1.5, 0, 0],
+    ])
+    const bonds = nearest_neighbor(structure, {
+      scaling_factor: 1.4,
+      min_bond_dist: 0.5,
+    })
+    expect(bonds).toHaveLength(4)
+    expect(bonds).toContainEqual([[0, 0, 0], [1, 0, 0], 0, 1, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 1, 0], 0, 2, 1])
+    expect(bonds).toContainEqual([[0, 0, 0], [0, 0, 1], 0, 3, 1])
+    expect(bonds).toContainEqual([[1, 0, 0], [1.5, 0, 0], 1, 4, 0.5])
+  })
+})
