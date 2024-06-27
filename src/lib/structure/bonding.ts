@@ -85,6 +85,6 @@ export function nearest_neighbor(
 
 // redundant functionality-wise with euclidean_dist from $lib/math.ts but needed for performance
 // makes bonding algos 2-3x faster
-function euclidean_dist_sq(a: number[], b: number[]): number {
-  return a.reduce((sum, _, i) => sum + (a[i] - b[i]) ** 2, 0)
+function euclidean_dist_sq(vec_a: number[], vec_b: number[]): number {
+  return vec_a.reduce((sum, _, i) => sum + (vec_a[i] - vec_b[i]) ** 2, 0)
 }
