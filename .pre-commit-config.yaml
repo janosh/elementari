@@ -5,7 +5,7 @@ default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-case-conflict
       - id: check-symlinks
@@ -29,7 +29,7 @@ repos:
         exclude: ^changelog.md|.*/(structures|molecules)/.*\.json|.py$
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.0.0-beta.2
+    rev: v9.5.0
     hooks:
       - id: eslint
         types: [file]
@@ -37,15 +37,14 @@ repos:
         files: \.(js|ts|svelte)$
         additional_dependencies:
           - eslint
-          - svelte
-          - typescript
           - eslint-plugin-svelte
-          - '@typescript-eslint/eslint-plugin'
-          - '@typescript-eslint/parser'
+          - svelte
           - svelte-eslint-parser
+          - typescript
+          - typescript-eslint
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         stages: [commit, commit-msg]
