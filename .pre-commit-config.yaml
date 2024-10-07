@@ -29,7 +29,7 @@ repos:
           - prettier
           - prettier-plugin-svelte
           - svelte
-        stages: [commit]
+        stages: [Nonepre-commitNone]
         exclude: ^changelog.md|.*/(structures|molecules)/.*\.json|.py$
 
   - repo: https://github.com/pre-commit/mirrors-eslint
@@ -51,6 +51,6 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
-        stages: [commit, commit-msg]
+        stages: [Nonepre-commitNone, commit-msg]
         args:
           [--ignore-words-list, 'te,ba,nd,ore,claus,manuel', --check-filenames]
