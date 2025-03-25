@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Category } from '$lib'
   import { default_category_colors } from '$lib/colors'
   import { active_state, color_state } from '$lib/state.svelte'
   import type { Snippet } from 'svelte'
@@ -40,8 +41,8 @@
       <label
         for="{category}-color"
         transition:fade={{ duration: 200 }}
-        onmouseenter={() => (active_state.category = category)}
-        onfocus={() => (active_state.category = category)}
+        onmouseenter={() => (active_state.category = category as Category)}
+        onfocus={() => (active_state.category = category as Category)}
         onmouseleave={() => (active_state.category = null)}
         onblur={() => (active_state.category = null)}
       >

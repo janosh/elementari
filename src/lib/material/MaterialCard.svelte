@@ -81,7 +81,7 @@
       }`,
       tooltip: `µB: Bohr magneton, f.u.: formula unit`,
     },
-    { title: `Ordering`, value: { NM: `non-magnetic` }[material.ordering] },
+    { title: `Ordering`, value: { NM: `non-magnetic` }[material.ordering] ?? `unknown` },
     {
       title: `Possible oxidation states`,
       value: superscript_digits(material.possible_species?.join(` `) ?? ``),

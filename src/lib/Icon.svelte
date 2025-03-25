@@ -3,7 +3,6 @@
   interface Props {
     [key: string]: unknown
   }
-
   let { ...props }: Props = $props()
 </script>
 

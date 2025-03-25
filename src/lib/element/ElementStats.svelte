@@ -6,7 +6,6 @@
     element: ChemicalElement | null
     style?: string
   }
-
   let { element, style = `` }: Props = $props()
 
   const icon_phase_map = {

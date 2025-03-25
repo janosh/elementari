@@ -20,6 +20,7 @@
     precision?: string | undefined
     node?: HTMLElement | null
     label?: string | null
+    [key: string]: unknown
   }
 
   let {

@@ -7,10 +7,9 @@
     material: SummaryDoc
     [key: string]: unknown
   }
-
   let { title = `Symmetry`, material, ...rest }: Props = $props()
 
-  let data: Record<string, unknown> = $derived([
+  let data = $derived([
     {
       title: `Crystal System`,
       value: `${material.symmetry?.crystal_system}`,

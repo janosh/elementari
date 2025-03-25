@@ -5,7 +5,6 @@
     element: ChemicalElement
     style?: string
   }
-
   let { element, style = `` }: Props = $props()
 </script>
 

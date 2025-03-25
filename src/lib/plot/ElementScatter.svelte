@@ -2,9 +2,8 @@
   import { ScatterPlot, element_data, pretty_num, type Point } from '$lib'
   import { active_state } from '$lib/state.svelte'
 
-  // either array of length 118 (one heat value for each element) or
-
   interface Props {
+    // either array of length 118 (one heat value for each element) or
     // object with element symbol as key and heat value as value
     y: number[]
     x_label?: string

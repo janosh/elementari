@@ -6,7 +6,6 @@
     routes?: string[]
     labels?: Record<string, string>
   }
-
   let { routes = demos.routes, labels = {} }: Props = $props()
 
   let is_current = $derived((path: string) => {

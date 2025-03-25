@@ -8,7 +8,6 @@
     title?: string
     [key: string]: unknown
   }
-
   let { structure, title = `Structure`, ...rest }: Props = $props()
 
   let { volume, a, b, c, alpha, beta, gamma } = $derived(structure?.lattice ?? {})

@@ -7,7 +7,6 @@
     style?: string | null
     missing_msg?: string
   }
-
   let { element, style = null, missing_msg = `No image for ` }: Props = $props()
 
   let { name, number } = $derived(element ?? {})

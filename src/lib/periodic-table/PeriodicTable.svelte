@@ -21,7 +21,7 @@
     },
   ]
   interface Props {
-    tile_props?: ComponentProps<typeof ElementTile>
+    tile_props?: Partial<ComponentProps<typeof ElementTile>>
     show_photo?: boolean
     style?: string
     disabled?: boolean // disable hover and click events from updating active_element
@@ -46,8 +46,8 @@
     }[]
     lanth_act_style?: string
     color_scale_range?: [number | null, number | null]
-    color_overrides?: Record<ElementSymbol, string>
-    labels?: Record<ElementSymbol, string>
+    color_overrides?: Partial<Record<ElementSymbol, string>>
+    labels?: Partial<Record<ElementSymbol, string>>
     inset?: Snippet<[{ active_element: ChemicalElement | null }]>
     bottom_left_inset?: Snippet<[{ active_element: ChemicalElement | null }]>
     children?: Snippet
@@ -61,7 +61,7 @@
     heatmap_values = [],
     links = null,
     log = false,
-    color_scale = `Viridis`,
+    color_scale = $bindable(`Viridis`),
     active_element = $bindable(null),
     active_category = $bindable(null),
     gap = `0.3cqw`,
@@ -91,7 +91,7 @@
       } else heat_values = heatmap_values
     } else if (typeof heatmap_values == `object`) {
       const bad_keys = Object.keys(heatmap_values).filter(
-        (key) => !elem_symbols.includes(key),
+        (key) => !elem_symbols.includes(key as ElementSymbol),
       )
       if (bad_keys.length > 0) {
         console.error(
@@ -106,7 +106,7 @@
     active_element = element
   })
 
-  let window_width: number = $state()
+  let window_width: number = $state(0)
   function handle_key(event: KeyboardEvent) {
     if (disabled || !active_element) return
     if (event.key == `Enter`) return goto(active_element.name.toLowerCase())
@@ -129,20 +129,22 @@
         }[event.key]
       }) ?? active_element
   }
-  let c_scale = $derived(
-    typeof color_scale == `string` ? d3sc[`interpolate${color_scale}`] : color_scale,
+  let color_scale_fn = $derived(
+    typeof color_scale == `string`
+      ? d3sc[`interpolate${color_scale}` as keyof typeof d3sc]
+      : color_scale,
   )
 
   let cs_min = $derived(color_scale_range[0] ?? Math.min(...heat_values))
   let cs_max = $derived(color_scale_range[1] ?? Math.max(...heat_values))
 
   let bg_color = $derived((value: number | false): string | null => {
-    if (!heat_values?.length || !c_scale) return null
+    if (!heat_values?.length || !color_scale_fn) return null
     if (!value || (log && value <= 0)) return `transparent`
     // map value to [0, 1] range
     if (log) value = Math.log(value - cs_min + 1) / Math.log(cs_max - cs_min + 1)
     else value = (value - cs_min) / (cs_max - cs_min)
-    return c_scale(value)
+    return color_scale_fn?.(value)
   })
 </script>
 
