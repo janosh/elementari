@@ -67,15 +67,15 @@
     .filter(Boolean)
     .join(`, `)
 
-  $effect(() => {
+  let color_scale_fn = $derived.by(() => {
     if (typeof color_scale == `string`) {
       if (`interpolate${color_scale}` in d3sc) {
-        color_scale = d3sc[`interpolate${color_scale}`]
+        return d3sc[`interpolate${color_scale}`]
       } else {
         console.error(
           `Color scale '${color_scale}' not found, supported color scale names are ${valid_color_scale_keys}. Falling back on 'Viridis'.`,
         )
-        color_scale = d3sc.interpolateViridis
+        return d3sc.interpolateViridis
       }
     }
   })
@@ -83,7 +83,7 @@
   let grad_dir = $derived({ horizontal: `to right`, vertical: `to bottom` }[orientation])
 
   let ramped = $derived(
-    [...Array(steps).keys()].map((_, idx) => color_scale?.(idx / steps)),
+    [...Array(steps).keys()].map((_, idx) => color_scale_fn?.(idx / steps)),
   )
   let flex_dir = $derived(
     {
