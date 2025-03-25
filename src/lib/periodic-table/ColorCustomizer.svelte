@@ -1,24 +1,31 @@
 <script lang="ts">
   import { default_category_colors } from '$lib/colors'
-  import { active_category, category_colors } from '$lib/stores'
+  import { active_state, color_state } from '$lib/state.svelte'
+  import type { Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
   import { Icon } from '..'
 
-  export let open = false
-  export let collapsible = true
-
-  $: if (typeof document !== `undefined`) {
-    for (const [key, val] of Object.entries($category_colors)) {
-      document.documentElement.style.setProperty(`--${key}-bg-color`, val)
-    }
+  interface Props {
+    open?: boolean
+    collapsible?: boolean
+    title?: Snippet
   }
+  let { open = $bindable(false), collapsible = true, title }: Props = $props()
+
+  $effect.pre(() => {
+    if (typeof document !== `undefined`) {
+      for (const [key, val] of Object.entries(color_state.category)) {
+        document.documentElement.style.setProperty(`--${key}-bg-color`, val)
+      }
+    }
+  })
 </script>
 
-<slot name="title">
+{#if title}{@render title()}{:else}
   <h2 transition:fade>
     <button
-      on:click={() => (open = !open)}
-      on:keyup={(e) => [`Enter`, ` `].includes(e.key) && (open = !open)}
+      onclick={() => (open = !open)}
+      onkeyup={(e) => [`Enter`, ` `].includes(e.key) && (open = !open)}
       title={!open && collapsible ? `Click to open color picker` : null}
       style:cursor={collapsible ? `pointer` : `default`}
     >
@@ -26,28 +33,30 @@
       Customize Colors
     </button>
   </h2>
-</slot>
+{/if}
 <div class="grid" transition:fade>
   {#if open || !collapsible}
-    {#each Object.keys($category_colors) as category}
+    {#each Object.keys(color_state.category) as category (category)}
       <label
         for="{category}-color"
         transition:fade={{ duration: 200 }}
-        on:mouseenter={() => ($active_category = category)}
-        on:focus={() => ($active_category = category)}
-        on:mouseleave={() => ($active_category = null)}
-        on:blur={() => ($active_category = null)}
+        onmouseenter={() => (active_state.category = category)}
+        onfocus={() => (active_state.category = category)}
+        onmouseleave={() => (active_state.category = null)}
+        onblur={() => (active_state.category = null)}
       >
         <input
           type="color"
           id="{category}-color"
-          bind:value={$category_colors[category]}
+          bind:value={color_state.category[category]}
         />
         {category.replaceAll(`-`, ` `)}
-        {#if $category_colors[category] !== default_category_colors[category]}
+        {#if color_state.category[category] !== default_category_colors[category]}
           <button
-            on:click|preventDefault={() =>
-              ($category_colors[category] = default_category_colors[category])}
+            onclick={(event) => {
+              event.preventDefault()
+              color_state.category[category] = default_category_colors[category]
+            }}
           >
             reset
           </button>

@@ -3,10 +3,15 @@
   import { alphabetical_formula, density, type PymatgenStructure } from '.'
   import InfoCard from '../InfoCard.svelte'
 
-  export let structure: PymatgenStructure
-  export let title: string = `Structure`
+  interface Props {
+    structure: PymatgenStructure
+    title?: string
+    [key: string]: unknown
+  }
 
-  $: ({ volume, a, b, c, alpha, beta, gamma } = structure?.lattice ?? {})
+  let { structure, title = `Structure`, ...rest }: Props = $props()
+
+  let { volume, a, b, c, alpha, beta, gamma } = $derived(structure?.lattice ?? {})
 </script>
 
 <InfoCard
@@ -26,6 +31,6 @@
     },
     // { title: 'Charge', value: structure?.charge },
   ]}
-  {...$$restProps}
+  {...rest}
   {title}
 />
