@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy'
-
   import { extent, min } from 'd3-array'
   import { interpolatePath } from 'd3-interpolate-path'
   import { curveMonotoneX, line } from 'd3-shape'
   import { cubicOut } from 'svelte/easing'
-  import { tweened } from 'svelte/motion'
+  import { Tween } from 'svelte/motion'
 
   interface Props {
     line_color?: string
@@ -37,30 +35,23 @@
     easing: cubicOut,
     interpolate: interpolatePath,
   }
-  const tweened_line = tweened(``, tween_params)
-  const tweened_area = tweened(``, tween_params)
 
   let [x_min, x_max] = $derived(extent(points.map((p) => p[0])))
-  let line_path = $derived(lineGenerator(points))
-
-  run(() => {
-    tweened_line.set(line_path)
-  })
-
+  let line_path = $derived(lineGenerator(points) ?? ``)
   let ymin = $derived(origin[1] ?? min(points.map((p) => p[1])))
   let area_path = $derived(`${line_path}L${x_max},${ymin}L${x_min},${ymin}Z`)
-  run(() => {
-    tweened_area.set(area_path)
-  })
+
+  const tweened_line = Tween.of(() => line_path, tween_params)
+  const tweened_area = Tween.of(() => area_path, tween_params)
 </script>
 
 <path
-  d={$tweened_line}
+  d={tweened_line.current}
   style:stroke={line_color}
   style:stroke-width={line_width}
   fill="none"
 />
-<path d={$tweened_area} style:fill={area_color} style:stroke={area_stroke} />
+<path d={tweened_area.current} style:fill={area_color} style:stroke={area_stroke} />
 
 <style>
   path {

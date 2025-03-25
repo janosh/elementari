@@ -18,7 +18,7 @@
     OrbitControls,
     interactivity,
   } from '@threlte/extras'
-  import type { ComponentProps, Snippet } from 'svelte'
+  import type { ComponentProps } from 'svelte'
   import * as bonding_strategies from './bonding'
 
   // set to null to disable showing distance between hovered and active sites
@@ -70,7 +70,6 @@
     // expensive to render (usually >16, <32)
     sphere_segments?: number
     lattice_props?: Omit<ComponentProps<typeof Lattice>, `matrix`>
-    atom_label?: Snippet<[Atoms | undefined]>
   }
 
   let {
@@ -108,7 +107,6 @@
     directional_light = 2.5,
     sphere_segments = 20,
     lattice_props = {},
-    atom_label,
   }: Props = $props()
 
   let bond_pairs: BondPair[] = $state([])
@@ -204,7 +202,9 @@
           scale([Math.cos(phi), 0, Math.sin(phi)], label_radius * radius),
         )}
         <HTML center position={pos}>
-          {@render atom_label?.({ elem, xyz: pos, species })}
+          {#snippet atom_label({ elem })}
+            {@render atom_label?.({ elem, xyz: pos, species })}
+          {/snippet}
         </HTML>
       {/if}
     {/each}

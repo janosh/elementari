@@ -4,8 +4,8 @@
   import Select from 'svelte-multiselect'
 
   let mp_id = $state(`Bi2Zr2O7-Fm3m`)
-  let width = $state()
-  let height = $state()
+  let width = $state(0)
+  let height = $state(0)
   let href = $derived(`https://materialsproject.org/materials/${mp_id}`)
   let structure = $derived(structures.find((struct) => struct.id === mp_id) || {})
 </script>

@@ -36,8 +36,7 @@
 </script>
 
 <ScatterPlot
-  {y}
-  x={[...Array(y.length + 1).keys()].slice(1)}
+  series={[{ x: [...Array(y.length + 1).keys()].slice(1), y }]}
   bind:tooltip_point
   bind:hovered
   {x_label}

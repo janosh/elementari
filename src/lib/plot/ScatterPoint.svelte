@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy'
-
   import type { Point } from '$lib'
   import { cubicOut } from 'svelte/easing'
-  import { tweened } from 'svelte/motion'
+  import { Tween } from 'svelte/motion'
   import type { HoverStyle, LabelStyle, PointStyle } from '.'
 
   interface Props {
@@ -51,19 +49,17 @@
   } = label
 
   const tween_params = { duration: tween_duration, easing: cubicOut }
-  const tweened_x = tweened(0, tween_params)
-  const tweened_y = tweened(0, tween_params)
+  const tweened_x = new Tween(0, tween_params)
+  const tweened_y = new Tween(0, tween_params)
 
-  run(() => {
-    tweened_x.set(x + offset.x)
-  })
-  run(() => {
-    tweened_y.set(y + offset.y)
+  $effect(() => {
+    tweened_x.target = x + offset.x
+    tweened_y.target = y + offset.y
   })
 </script>
 
 <g
-  transform="translate({$tweened_x} {$tweened_y})"
+  transform="translate({tweened_x.current} {tweened_y.current})"
   class:hover_effect={hover_enabled}
   style:--hover-scale={hover_scale}
   style:--hover-stroke={hover_stroke}
