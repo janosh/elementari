@@ -2,7 +2,7 @@
   import { extent, min } from 'd3-array'
   import { interpolatePath } from 'd3-interpolate-path'
   import { curveMonotoneX, line } from 'd3-shape'
-  import { cubicOut } from 'svelte/easing'
+  import { linear } from 'svelte/easing'
   import { Tween } from 'svelte/motion'
 
   interface Props {
@@ -20,7 +20,7 @@
     line_width = 2,
     area_color = `rgba(255, 255, 255, 0.1)`,
     area_stroke = null,
-    tween_duration = 600,
+    tween_duration = 300,
     origin,
     points,
   }: Props = $props()
@@ -32,7 +32,7 @@
 
   const tween_params = {
     duration: tween_duration,
-    easing: cubicOut,
+    easing: linear,
     interpolate: interpolatePath,
   }
 
@@ -41,8 +41,13 @@
   let ymin = $derived(origin[1] ?? min(points.map((p) => p[1])))
   let area_path = $derived(`${line_path}L${x_max},${ymin}L${x_min},${ymin}Z`)
 
-  const tweened_line = Tween.of(() => line_path, tween_params)
-  const tweened_area = Tween.of(() => area_path, tween_params)
+  const tweened_line = new Tween(``, tween_params)
+  const tweened_area = new Tween(``, tween_params)
+
+  $effect.pre(() => {
+    tweened_line.target = line_path
+    tweened_area.target = area_path
+  })
 </script>
 
 <path
