@@ -14,13 +14,13 @@
     element_data,
   } from '$lib'
   import { pretty_num, property_labels } from '$lib/labels'
-  import { active_state } from '$lib/state.svelte'
+  import { selected } from '$lib/state.svelte'
   import { PrevNext } from 'svelte-zoo'
 
   let { data } = $props()
   let { element } = $derived(data)
   $effect(() => {
-    active_state.element = element
+    selected.element = element
   })
 
   let key_vals = $derived(
@@ -42,7 +42,7 @@
 
   // set atomic radius as default heatmap_key
   $effect.pre(() => {
-    if (!active_state.heatmap_key) active_state.heatmap_key = `atomic_radius`
+    if (!selected.heatmap_key) selected.heatmap_key = `atomic_radius`
   })
 
   let head_title = $derived(`${element.name} &bull; Periodic Table`)
@@ -70,12 +70,10 @@
   }
 
   let scatter_plot_values = $derived(
-    element_data.map((el) =>
-      active_state.heatmap_key ? el[active_state.heatmap_key] : null,
-    ),
+    element_data.map((el) => (selected.heatmap_key ? el[selected.heatmap_key] : null)),
   )
   let [y_label, y_unit] = $derived(
-    active_state.heatmap_key ? (property_labels[active_state.heatmap_key] ?? []) : [],
+    selected.heatmap_key ? (property_labels[selected.heatmap_key] ?? []) : [],
   )
   let color_scale: string = $state(`Viridis`)
 
@@ -121,7 +119,7 @@
       {y_unit}
       {color_scale}
       y_lim={[0, null]}
-      onmouseleave={() => (active_state.element = element)}
+      onmouseleave={() => (selected.element = element)}
       style="min-height: min(50vmin, 400px);"
     />
   </section>

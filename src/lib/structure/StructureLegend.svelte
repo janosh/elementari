@@ -2,7 +2,7 @@
   import type { Composition } from '$lib'
   import { choose_bw_for_contrast, element_data } from '$lib'
   import { default_element_colors } from '$lib/colors'
-  import { color_state } from '$lib/state.svelte'
+  import { colors } from '$lib/state.svelte'
   import type { Snippet } from 'svelte'
   import { Tooltip } from 'svelte-zoo'
 
@@ -36,17 +36,17 @@
     >
       <label
         bind:this={labels[idx]}
-        style="background-color: {color_state.element[elem]}"
+        style="background-color: {colors.element[elem]}"
         ondblclick={(event) => {
           event.preventDefault()
-          color_state.element[elem] = default_element_colors[elem]
+          colors.element[elem] = default_element_colors[elem]
         }}
         style:color={choose_bw_for_contrast(labels[idx])}
       >
         {elem}{amt}
         <input
           type="color"
-          bind:value={color_state.element[elem]}
+          bind:value={colors.element[elem]}
           title={elem_color_picker_title}
         />
       </label>

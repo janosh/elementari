@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Category } from '$lib'
   import { default_category_colors } from '$lib/colors'
-  import { active_state, color_state } from '$lib/state.svelte'
+  import { colors, selected } from '$lib/state.svelte'
   import type { Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
   import { Icon } from '..'
@@ -15,7 +15,7 @@
 
   $effect.pre(() => {
     if (typeof document !== `undefined`) {
-      for (const [key, val] of Object.entries(color_state.category)) {
+      for (const [key, val] of Object.entries(colors.category)) {
         document.documentElement.style.setProperty(`--${key}-bg-color`, val)
       }
     }
@@ -37,26 +37,26 @@
 {/if}
 <div class="grid" transition:fade>
   {#if open || !collapsible}
-    {#each Object.keys(color_state.category) as category (category)}
+    {#each Object.keys(colors.category) as category (category)}
       <label
         for="{category}-color"
         transition:fade={{ duration: 200 }}
-        onmouseenter={() => (active_state.category = category as Category)}
-        onfocus={() => (active_state.category = category as Category)}
-        onmouseleave={() => (active_state.category = null)}
-        onblur={() => (active_state.category = null)}
+        onmouseenter={() => (selected.category = category as Category)}
+        onfocus={() => (selected.category = category as Category)}
+        onmouseleave={() => (selected.category = null)}
+        onblur={() => (selected.category = null)}
       >
         <input
           type="color"
           id="{category}-color"
-          bind:value={color_state.category[category]}
+          bind:value={colors.category[category]}
         />
         {category.replaceAll(`-`, ` `)}
-        {#if color_state.category[category] !== default_category_colors[category]}
+        {#if colors.category[category] !== default_category_colors[category]}
           <button
             onclick={(event) => {
               event.preventDefault()
-              color_state.category[category] = default_category_colors[category]
+              colors.category[category] = default_category_colors[category]
             }}
           >
             reset

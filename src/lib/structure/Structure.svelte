@@ -4,7 +4,7 @@
   import { alphabetical_formula, get_elem_amounts, get_pbc_image_sites } from '$lib'
   import { download } from '$lib/api'
   import { element_color_schemes } from '$lib/colors'
-  import { color_state } from '$lib/state.svelte'
+  import { colors } from '$lib/state.svelte'
   import { Canvas } from '@threlte/core'
   import type { ComponentProps, Snippet } from 'svelte'
   import { Tooltip } from 'svelte-zoo'
@@ -91,7 +91,7 @@
 
   // interactivity()
   $effect.pre(() => {
-    color_state.element = element_color_schemes[color_scheme]
+    colors.element = element_color_schemes[color_scheme]
   })
 
   function on_keydown(event: KeyboardEvent) {

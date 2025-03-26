@@ -11,7 +11,7 @@
     element_data,
   } from '$lib'
   import { property_labels } from '$lib/labels'
-  import { active_state } from '$lib/state.svelte'
+  import { selected } from '$lib/state.svelte'
   import type { Snapshot } from './$types'
 
   let window_width: number = $state(0)
@@ -47,12 +47,12 @@
   {heatmap_values}
   style="margin: 4em auto; max-width: min(85vw, 1400px);"
   bind:color_scale
-  bind:active_element={active_state.element}
-  bind:active_category={active_state.category}
+  bind:active_element={selected.element}
+  bind:active_category={selected.category}
   links="name"
 >
-  {#if active_state.element && window_width > 1100}
-    {@const { shells, name, symbol } = active_state.element}
+  {#if selected.element && window_width > 1100}
+    {@const { shells, name, symbol } = selected.element}
     <a href="bohr-atoms" style="position: absolute; top: -240px; transform: scale(0.8)">
       <BohrAtom {shells} name="Bohr Model of {name}" {symbol} style="width: 250px" />
     </a>
@@ -68,13 +68,13 @@
           {y_label}
           {y_unit}
           onchange={(event: CustomEvent) =>
-            (active_state.element = element_data[event.detail.x - 1])}
+            (selected.element = element_data[event.detail.x - 1])}
           x_label_yshift={42}
           {color_scale}
           style="max-height: calc(100cqw / 10 * 3);"
         />
       {:else}
-        <ElementStats element={active_state.element} />
+        <ElementStats element={selected.element} />
       {/if}
     </TableInset>
   {/snippet}

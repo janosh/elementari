@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ChemicalElement, PeriodicTableEvents } from '$lib'
   import { choose_bw_for_contrast, pretty_num } from '$lib'
-  import { active_state } from '$lib/state.svelte'
+  import { selected } from '$lib/state.svelte'
 
   interface Props {
     element: ChemicalElement
@@ -62,7 +62,7 @@
   data-sveltekit-noscroll
   class="element-tile {category}"
   class:active
-  class:last-active={active_state.last_element === element}
+  class:last-active={selected.last_element === element}
   style:background-color={bg_color ?? `var(--${category}-bg-color)`}
   style:color={text_color}
   {style}

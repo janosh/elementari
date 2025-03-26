@@ -9,7 +9,7 @@
     pretty_num,
     scale,
   } from '$lib'
-  import { active_state } from '$lib/state.svelte'
+  import { selected } from '$lib/state.svelte'
   import { T } from '@threlte/core'
   import {
     Gizmo,
@@ -180,7 +180,7 @@
           ]}
         />
         <T.MeshStandardMaterial
-          color={active_state.element?.[elem]}
+          color={selected.element?.[elem]}
           onpointerenter={() => {
             hovered_idx = site_idx
           }}

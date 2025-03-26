@@ -1,7 +1,7 @@
 import type { Category, ChemicalElement } from '$lib'
 import { default_category_colors, default_element_colors } from './colors'
 
-export const active_state = $state<{
+export const selected = $state<{
   category: Category | null
   element: ChemicalElement | null
   last_element: ChemicalElement | null
@@ -13,7 +13,7 @@ export const active_state = $state<{
   heatmap_key: null,
 })
 
-export const color_state = $state<{
+export const colors = $state<{
   category: typeof default_category_colors
   element: typeof default_element_colors
 }>({

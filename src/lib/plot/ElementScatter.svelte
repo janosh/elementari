@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ScatterPlot, element_data, pretty_num, type Point } from '$lib'
-  import { active_state } from '$lib/state.svelte'
+  import { selected } from '$lib/state.svelte'
 
   interface Props {
     // either array of length 118 (one heat value for each element) or
@@ -26,10 +26,10 @@
 
   // update tooltip on hover element tile
   $effect.pre(() => {
-    if (active_state.element?.number && !hovered) {
+    if (selected.element?.number && !hovered) {
       tooltip_point = {
-        x: active_state.element.number,
-        y: y[active_state.element.number - 1],
+        x: selected.element.number,
+        y: y[selected.element.number - 1],
       }
     }
   })
@@ -44,7 +44,7 @@
 >
   {#snippet tooltip({ x, y })}
     <div>
-      {#if active_state.element}
+      {#if selected.element}
         <strong>{x} - {element_data[x - 1]?.name}</strong>
         <br />{y_label} = {pretty_num(y)}
         {y_unit ?? ``}
