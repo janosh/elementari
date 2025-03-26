@@ -25,7 +25,7 @@
   }: Props = $props()
 
   // update tooltip on hover element tile
-  $effect(() => {
+  $effect.pre(() => {
     if (active_state.element?.number && !hovered) {
       tooltip_point = {
         x: active_state.element.number,

@@ -11,11 +11,6 @@
   import StructureLegend from './StructureLegend.svelte'
   import StructureScene from './StructureScene.svelte'
 
-  // only show the buttons when hovering over the canvas on desktop screens
-  // mobile screens don't have hover, so by default the buttons are always
-
-  // boolean or map from element symbols to labels
-
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
     structure?: Atoms | undefined
@@ -26,6 +21,8 @@
     controls_open?: boolean
     // canvas background color
     background_color?: string // must be hex code for <input type='color'>
+    // only show the buttons when hovering over the canvas on desktop screens
+    // mobile screens don't have hover, so by default the buttons are always
     // shown on a canvas of width below 500px
     reveal_buttons?: boolean | number
     fullscreen?: boolean
@@ -47,6 +44,7 @@
     enable_tips?: boolean
     save_json_btn_text?: string
     save_png_btn_text?: string
+    // boolean or map from element symbols to labels
     // use atom_label snippet to include HTML and event handlers
     show_site_labels?: boolean | Record<ElementSymbol, string | number>
     atom_labels_style?: string | null

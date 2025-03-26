@@ -52,7 +52,7 @@
   const tweened_x = new Tween(0, tween_params)
   const tweened_y = new Tween(0, tween_params)
 
-  $effect(() => {
+  $effect.pre(() => {
     tweened_x.target = x + offset.x
     tweened_y.target = y + offset.y
   })

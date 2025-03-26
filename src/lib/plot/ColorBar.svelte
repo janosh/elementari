@@ -3,8 +3,6 @@
   import * as d3 from 'd3-scale'
   import * as d3sc from 'd3-scale-chromatic'
 
-  // the new range of the color bar resulting from snapping ticks
-
   interface Props {
     label?: string | null
     color_scale?: ((x: number) => string) | string | null
@@ -21,10 +19,10 @@
     snap_ticks?: boolean
     // at how many equidistant points to sample the color scale
     steps?: number
+    // the new range of the color bar resulting from snapping ticks
     // https://github.com/d3/d3-scale/issues/86
     nice_range?: [number, number]
   }
-
   let {
     label = null,
     color_scale = $bindable(`Viridis`),
@@ -55,7 +53,7 @@
       }
     }
   })
-  $effect(() => {
+  $effect.pre(() => {
     if (tick_labels?.length == 0 || typeof tick_labels == `number` || range?.length > 0) {
       const scale = d3.scaleLinear().domain(range).nice(n_ticks)
       nice_range = scale.domain()

@@ -15,7 +15,7 @@
   let hidden = $state(false)
   $effect.pre(() => {
     if (file) hidden = false
-  }) // reset hidden to false when src changes
+  }) // reset hidden to false when file changes
 </script>
 
 {#if name && number}

@@ -79,16 +79,14 @@
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = PeriodicTableEvents // for type-safe event listening on this component
 
-  let heat_values: number[] = $state([])
-
-  $effect.pre(() => {
+  let heat_values = $derived.by(() => {
     if (Array.isArray(heatmap_values)) {
       if (heatmap_values.length > 118) {
         console.error(
           `heatmap_values is an array of numbers, length should be 118 or less, one for ` +
             `each element possibly omitting elements at the end, got ${heatmap_values.length}`,
         )
-      } else heat_values = heatmap_values
+      } else return heatmap_values
     } else if (typeof heatmap_values == `object`) {
       const bad_keys = Object.keys(heatmap_values).filter(
         (key) => !elem_symbols.includes(key as ElementSymbol),
@@ -97,7 +95,7 @@
         console.error(
           `heatmap_values is an object, keys should be element symbols, got ${bad_keys}`,
         )
-      } else heat_values = elem_symbols.map((symbol) => heatmap_values[symbol])
+      } else return elem_symbols.map((symbol) => heatmap_values[symbol])
     }
   })
 

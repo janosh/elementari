@@ -16,8 +16,8 @@
   let {
     protons,
     neutrons,
-    radius = $bindable(4),
     size = 100,
+    radius = $bindable(size / 2),
     proton_color = `cornflowerblue`,
     neutron_color = `orange`,
     stroke = ``,
