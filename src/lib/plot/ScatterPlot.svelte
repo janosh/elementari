@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Point } from '$lib'
   import { Line } from '$lib'
-  import { bisector, extent } from 'd3-array'
+  import { bisector, extent, range } from 'd3-array'
   import { format } from 'd3-format'
-  import { scaleLinear } from 'd3-scale'
+  import { scaleLinear, scaleTime } from 'd3-scale'
   import { timeFormat } from 'd3-time-format'
   import type { Snippet } from 'svelte'
   import type { DataSeries } from '.'
@@ -18,6 +18,9 @@
     y_formatted: string
     metadata?: Record<string, unknown>
   }
+
+  type TimeInterval = `day` | `month` | `year`
+
   interface Props {
     series?: DataSeries[]
     style?: string
@@ -38,6 +41,8 @@
     y_format?: string
     tooltip?: Snippet<[TooltipProps]>
     change?: (data: Point & { series: DataSeries }) => void
+    x_ticks?: number | TimeInterval // Positive: count, Negative: interval, String: time interval
+    y_ticks?: number // Positive: count, Negative: interval
   }
 
   let {
@@ -60,6 +65,8 @@
     y_format = ``,
     tooltip,
     change = () => {},
+    x_ticks,
+    y_ticks = 5,
   }: Props = $props()
 
   const axis_label_offset = { x: 15, y: 20 } // pixels
@@ -127,6 +134,68 @@
       .range([height - pad_bottom, pad_top]),
   )
 
+  // Generate x-axis ticks
+  let x_tick_values = $derived(
+    // For numeric interval (negative number)
+    typeof x_ticks === `number` && x_ticks < 0
+      ? (() => {
+          const interval = Math.abs(x_ticks)
+          const [min, max] = x_range
+          const start = Math.ceil(min / interval) * interval
+          return range(start, max + interval * 0.1, interval)
+        })()
+      : // For time-based interval (string)
+        x_format.startsWith(`%`) && typeof x_ticks === `string`
+        ? (() => {
+            // Create temp time scale
+            const timeScale = scaleTime().domain([
+              new Date(x_range[0]),
+              new Date(x_range[1]),
+            ])
+            // Generate ticks based on interval type
+            const count =
+              x_ticks === `day`
+                ? 30
+                : x_ticks === `month`
+                  ? 12
+                  : x_ticks === `year`
+                    ? 10
+                    : typeof x_ticks === `number` && x_ticks > 0
+                      ? x_ticks
+                      : 10
+
+            const ticks = timeScale.ticks(count)
+
+            // Filter ticks based on interval type
+            const filtered =
+              x_ticks === `day`
+                ? ticks
+                : x_ticks === `month`
+                  ? ticks.filter((d) => d.getDate() === 1)
+                  : x_ticks === `year`
+                    ? ticks.filter((d) => d.getMonth() === 0 && d.getDate() === 1)
+                    : ticks
+
+            return filtered.map((d) => d.getTime())
+          })()
+        : // Default to using specified count (positive number) or D3's default
+          x_scale.ticks(typeof x_ticks === `number` ? x_ticks : undefined),
+  )
+
+  // Generate y-axis ticks
+  let y_tick_values = $derived(
+    typeof y_ticks === `number` && y_ticks < 0
+      ? (() => {
+          const interval = Math.abs(y_ticks)
+          const [min, max] = y_range
+          const start = Math.ceil(min / interval) * interval
+          return range(start, max + interval * 0.1, interval)
+        })()
+      : y_scale.ticks(typeof y_ticks === `number` && y_ticks > 0 ? y_ticks : 5),
+  )
+
+  let y_tick_count = $derived(y_tick_values.length)
+
   const bisect = bisector((pt: Point) => pt.x).right
 
   function on_mouse_move(event: MouseEvent) {
@@ -177,8 +246,10 @@
     }
     // First format the number using d3-format
     const formatted = format(formatter)(value)
-    // Then remove trailing zeros after decimal point and remove decimal point if no decimals
-    return formatted.replace(/\.?0+$/, ``)
+    // Only remove trailing zeros after a decimal point, not from whole numbers
+    return formatted.includes(`.`)
+      ? formatted.replace(/(\.\d*?)0+$/, `$1`).replace(/\.$/, ``)
+      : formatted
   }
 </script>
 
@@ -228,7 +299,7 @@
 
       <!-- x axis -->
       <g class="x-axis">
-        {#each x_scale.ticks() as tick (tick)}
+        {#each x_tick_values as tick (tick)}
           <g class="tick" transform="translate({x_scale(tick)}, {height})">
             <line y1={-height + pad_top} y2={-pad_bottom} />
             <text y={-pad_bottom + axis_label_offset.x}>
@@ -243,12 +314,12 @@
 
       <!-- y axis -->
       <g class="y-axis">
-        {#each y_scale.ticks(5) as tick, idx (tick)}
+        {#each y_tick_values as tick, idx (tick)}
           <g class="tick" transform="translate(0, {y_scale(tick)})">
             <line x1={pad_left} x2={width - pad_right} />
             <text x={pad_left - axis_label_offset.y}>
               {format_value(tick, y_format)}
-              {#if y_unit && idx === y_scale.ticks(5).length - 1}
+              {#if y_unit && idx === y_tick_count - 1}
                 &zwnj;&ensp;{y_unit}
               {/if}
             </text>
