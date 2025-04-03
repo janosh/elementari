@@ -3,7 +3,7 @@ export const mp_build_bucket = `https://materialsproject-build.s3.amazonaws.com/
 export async function decompress(blob: ReadableStream<Uint8Array> | null) {
   // @ts-expect-error - TS doesn't know about DecompressionStream yet
   const unzip = new DecompressionStream(`gzip`)
-  const stream = blob.pipeThrough(unzip)
+  const stream = blob?.pipeThrough(unzip)
   return await new Response(stream).text()
 }
 
