@@ -62,7 +62,6 @@
     "happy-dom": "^17.4.4",
     "hastscript": "^9.0.1",
     "iconify-icon": "^2.3.0",
-    "jsdom": "^26.0.0",
     "mdsvex": "^0.12.3",
     "mdsvexamples": "^0.5.0",
     "prettier": "^3.5.3",

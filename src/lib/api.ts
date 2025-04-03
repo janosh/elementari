@@ -33,6 +33,5 @@ export function download(data: string | Blob, filename: string, type: string) {
   document.body.appendChild(link)
   link.click()
   link.remove()
-  // raises 'is not a function' error in JSDOM
-  // URL.revokeObjectURL(url)
+  URL.revokeObjectURL(url)
 }

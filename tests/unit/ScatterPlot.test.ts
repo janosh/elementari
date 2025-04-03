@@ -21,23 +21,19 @@ describe(`ScatterPlot`, () => {
       }
 
       observe(target: Element) {
+        const dom_rect = {
+          width: 800,
+          height: 600,
+          top: 0,
+          left: 0,
+          bottom: 600,
+          right: 800,
+          x: 0,
+          y: 0,
+        }
         // Simulate initial size reporting
         this.callback(
-          [
-            {
-              target,
-              contentRect: {
-                width: 800,
-                height: 600,
-                top: 0,
-                left: 0,
-                bottom: 600,
-                right: 800,
-                x: 0,
-                y: 0,
-              } as DOMRectReadOnly,
-            } as ResizeObserverEntry,
-          ],
+          [{ target, contentRect: dom_rect } as ResizeObserverEntry],
           this as unknown as ResizeObserver,
         )
       }
