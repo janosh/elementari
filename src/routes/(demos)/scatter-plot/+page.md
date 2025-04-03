@@ -339,3 +339,69 @@ This example combines various features of the ScatterPlot component:
   `}
 />
 ```
+
+## Points with Shared Coordinates
+
+This example demonstrates how points that share the same X or Y coordinates can still be individually hovered:
+
+```svelte example stackblitz
+<script>
+  import { ScatterPlot } from '$lib'
+
+  // Create points with shared X or Y coordinates
+  const shared_coords_data = {
+    // Points with same X values (vertical line)
+    x: [5, 5, 5, 5, 5,
+    // Points with same Y values (horizontal line)
+       1, 2, 3, 4, 5,
+    // Some random points
+       7, 8, 9, 7, 9],
+    y: [1, 2, 3, 4, 5,
+       3, 3, 3, 3, 3,
+       1, 2, 3, 4, 5],
+    point_style: { fill: 'steelblue', radius: 6 },
+    // Add distinct metadata for each point to identify them
+    metadata: [
+      // Vertical line points
+      {id: 'v1', label: 'V1 (5,1)'}, {id: 'v2', label: 'V2 (5,2)'},
+      {id: 'v3', label: 'V3 (5,3)'}, {id: 'v4', label: 'V4 (5,4)'},
+      {id: 'v5', label: 'V5 (5,5)'},
+      // Horizontal line points
+      {id: 'h1', label: 'H1 (1,3)'}, {id: 'h2', label: 'H2 (2,3)'},
+      {id: 'h3', label: 'H3 (3,3)'}, {id: 'h4', label: 'H4 (4,3)'},
+      {id: 'h5', label: 'H5 (5,3)'},
+      // Random points
+      {id: 'r1', label: 'R1 (7,1)'}, {id: 'r2', label: 'R2 (8,2)'},
+      {id: 'r3', label: 'R3 (9,3)'}, {id: 'r4', label: 'R4 (7,4)'},
+      {id: 'r5', label: 'R5 (9,5)'}
+    ]
+  }
+
+  let hovered_point = null;
+</script>
+
+<ScatterPlot
+  series={[shared_coords_data]}
+  x_lim={[0, 10]}
+  y_lim={[0, 6]}
+  x_ticks={1}
+  y_ticks={1}
+  x_label="X Axis"
+  y_label="Y Axis"
+  change={(event) => (hovered_point = event)}
+  tooltip={({ x, y, metadata }) => `
+    <div style="background: rgba(0,0,0,0.8); color: white; padding: 0.5em; border-radius: 4px; max-width: 200px;">
+      <strong>${metadata?.label || 'Point'}</strong><br />
+      Coordinates: (${x}, ${y})<br />
+      ID: ${metadata?.id || 'unknown'}
+    </div>
+  `}
+  style="height: 350px; width: 100%;"
+/>
+
+{#if hovered_point}
+  <div style="margin-top: 1em; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px;">
+    <strong>Currently hovering:</strong> {hovered_point.metadata?.label || 'Unknown point'} at ({hovered_point.x}, {hovered_point.y})
+  </div>
+{/if}
+```

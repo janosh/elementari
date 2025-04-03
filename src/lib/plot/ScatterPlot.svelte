@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Point } from '$lib'
   import { Line } from '$lib'
-  import { bisector, extent, range } from 'd3-array'
+  import { extent, range } from 'd3-array'
   import { format } from 'd3-format'
   import { scaleLinear, scaleTime } from 'd3-scale'
   import { timeFormat } from 'd3-time-format'
@@ -205,8 +205,6 @@
 
   let y_tick_count = $derived(y_tick_values.length)
 
-  const bisect = bisector((pt: Point) => pt.x).right
-
   function on_mouse_move(event: MouseEvent) {
     hovered = true
 
@@ -218,18 +216,23 @@
     const mouse_x = x_scale.invert(event.offsetX)
     const mouse_y = y_scale.invert(event.offsetY)
 
+    // Use a small tolerance in the x direction (in screen pixels)
+    const x_tolerance = 20 // pixels
+    // Convert screen pixels to data units
+    const x_tolerance_data = Math.abs(
+      x_scale.invert(event.offsetX + x_tolerance) - mouse_x,
+    )
+
     for (const data_series of filtered_series) {
-      const idx = bisect(data_series.filtered_data, mouse_x)
-      // Check points on either side of the mouse x position
-      const points = [
-        data_series.filtered_data[Math.max(0, idx - 1)],
-        data_series.filtered_data[Math.min(data_series.filtered_data.length - 1, idx)],
-      ]
-      for (const point of points) {
-        if (!point) continue
+      const points = data_series.filtered_data
+      for (let idx = 0; idx < points.length; idx++) {
+        const point = points[idx]
+        // First quick check if point is within X tolerance (fast reject)
         const dx = point.x - mouse_x
+        if (Math.abs(dx) > x_tolerance_data) continue
+        // If within X tolerance, calculate full distance
         const dy = point.y - mouse_y
-        const distance = Math.sqrt(dx * dx + dy * dy)
+        const distance = dx * dx + dy * dy
         if (distance < min_distance) {
           min_distance = distance
           closest_point = point
@@ -295,7 +298,7 @@
 
       {#if markers && markers.includes(`points`)}
         {#each filtered_series ?? [] as series (JSON.stringify(series))}
-          {#each series?.filtered_data ?? [] as { x, y } (JSON.stringify({ x, y }))}
+          {#each series?.filtered_data ?? [] as { x, y }, point_idx (`${x}-${y}-${point_idx}`)}
             <ScatterPoint
               x={x_scale(x)}
               y={y_scale(y)}
