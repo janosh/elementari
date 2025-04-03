@@ -136,47 +136,56 @@
 
   // Generate x-axis ticks
   let x_tick_values = $derived(
-    // For numeric interval (negative number)
-    typeof x_ticks === `number` && x_ticks < 0
+    // Check if we have date data (using the presence of x_format with %)
+    x_format.startsWith(`%`)
       ? (() => {
-          const interval = Math.abs(x_ticks)
-          const [min, max] = x_range
-          const start = Math.ceil(min / interval) * interval
-          return range(start, max + interval * 0.1, interval)
-        })()
-      : // For time-based interval (string)
-        x_format.startsWith(`%`) && typeof x_ticks === `string`
-        ? (() => {
-            // Create temp time scale
-            const timeScale = scaleTime().domain([
-              new Date(x_range[0]),
-              new Date(x_range[1]),
-            ])
-            // Generate ticks based on interval type
-            const count =
-              x_ticks === `day`
-                ? 30
-                : x_ticks === `month`
-                  ? 12
-                  : x_ticks === `year`
-                    ? 10
-                    : typeof x_ticks === `number` && x_ticks > 0
-                      ? x_ticks
+          // Create temp time scale
+          const timeScale = scaleTime().domain([
+            new Date(x_range[0]),
+            new Date(x_range[1]),
+          ])
+
+          // If x_ticks is a negative number with date data, treat it as approximate count
+          // rather than interval for date-based data to avoid memory issues
+          const count =
+            typeof x_ticks === `number` && x_ticks < 0
+              ? Math.ceil((x_range[1] - x_range[0]) / Math.abs(x_ticks) / 86400000) // Convert to approximate days
+              : typeof x_ticks === `string`
+                ? x_ticks === `day`
+                  ? 30
+                  : x_ticks === `month`
+                    ? 12
+                    : x_ticks === `year`
+                      ? 10
                       : 10
+                : typeof x_ticks === `number` && x_ticks > 0
+                  ? x_ticks
+                  : 10
 
-            const ticks = timeScale.ticks(count)
+          // Use time scale's ticks with the calculated count
+          const ticks = timeScale.ticks(count)
 
-            // Filter ticks based on interval type
-            const filtered =
-              x_ticks === `day`
+          // Filter ticks based on interval type if it's a string
+          const filtered =
+            typeof x_ticks === `string`
+              ? x_ticks === `day`
                 ? ticks
                 : x_ticks === `month`
                   ? ticks.filter((d) => d.getDate() === 1)
                   : x_ticks === `year`
                     ? ticks.filter((d) => d.getMonth() === 0 && d.getDate() === 1)
                     : ticks
+              : ticks
 
-            return filtered.map((d) => d.getTime())
+          return filtered.map((d) => d.getTime())
+        })()
+      : // For numeric interval (negative number)
+        typeof x_ticks === `number` && x_ticks < 0
+        ? (() => {
+            const interval = Math.abs(x_ticks)
+            const [min, max] = x_range
+            const start = Math.ceil(min / interval) * interval
+            return range(start, max + interval * 0.1, interval)
           })()
         : // Default to using specified count (positive number) or D3's default
           x_scale.ticks(typeof x_ticks === `number` ? x_ticks : undefined),
@@ -257,7 +266,7 @@
   {#if width && height}
     <svg onmousemove={on_mouse_move} onmouseleave={on_mouse_leave} role="img">
       <!-- Zero line -->
-      {#if y_range[0] < 0 && y_range[1] > 0}
+      {#if y_range && y_range[0] < 0 && y_range[1] > 0}
         <line
           x1={pad_left}
           x2={width - pad_right}
@@ -269,29 +278,32 @@
         />
       {/if}
 
-      {#if markers.includes(`line`)}
-        {#each filtered_series as series (JSON.stringify(series))}
+      {#if markers && markers.includes(`line`)}
+        {#each filtered_series ?? [] as series (JSON.stringify(series))}
           <Line
-            points={series.filtered_data.map(({ x, y }) => [x_scale(x), y_scale(y)])}
-            origin={[x_scale(x_range[0]), y_scale(y_range[0])]}
-            line_color={series.point_style?.fill}
+            points={(series?.filtered_data ?? []).map(({ x, y }) => [
+              x_scale(x),
+              y_scale(y),
+            ])}
+            origin={[x_scale(x_range?.[0] ?? 0), y_scale(y_range?.[0] ?? 0)]}
+            line_color={series?.point_style?.fill}
             line_width={1}
             area_color="transparent"
           />
         {/each}
       {/if}
 
-      {#if markers.includes(`points`)}
-        {#each filtered_series as series (JSON.stringify(series))}
-          {#each series.filtered_data as { x, y } (JSON.stringify({ x, y }))}
+      {#if markers && markers.includes(`points`)}
+        {#each filtered_series ?? [] as series (JSON.stringify(series))}
+          {#each series?.filtered_data ?? [] as { x, y } (JSON.stringify({ x, y }))}
             <ScatterPoint
               x={x_scale(x)}
               y={y_scale(y)}
-              style={series.point_style ?? {}}
-              hover={series.point_hover ?? {}}
-              label={series.point_label ?? {}}
-              offset={series.point_offset ?? { x: 0, y: 0 }}
-              tween_duration={series.point_tween_duration ?? 600}
+              style={series?.point_style ?? {}}
+              hover={series?.point_hover ?? {}}
+              label={series?.point_label ?? {}}
+              offset={series?.point_offset ?? { x: 0, y: 0 }}
+              tween_duration={series?.point_tween_duration ?? 600}
             />
           {/each}
         {/each}
@@ -299,7 +311,7 @@
 
       <!-- x axis -->
       <g class="x-axis">
-        {#each x_tick_values as tick (tick)}
+        {#each x_tick_values ?? [] as tick (tick)}
           <g class="tick" transform="translate({x_scale(tick)}, {height})">
             <line y1={-height + pad_top} y2={-pad_bottom} />
             <text y={-pad_bottom + axis_label_offset.x}>
@@ -314,7 +326,7 @@
 
       <!-- y axis -->
       <g class="y-axis">
-        {#each y_tick_values as tick, idx (tick)}
+        {#each y_tick_values ?? [] as tick, idx (tick)}
           <g class="tick" transform="translate(0, {y_scale(tick)})">
             <line x1={pad_left} x2={width - pad_right} />
             <text x={pad_left - axis_label_offset.y}>
@@ -338,7 +350,27 @@
         <circle {cx} {cy} r="5" fill="orange" />
         <foreignObject x={cx + 5} y={cy}>
           {#if tooltip}
-            {@render tooltip({ x, y, cx, cy, x_formatted, y_formatted, metadata })}
+            {#if typeof tooltip === `function`}
+              {@const tooltipContent = tooltip({
+                x,
+                y,
+                cx,
+                cy,
+                x_formatted,
+                y_formatted,
+                metadata,
+              })}
+              {#if typeof tooltipContent === `string`}
+                {@html tooltipContent}
+              {:else}
+                <div>{tooltipContent}</div>
+              {/if}
+            {:else}
+              <!-- Handle Snippet type tooltip -->
+              <div>
+                ({x_formatted}, {y_formatted})
+              </div>
+            {/if}
           {:else}
             ({x_formatted}, {y_formatted})
           {/if}
