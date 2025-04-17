@@ -736,7 +736,7 @@ Perfect for data with exponential growth on the Y-axis:
     y_scale_type="log"
     x_label="Linear X Axis"
     y_label="Log-Scaled Y Axis"
-    y_format=".0s"
+    y_format="~s"
     markers="line+points"
     style="height: 350px; width: 100%;"
   />
@@ -806,8 +806,8 @@ For comparing data across multiple orders of magnitude on both axes:
     y_scale_type="log"
     x_label="x (log scale)"
     y_label="y (log scale)"
-    x_format=".0s"
-    y_format=".0s"
+    x_format="~s"
+    y_format="~s"
     markers="line+points"
     style="height: 400px; width: 100%;"
   />
@@ -857,8 +857,8 @@ This example demonstrates a real-world use case with scientific data spanning ma
     y_scale_type="log"
     x_label="Particle Size (µm)"
     y_label="Particle Count"
-    x_format=".0s"
-    y_format=".0s"
+    x_format="~s"
+    y_format="~s"
     markers="line+points"
     style="height: 400px; width: 100%;"
     change={(point) => hover_point = point}

@@ -133,99 +133,6 @@
     },
   }
 
-  // Set up props for each plot
-  const basic_props = {
-    series: [basic_data],
-    x_label: `X Axis`,
-    y_label: `Y Axis`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line+points` as const,
-  }
-
-  const points_props = {
-    series: [points_data],
-    x_label: `X Axis`,
-    y_label: `Y Axis (Points)`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `points` as const,
-  }
-
-  const line_props = {
-    series: [line_data],
-    x_label: `X Axis`,
-    y_label: `Y Axis (Line)`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line` as const,
-  }
-
-  const line_points_props = {
-    series: [line_points_data],
-    x_label: `X Axis`,
-    y_label: `Y Axis (Line+Points)`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line+points` as const,
-  }
-
-  const wide_range_props = {
-    series: [wide_range_data],
-    x_label: `Wide Range X`,
-    y_label: `Wide Range Y`,
-    x_format: `.1f`,
-    y_format: `.1f`,
-    markers: `line+points` as const,
-  }
-
-  const small_range_props = {
-    series: [small_range_data],
-    x_label: `Small Range X`,
-    y_label: `Small Range Y`,
-    x_format: `.6f`,
-    y_format: `.6f`,
-    markers: `line+points` as const,
-  }
-
-  const log_y_props = {
-    series: [log_scale_data],
-    x_label: `X Axis (Linear)`,
-    y_label: `Y Axis (Log)`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line+points` as const,
-    y_scale_type: `log` as const,
-  }
-
-  const log_x_props = {
-    series: [log_scale_data2],
-    x_label: `X Axis (Log)`,
-    y_label: `Y Axis (Linear)`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line+points` as const,
-    x_scale_type: `log` as const,
-  }
-
-  const rainbow_props = {
-    series: [rainbow_data],
-    x_label: `X Axis`,
-    y_label: `Y Axis`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `points` as const,
-  }
-
-  const multi_series_props = {
-    series: [multi_series_data1, multi_series_data2],
-    x_label: `X Axis`,
-    y_label: `Y Axis`,
-    x_format: `.0f`,
-    y_format: `.0f`,
-    markers: `line+points` as const,
-  }
-
   // === Color Scale Data ===
   let color_scale_type = $state(`linear`)
 
@@ -249,7 +156,14 @@
   <section class="demo-section" id="basic-example">
     <h2>Basic Example</h2>
     <div class="demo-plot">
-      <ScatterPlot {...basic_props} />
+      <ScatterPlot
+        series={[basic_data]}
+        x_label="X Axis"
+        y_label="Y Axis"
+        x_format=".0f"
+        y_format=".0f"
+        markers="line+points"
+      />
     </div>
   </section>
 
@@ -258,15 +172,36 @@
     <div class="demo-row">
       <div class="demo-plot" id="points-only">
         <h3>Points Only</h3>
-        <ScatterPlot {...points_props} />
+        <ScatterPlot
+          series={[points_data]}
+          x_label="X Axis"
+          y_label="Y Axis (Points)"
+          x_format=".0f"
+          y_format=".0f"
+          markers="points"
+        />
       </div>
       <div class="demo-plot" id="line-only">
         <h3>Line Only</h3>
-        <ScatterPlot {...line_props} />
+        <ScatterPlot
+          series={[line_data]}
+          x_label="X Axis"
+          y_label="Y Axis (Line)"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line"
+        />
       </div>
       <div class="demo-plot" id="line-points">
         <h3>Line + Points</h3>
-        <ScatterPlot {...line_points_props} />
+        <ScatterPlot
+          series={[line_points_data]}
+          x_label="X Axis"
+          y_label="Y Axis (Line+Points)"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line+points"
+        />
       </div>
     </div>
   </section>
@@ -276,11 +211,25 @@
     <div class="demo-row">
       <div class="demo-plot" id="wide-range">
         <h3>Wide Range (-1000 to 1000)</h3>
-        <ScatterPlot {...wide_range_props} />
+        <ScatterPlot
+          series={[wide_range_data]}
+          x_label="X Axis"
+          y_label="Y Axis"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line+points"
+        />
       </div>
       <div class="demo-plot" id="small-range">
         <h3>Very Small Range</h3>
-        <ScatterPlot {...small_range_props} />
+        <ScatterPlot
+          series={[small_range_data]}
+          x_label="X Axis"
+          y_label="Y Axis"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line+points"
+        />
       </div>
     </div>
   </section>
@@ -290,11 +239,26 @@
     <div class="demo-row">
       <div class="demo-plot" id="log-y">
         <h3>Y-Axis Log Scale</h3>
-        <ScatterPlot {...log_y_props} />
+        <ScatterPlot
+          series={[log_scale_data]}
+          x_label="X Axis (Linear)"
+          y_label="Y Axis (Log)"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line+points"
+          y_scale_type="log"
+        />
       </div>
       <div class="demo-plot" id="log-x">
         <h3>X-Axis Log Scale</h3>
-        <ScatterPlot {...log_x_props} />
+        <ScatterPlot
+          series={[log_scale_data2]}
+          x_label="X Axis (Log)"
+          y_label="Y Axis (Linear)"
+          y_format="~s"
+          markers="line+points"
+          x_scale_type="log"
+        />
       </div>
     </div>
   </section>
@@ -304,11 +268,25 @@
     <div class="demo-row">
       <div class="demo-plot" id="rainbow-points">
         <h3>Rainbow Points</h3>
-        <ScatterPlot {...rainbow_props} />
+        <ScatterPlot
+          series={[rainbow_data]}
+          x_label="X Axis"
+          y_label="Y Axis"
+          x_format=".0f"
+          y_format=".0f"
+          markers="points"
+        />
       </div>
       <div class="demo-plot" id="multi-series">
         <h3>Multiple Series</h3>
-        <ScatterPlot {...multi_series_props} />
+        <ScatterPlot
+          series={[multi_series_data1, multi_series_data2]}
+          x_label="X Axis"
+          y_label="Y Axis"
+          x_format=".0f"
+          y_format=".0f"
+          markers="line+points"
+        />
       </div>
     </div>
   </section>
