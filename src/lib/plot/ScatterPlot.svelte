@@ -401,7 +401,7 @@
   }
 
   function on_mouse_move(evt: MouseEvent) {
-    if (!tooltip) return
+    hovered = true
 
     const svg_box = (evt.currentTarget as SVGElement)?.getBoundingClientRect()
     if (!svg_box) return
@@ -454,7 +454,12 @@
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
   {#if width && height}
-    <svg onmousemove={on_mouse_move} onmouseleave={on_mouse_leave} role="img">
+    <svg
+      onmouseenter={() => (hovered = true)}
+      onmousemove={on_mouse_move}
+      onmouseleave={on_mouse_leave}
+      role="img"
+    >
       <!-- Zero lines -->
       {#if show_zero_lines}
         {#if x_min <= 0 && x_max >= 0}
@@ -629,7 +634,7 @@
           {#if tooltip}
             {@render tooltip({ x, y, cx, cy, x_formatted, y_formatted, metadata })}
           {:else}
-            <div style="white-space: nowrap;">
+            <div class="default-tooltip">
               x: {x_formatted}, y: {y_formatted}
             </div>
           {/if}
@@ -673,5 +678,15 @@
   }
   text.label {
     text-anchor: middle;
+  }
+  .default-tooltip {
+    background: var(--esp-tooltip-bg, rgba(0, 0, 0, 0.7));
+    color: var(--esp-tooltip-color, white);
+    padding: var(--esp-tooltip-padding, 5px);
+    border-radius: var(--esp-tooltip-border-radius, 3px);
+    font-size: var(--esp-tooltip-font-size, 0.8em);
+    /* Ensure background fits content width */
+    width: var(--esp-tooltip-width, max-content);
+    box-sizing: border-box;
   }
 </style>
