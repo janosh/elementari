@@ -113,6 +113,10 @@
       .flatMap(({ x: xs, y: ys }) => xs.map((x, idx) => ({ x, y: ys[idx] }))),
   )
 
+  // Calculate plot area center coordinates
+  let plot_center_x = $derived(padding.l + (width - padding.r - padding.l) / 2)
+  let plot_center_y = $derived(padding.t + (height - padding.b - padding.t) / 2)
+
   // Compute data color values for color scaling
   let all_color_values = $derived(
     series
@@ -534,6 +538,8 @@
               label={point.point_label ?? {}}
               offset={point.point_offset ?? { x: 0, y: 0 }}
               tween_duration={point.point_tween_duration ?? 600}
+              origin_x={plot_center_x}
+              origin_y={plot_center_y}
             />
           {/each}
         {/each}
