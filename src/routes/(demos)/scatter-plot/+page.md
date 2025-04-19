@@ -467,7 +467,7 @@ Using time data on the x-axis with custom formatting:
     series={time_series}
     markers="line+points"
     x_format={date_format}
-    y_format={y_format}
+    {y_format}
     x_ticks={-7}
     y_ticks={5}
     x_label="Date"
@@ -1169,7 +1169,7 @@ This example demonstrates how to use `color_values` to apply color mapping to po
       y_label="Y Position"
       markers="points"
       color_scheme={selected_scheme}
-      color_scale_type={color_scale_type}
+      {color_scale_type}
       style="height: 300px; width: 100%;"
     >
       {#snippet tooltip({ x, y, metadata })}

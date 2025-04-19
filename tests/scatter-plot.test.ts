@@ -239,4 +239,88 @@ test.describe(`ScatterPlot Component Tests`, () => {
     await page.waitForTimeout(50) // Allow time for transitions/updates
     await expect(hover_status).toHaveText(`false`) // Check immediately after moving away
   })
+
+  // Helper function to get tick values as numbers and calculate range
+  const get_tick_range = async (
+    axis_locator: Locator,
+  ): Promise<{ ticks: number[]; range: number }> => {
+    const tick_elements = await axis_locator.locator(`.tick text`).all()
+    const tick_texts = await Promise.all(
+      tick_elements.map((tick) => tick.textContent()),
+    )
+    const ticks = tick_texts
+      .filter((text): text is string => text !== null)
+      .map((text) => parseFloat(text.replace(/[^\d.-]/g, ``))) // Clean text, parse as float
+      .filter((num) => !isNaN(num)) // Filter out NaN values
+
+    if (ticks.length < 2) {
+      return { ticks, range: 0 } // Not enough ticks to calculate a meaningful range
+    }
+    const range = Math.abs(Math.max(...ticks) - Math.min(...ticks))
+    return { ticks, range }
+  }
+
+  test(`zooms correctly on drag and resets on double-click`, async ({
+    page,
+  }) => {
+    const plot_locator = page.locator(`#basic-example .scatter`)
+    const svg = plot_locator.locator(`svg`)
+    const x_axis = plot_locator.locator(`g.x-axis`)
+    const y_axis = plot_locator.locator(`g.y-axis`)
+    const zoom_rect = plot_locator.locator(`rect.zoom-rect`)
+
+    // 1. Get initial tick values and ranges
+    const initial_x = await get_tick_range(x_axis)
+    const initial_y = await get_tick_range(y_axis)
+    expect(initial_x.ticks.length).toBeGreaterThan(1)
+    expect(initial_y.ticks.length).toBeGreaterThan(1)
+    expect(initial_x.range).toBeGreaterThan(0)
+    expect(initial_y.range).toBeGreaterThan(0)
+
+    // 2. Perform zoom drag
+    const svg_box = await svg.boundingBox()
+    expect(svg_box).toBeTruthy()
+    const start_x = svg_box!.x + svg_box!.width * 0.3 // Start drag 30% into the plot
+    const start_y = svg_box!.y + svg_box!.height * 0.7 // Start drag 70% down
+    const end_x = svg_box!.x + svg_box!.width * 0.7 // End drag 70% into the plot
+    const end_y = svg_box!.y + svg_box!.height * 0.3 // End drag 30% down
+
+    await page.mouse.move(start_x, start_y)
+    await page.mouse.down()
+    // Rect might be 0x0 initially, so don't check visibility yet
+
+    await page.mouse.move(end_x, end_y, { steps: 5 })
+    // After moving, the rect should have dimensions and be visible
+    await expect(zoom_rect).toBeVisible() // Check rect is still visible during move
+    const rect_box = await zoom_rect.boundingBox()
+    expect(rect_box).toBeTruthy()
+    expect(rect_box!.width).toBeGreaterThan(0)
+    expect(rect_box!.height).toBeGreaterThan(0)
+
+    await page.mouse.up()
+    await expect(zoom_rect).not.toBeVisible() // Check rect disappears
+    await page.waitForTimeout(100) // Allow axes to update
+
+    // 3. Verify ticks have changed and range decreased (zoomed)
+    const zoomed_x = await get_tick_range(x_axis)
+    const zoomed_y = await get_tick_range(y_axis)
+    expect(zoomed_x.ticks).not.toEqual(initial_x.ticks) // Ticks themselves should change
+    expect(zoomed_y.ticks).not.toEqual(initial_y.ticks)
+    expect(zoomed_x.range).toBeLessThan(initial_x.range) // Range should decrease
+    expect(zoomed_y.range).toBeLessThan(initial_y.range)
+    expect(zoomed_x.range).toBeGreaterThan(0) // Range should still be positive
+    expect(zoomed_y.range).toBeGreaterThan(0)
+
+    // 4. Perform double-click to reset
+    await svg.dblclick()
+    await page.waitForTimeout(100) // Allow axes to update
+
+    // 5. Verify ticks and ranges have reset to initial values
+    const reset_x = await get_tick_range(x_axis)
+    const reset_y = await get_tick_range(y_axis)
+    expect(reset_x.ticks).toEqual(initial_x.ticks) // Ticks should be back to original
+    expect(reset_y.ticks).toEqual(initial_y.ticks)
+    expect(reset_x.range).toBeCloseTo(initial_x.range) // Range should be back to original (use toBeCloseTo for float precision)
+    expect(reset_y.range).toBeCloseTo(initial_y.range)
+  })
 })
