@@ -30,6 +30,8 @@
     x_formatted: string
     y_formatted: string
     metadata?: Record<string, unknown>
+    color_value?: number | null
+    label?: string | null
   }
 
   type TimeInterval = `day` | `month` | `year`
@@ -70,7 +72,7 @@
     y_label_shift?: { x: number; y: number } // horizontal and vertical shift of y-axis label in px
     y_tick_label_shift?: { x: number; y: number } // horizontal and vertical shift of y-axis tick labels in px
     y_unit?: string
-    tooltip_point?: Point | null
+    tooltip_point?: InternalPoint | null
     hovered?: boolean
     markers?: `line` | `points` | `line+points`
     x_format?: string
@@ -305,7 +307,7 @@
           x: [],
           y: [],
           filtered_data: [],
-        } as unknown as DataSeries & { filtered_data: Point[] }
+        } as unknown as DataSeries & { filtered_data: InternalPoint[] }
       }
 
       const { x: xs, y: ys, color_values, ...rest } = data_series
@@ -358,8 +360,8 @@
       // Return structure consistent with DataSeries but acknowledge internal data structure
       return {
         ...data_series,
-        filtered_data: filtered_data_with_extras as Point[], // Cast here
-      } as DataSeries & { filtered_data: Point[] }
+        filtered_data: filtered_data_with_extras as InternalPoint[],
+      } as DataSeries & { filtered_data: InternalPoint[] }
     }),
   )
 
@@ -654,7 +656,7 @@
     let closest_point_internal: InternalPoint | null = null
     let min_distance = Infinity
     // Type needs to match the complex return type of filtered_series derived
-    let closest_series: (DataSeries & { filtered_data: Point[] }) | null = null
+    let closest_series: (DataSeries & { filtered_data: InternalPoint[] }) | null = null
 
     for (const series_data of filtered_series) {
       if (!series_data?.filtered_data) continue
@@ -676,8 +678,7 @@
     }
 
     if (closest_point_internal && closest_series) {
-      // Cast to Point for the tooltip prop
-      tooltip_point = closest_point_internal // Already Point-like
+      tooltip_point = closest_point_internal
       // Construct object matching change signature
       const { x, y, metadata } = closest_point_internal
       // Cast internal point properties to match expected Point structure for change prop
@@ -874,12 +875,12 @@
 
       <!-- Tooltip -->
       {#if tooltip_point && hovered}
-        {@const { x, y, metadata } = tooltip_point}
+        {@const { x, y, metadata, color_value, point_label } = tooltip_point}
         {@const cx = x_format?.startsWith(`%`) ? x_scale_fn(new Date(x)) : x_scale_fn(x)}
         {@const cy = y_scale_fn(y)}
         {@const x_formatted = format_value(x, x_format)}
         {@const y_formatted = format_value(y, y_format)}
-
+        {@const label = point_label?.text ?? null}
         <circle {cx} {cy} r="5" fill="orange" />
         <foreignObject x={cx + 5} y={cy}>
           {#if tooltip}
@@ -890,11 +891,13 @@
               cy,
               x_formatted,
               y_formatted,
-              metadata: metadata as Record<string, unknown> | undefined,
+              metadata,
+              color_value,
+              label,
             })}
           {:else}
             <div class="default-tooltip">
-              x: {x_formatted}, y: {y_formatted}
+              {label} - x: {x_formatted}, y: {y_formatted}
             </div>
           {/if}
         </foreignObject>

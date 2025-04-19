@@ -173,17 +173,17 @@ Demonstrate various point styles, custom tooltips, and hover effects:
   series_with_styles.forEach((series, series_idx) => {
     // Create a metadata array with empty objects except for the first one
     series.metadata = Array(point_count).fill({}).map((_, idx) => {
-      return idx === 0 ? { firstPoint: true, seriesName: series.point_label.text } : {};
-    });
+      return idx === 0 ? { firstPoint: true, seriesName: series.point_label.text } : {}
+    })
 
     // Only show label on the first point of each series
     if (series.point_label) {
       // ScatterPoint doesn't accept functions for the text property,
       // so we'll clear the text for all points and manually handle
       // the first point label with metadata
-      series.point_label.text = '';
+      series.point_label.text = ''
     }
-  });
+  })
 
   // Selected point tracking for demo
   let selected_point = null
@@ -228,40 +228,40 @@ This example demonstrates how to apply different styles to individual points wit
   import { ScatterPlot } from '$lib'
 
   // Create a dataset with points arranged in a spiral pattern
-  const point_count = 40;
+  const point_count = 40
   const spiral_data = {
     x: [],
     y: [],
     point_style: [], // Array of styles for each point
     metadata: []     // Store angle for each point
-  };
+  }
 
   // Generate points in a spiral pattern
   for (let idx = 0; idx < point_count; idx++) {
     // Calculate angle and radius for spiral
-    const angle = idx * 0.5;
-    const radius = 1 + idx * 0.3;
+    const angle = idx * 0.5
+    const radius = 1 + idx * 0.3
 
     // Convert to cartesian coordinates
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
 
-    spiral_data.x.push(x);
-    spiral_data.y.push(y);
+    spiral_data.x.push(x)
+    spiral_data.y.push(y)
 
     // Store angle in metadata
-    spiral_data.metadata.push({ angle, radius });
+    spiral_data.metadata.push({ angle, radius })
 
     // Create unique style for each point
     // Change color gradually along the spiral
-    const hue = (idx / point_count) * 360;
+    const hue = (idx / point_count) * 360
 
     // Change size dramatically from tiny to huge
     const size_factor = 1 + idx / 5; // More aggressive size increase
 
     // Alternate marker types
-    const marker_types = ['circle', 'diamond', 'star', 'triangle', 'cross', 'wye'];
-    const marker_idx = idx % marker_types.length;
+    const marker_types = ['circle', 'diamond', 'star', 'triangle', 'cross', 'wye']
+    const marker_idx = idx % marker_types.length
 
     // Create the point style
     spiral_data.point_style.push({
@@ -271,7 +271,7 @@ This example demonstrates how to apply different styles to individual points wit
       stroke_width: 1 + idx / 20, // Gradually thicker stroke
       marker_type: marker_types[marker_idx],
       marker_size: 20 + size_factor * 25 // More dramatic size progression
-    });
+    })
   }
 </script>
 
@@ -304,7 +304,7 @@ This example shows categorized data with color coding, custom tick intervals, an
   import { ScatterPlot } from '$lib'
 
   // Define categories
-  const categories = ['Category A', 'Category B', 'Category C', 'Category D'];
+  const categories = ['Category A', 'Category B', 'Category C', 'Category D']
 
   // Define colors for each category
   const category_colors = [
@@ -312,12 +312,12 @@ This example shows categorized data with color coding, custom tick intervals, an
     'royalblue',
     'goldenrod',
     'mediumseagreen'
-  ];
+  ]
 
   // Generate sample data points with categories
-  const sample_count = 40;
+  const sample_count = 40
   const sample_data = Array(sample_count).fill(0).map(() => {
-    const category_idx = Math.floor(Math.random() * categories.length);
+    const category_idx = Math.floor(Math.random() * categories.length)
     // Generate points across positive and negative coordinate space
     return {
       x: (Math.random() * 20) - 10, // Range from -10 to 10
@@ -325,11 +325,11 @@ This example shows categorized data with color coding, custom tick intervals, an
       category: categories[category_idx],
       color: category_colors[category_idx]
     }
-  });
+  })
 
   // Group data by category to create series
   const series_data = categories.map((category, idx) => {
-    const points = sample_data.filter(d => d.category === category);
+    const points = sample_data.filter(d => d.category === category)
 
     return {
       x: points.map(p => p.x),
@@ -344,12 +344,12 @@ This example shows categorized data with color coding, custom tick intervals, an
         category: p.category,
         color: p.color
       }))
-    };
-  });
+    }
+  })
 
   // Tick interval settings
-  let x_tick_interval = -5;
-  let y_tick_interval = -5;
+  let x_tick_interval = -5
+  let y_tick_interval = -5
 </script>
 
 <div>
@@ -439,8 +439,8 @@ Using time data on the x-axis with custom formatting:
   ]
 
   // Format options
-  let date_format = '%b %d';
-  let y_format = '.1f';
+  let date_format = '%b %d'
+  let y_format = '.1f'
 </script>
 
 <div>
@@ -522,7 +522,7 @@ This example demonstrates how points with identical coordinates can still be ind
     ]
   }
 
-  let hovered_point = null;
+  let hovered_point = null
 </script>
 
 <ScatterPlot
@@ -738,10 +738,10 @@ For comparing data across multiple orders of magnitude on both axes:
 
   // Add points from 0.1 to 1000 with exponential spacing
   for (let i = -1; i <= 3; i += 0.25) {
-    const x = Math.pow(10, i);
+    const x = Math.pow(10, i)
     const y = Math.pow(x, 2);  // y = x^2 (power law relationship)
-    power_law_data.x.push(x);
-    power_law_data.y.push(y);
+    power_law_data.x.push(x)
+    power_law_data.y.push(y)
   }
 
   // Add another series with a different power law (y = x^0.5)
@@ -753,10 +753,10 @@ For comparing data across multiple orders of magnitude on both axes:
 
   // Similar range but with y = sqrt(x)
   for (let i = -1; i <= 3; i += 0.25) {
-    const x = Math.pow(10, i);
+    const x = Math.pow(10, i)
     const y = Math.pow(x, 0.5);  // y = √x (square root relationship)
-    inverse_power_data.x.push(x);
-    inverse_power_data.y.push(y);
+    inverse_power_data.x.push(x)
+    inverse_power_data.y.push(y)
   }
 </script>
 
@@ -819,7 +819,7 @@ This example demonstrates a real-world use case with scientific data spanning ma
     }
   }
 
-  let hover_point = null;
+  let hover_point = null
 </script>
 
 <div>
@@ -1171,11 +1171,11 @@ This example demonstrates how the color bar automatically positions itself in on
   import { ScatterPlot } from '$lib'
 
   // State for controlling point density in each quadrant
-  let density = $state({top_left: 10, top_right: 50, bottom_left: 10, bottom_right: 10});
+  let density = $state({top_left: 10, top_right: 50, bottom_left: 10, bottom_right: 10})
 
   // Function to generate points within a specific quadrant
   const make_quadrant_points = (count, x_range, y_range) => {
-    const points = [];
+    const points = []
     for (let i = 0; i < count; i++) {
       points.push({
         x: x_range[0] + Math.random() * (x_range[1] - x_range[0]),
@@ -1185,24 +1185,24 @@ This example demonstrates how the color bar automatically positions itself in on
           Math.pow(x_range[0] + (x_range[1] - x_range[0]) / 2, 2) +
           Math.pow(y_range[0] + (y_range[1] - y_range[0]) / 2, 2)
         ) * Math.random() * 2 // Add some variation
-      });
+      })
     }
-    return points;
-  };
+    return points
+  }
 
   // Reactive generation of plot data based on densities
   let plot_series = $derived.by(() => {
-    const plot_width = 100;
-    const plot_height = 100;
-    const center_x = plot_width / 2;
-    const center_y = plot_height / 2;
+    const plot_width = 100
+    const plot_height = 100
+    const center_x = plot_width / 2
+    const center_y = plot_height / 2
 
-    const tl_points = make_quadrant_points(density.top_left, [0, center_x], [0, center_y]);
-    const tr_points = make_quadrant_points(density.top_right, [center_x, plot_width], [0, center_y]);
-    const bl_points = make_quadrant_points(density.bottom_left, [0, center_x], [center_y, plot_height]);
-    const br_points = make_quadrant_points(density.bottom_right, [center_x, plot_width], [center_y, plot_height]);
+    const tl_points = make_quadrant_points(density.bottom_left, [0, center_x], [0, center_y])
+    const tr_points = make_quadrant_points(density.bottom_right, [center_x, plot_width], [0, center_y])
+    const bl_points = make_quadrant_points(density.top_left, [0, center_x], [center_y, plot_height])
+    const br_points = make_quadrant_points(density.top_right, [center_x, plot_width], [center_y, plot_height])
 
-    const all_points = [...tl_points, ...tr_points, ...bl_points, ...br_points];
+    const all_points = [...tl_points, ...tr_points, ...bl_points, ...br_points]
 
     return [{
       x: all_points.map(p => p.x),
@@ -1213,18 +1213,15 @@ This example demonstrates how the color bar automatically positions itself in on
         stroke: 'white',
         stroke_width: 0.5
       }
-    }];
-  });
-
-  // Style for sliders
-  const slider_style = 'width: 100px; margin-left: 0.5em;';
+    }]
+  })
 </script>
 
 <div>
   <div style="display: grid; grid-template-columns: repeat(2, max-content); gap: 1.5em; place-items: center; place-content: center;">
-    {#each [['bottom_left', 'Bottom Left'], ['bottom_right', 'Bottom Right'], ['top_left', 'Top Left'], ['top_right', 'Top Right']] as [quadrant, label]}
+    {#each [['top_left', 'Top Left'], ['top_right', 'Top Right'], ['bottom_left', 'Bottom Left'], ['bottom_right', 'Bottom Right']] as [quadrant, label]}
       <label>{label}: {density[quadrant]}
-        <input type="range" min="0" max="100" bind:value={density[quadrant]} style={slider_style} />
+        <input type="range" min="0" max="100" bind:value={density[quadrant]} style="width: 100px; margin-left: 0.5em;" />
       </label>
     {/each}
   </div>
