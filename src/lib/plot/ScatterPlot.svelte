@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Point } from '$lib'
-  import { Line } from '$lib'
+  import { ColorBar, Line } from '$lib'
   import { extent, range } from 'd3-array'
   import { format } from 'd3-format'
   import {
@@ -12,7 +12,7 @@
   } from 'd3-scale'
   import * as d3sc from 'd3-scale-chromatic'
   import { timeFormat } from 'd3-time-format'
-  import type { Snippet } from 'svelte'
+  import type { ComponentProps, Snippet } from 'svelte'
   import type { DataSeries } from '.'
   import ScatterPoint from './ScatterPoint.svelte'
 
@@ -48,6 +48,12 @@
     point_offset?: { x: number; y: number }
     point_tween_duration?: number
   }
+  type QuadrantCounts = {
+    top_left: number
+    top_right: number
+    bottom_left: number
+    bottom_right: number
+  }
 
   interface Props {
     series?: DataSeries[]
@@ -82,6 +88,8 @@
     color_scale_type?: ScaleType // Type of scale for color mapping
     color_scheme?: D3ColorSchemeName // Color scheme from d3-scale-chromatic
     color_range?: [number, number] // Min and max values for color scaling (uses auto detect if not provided)
+    show_color_bar?: boolean // Whether to show the color bar when color scaling is active
+    color_bar?: ComponentProps<typeof ColorBar> | null
   }
   let {
     series = [],
@@ -115,6 +123,8 @@
     color_scale_type = `linear`,
     color_scheme = `viridis`,
     color_range,
+    show_color_bar = true,
+    color_bar = {},
   }: Props = $props()
 
   let width = $state(0)
@@ -277,6 +287,15 @@
       : scaleSequential(interpolator).domain([color_min, color_max])
   })
 
+  // Extract the interpolator function itself for the ColorBar
+  let color_interpolator_fn = $derived.by(() => {
+    const interpolator_name =
+      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3sc
+    return typeof d3sc[interpolator_name] === `function`
+      ? d3sc[interpolator_name]
+      : d3sc.interpolateViridis
+  })
+
   // Filter series data to only include points within bounds
   let filtered_series = $derived(
     series.map((data_series) => {
@@ -343,6 +362,77 @@
       } as DataSeries & { filtered_data: Point[] }
     }),
   )
+
+  // Calculate point counts per quadrant for color bar placement
+  let quadrant_counts = $derived(() => {
+    const counts: QuadrantCounts = {
+      top_left: 0,
+      top_right: 0,
+      bottom_left: 0,
+      bottom_right: 0,
+    }
+    if (!width || !height) return counts
+
+    for (const data_series of filtered_series) {
+      if (!data_series?.filtered_data) continue
+      for (const point of data_series.filtered_data) {
+        const point_x_coord = x_format?.startsWith(`%`)
+          ? x_scale_fn(new Date(point.x))
+          : x_scale_fn(point.x)
+        const point_y_coord = y_scale_fn(point.y)
+
+        if (point_x_coord < plot_center_x) {
+          if (point_y_coord < plot_center_y) counts.top_left++
+          else counts.bottom_left++
+        } else {
+          if (point_y_coord < plot_center_y) counts.top_right++
+          else counts.bottom_right++
+        }
+      }
+    }
+    return counts
+  })
+
+  // Determine the least dense quadrant
+  let least_dense_quadrant = $derived.by(() => {
+    const counts = quadrant_counts()
+    let min_count = Infinity
+    let best_quadrant: keyof QuadrantCounts = `top_right` // Default
+
+    // Iterate and find the quadrant with the minimum count
+    for (const quadrant of Object.keys(counts) as (keyof QuadrantCounts)[]) {
+      if (counts[quadrant] < min_count) {
+        min_count = counts[quadrant]
+        best_quadrant = quadrant
+      }
+    }
+    return best_quadrant
+  })
+
+  // Calculate automatic position style for the color bar
+  let color_bar_position_style = $derived.by(() => {
+    const margin = 10 // px margin from the corner
+    const { t, l, b, r } = padding
+    switch (least_dense_quadrant) {
+      case `top_left`:
+        return `top: ${t + margin}px; left: ${l + margin}px;`
+      case `bottom_left`:
+        return `bottom: ${b + margin}px; left: ${l + margin}px;`
+      case `bottom_right`:
+        return `bottom: ${b + margin}px; right: ${r + margin}px;`
+      case `top_right`:
+      default: // Default fall-through
+        return `top: ${t + margin}px; right: ${r + margin}px;`
+    }
+  })
+
+  // Determine the data-driven orientation and tick side for the ColorBar
+  let dynamic_tick_side = $derived.by<`top` | `bottom`>(() => {
+    const quadrant = least_dense_quadrant
+    if ((color_bar?.orientation ?? `horizontal`) === `horizontal`)
+      return quadrant.startsWith(`top_`) ? `bottom` : `top`
+    return `bottom` // Default fallback for type safety
+  })
 
   // Generate logarithmic ticks
   function generate_log_ticks(
@@ -819,11 +909,33 @@
         <rect class="zoom-rect" {x} {y} width={rect_width} height={rect_height} />
       {/if}
     </svg>
+
+    <!-- Color Bar -->
+    {#if show_color_bar && all_color_values.length > 0}
+      <ColorBar
+        {...{
+          tick_labels: 4,
+          tick_side: dynamic_tick_side,
+          range: effective_color_range as [number, number],
+          color_scale: color_interpolator_fn,
+          wrapper_style: `position: absolute;
+            ${color_bar_position_style} /* Apply auto positioning (no function call needed in template) */
+            ${color_bar?.wrapper_style ?? ``} /* Add user wrapper style */
+          `,
+          style: `width: 280px; /* Default width */
+            height: 20px; /* Default height */
+            ${color_bar?.style ?? ``} /* Add user inner style */
+          `,
+          ...color_bar,
+        }}
+      />
+    {/if}
   {/if}
 </div>
 
 <style>
   div.scatter {
+    position: relative; /* Needed for absolute positioning of children like ColorBar */
     width: 100%;
     height: 100%;
     display: flex;
