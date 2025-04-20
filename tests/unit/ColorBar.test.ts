@@ -1,10 +1,10 @@
 import { ColorBar } from '$lib'
-import * as d3sc from 'd3-scale-chromatic'
+import * as d3_sc from 'd3-scale-chromatic'
 import { mount } from 'svelte'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '.'
 
-const valid_color_scale_keys = Object.keys(d3sc)
+const valid_color_scale_keys = Object.keys(d3_sc)
   .map((key) => key.split(`interpolate`)[1])
   .filter(Boolean)
   .join(`, `)

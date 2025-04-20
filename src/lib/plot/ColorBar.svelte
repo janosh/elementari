@@ -1,7 +1,7 @@
 <script lang="ts">
   import { pretty_num } from '$lib'
   import * as d3 from 'd3-scale'
-  import * as d3sc from 'd3-scale-chromatic'
+  import * as d3_sc from 'd3-scale-chromatic'
 
   interface Props {
     label?: string | null
@@ -133,7 +133,7 @@
     }
   })
 
-  const valid_color_scale_keys = Object.keys(d3sc)
+  const valid_color_scale_keys = Object.keys(d3_sc)
     .map((key) => key.split(`interpolate`)[1])
     .filter(Boolean)
     .join(`, `)
@@ -142,13 +142,13 @@
     if (typeof color_scale == `string`) {
       const interpolator_key = `interpolate${color_scale}`
       // Check more safely if the key exists
-      if (interpolator_key in d3sc) {
-        return d3sc[interpolator_key as keyof typeof d3sc]
+      if (interpolator_key in d3_sc) {
+        return d3_sc[interpolator_key as keyof typeof d3_sc]
       } else {
         console.error(
           `Color scale '${color_scale}' not found, supported color scale names are ${valid_color_scale_keys}. Falling back on 'Viridis'.`,
         )
-        return d3sc.interpolateViridis
+        return d3_sc.interpolateViridis
       }
     } else return color_scale
   })
@@ -195,18 +195,9 @@
 
     const offset = `var(--cbar-label-overlap-offset, 1em)`
 
-    switch (actual_label_side) {
-      case `top`:
-        return `margin-bottom: ${offset};`
-      case `bottom`:
-        return `margin-top: ${offset};`
-      case `left`:
-        return `margin-right: ${offset};`
-      case `right`:
-        return `margin-left: ${offset};`
-      default:
-        return ``
-    }
+    const side_map = { top: `bottom`, bottom: `top`, left: `right`, right: `left` }
+    const margin_side = side_map[actual_label_side]
+    return `margin-${margin_side}: ${offset};`
   })
 
   // Label styles

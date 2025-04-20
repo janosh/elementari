@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Point } from '$lib'
   import type { HoverStyle, LabelStyle, PointStyle } from '$lib/plot'
-  import * as d3Symbols from 'd3-shape'
+  import * as d3_symbols from 'd3-shape'
   import { type SymbolType, symbol } from 'd3-shape'
   import { cubicOut } from 'svelte/easing'
   import { Tween } from 'svelte/motion'
@@ -17,7 +17,6 @@
     origin_x?: number
     origin_y?: number
   }
-
   let {
     x,
     y,
@@ -61,7 +60,7 @@
   const symbol_map: Record<string, SymbolType> = {}
 
   // Find all symbol properties in d3Symbols that start with 'symbol'
-  Object.entries(d3Symbols).forEach(([key, value]) => {
+  Object.entries(d3_symbols).forEach(([key, value]) => {
     if (key.startsWith(`symbol`) && typeof value === `object`) {
       // Convert from camelCase to snake_case for consistency with our naming
       const snake_key = key.replace(`symbol`, ``).toLowerCase()
@@ -72,7 +71,7 @@
   // Generate the path data string for the marker
   function get_symbol_path(): string {
     // Get the symbol type from our map or use circle as fallback
-    const symbol_type = symbol_map[marker_type] ?? d3Symbols.symbolCircle
+    const symbol_type = symbol_map[marker_type] ?? d3_symbols.symbolCircle
 
     // Create a symbol generator with the specified type and size
     return symbol().type(symbol_type).size(marker_actual_size)() || ``

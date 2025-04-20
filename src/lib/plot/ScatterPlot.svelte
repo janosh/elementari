@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Point } from '$lib'
   import { ColorBar, Line } from '$lib'
+  import type { D3ColorSchemeName } from '$lib/colors'
   import type { DataSeries, InternalPoint, PlotPoint } from '$lib/plot'
   import { extent, range } from 'd3-array'
   import {
@@ -17,16 +18,11 @@
     scaleSequentialLog,
     scaleTime,
   } from 'd3-scale'
-  import * as d3sc from 'd3-scale-chromatic'
+  import * as d3_sc from 'd3-scale-chromatic'
   import { timeFormat } from 'd3-time-format'
   import type { ComponentProps, Snippet } from 'svelte'
+  import { Tween, type TweenedOptions } from 'svelte/motion'
   import ScatterPoint from './ScatterPoint.svelte'
-
-  // Extract color scheme interpolate function names from d3-scale-chromatic
-  type D3InterpolateFunc = keyof typeof d3sc & `interpolate${string}`
-  type D3ColorSchemeName = Lowercase<
-    D3InterpolateFunc extends `interpolate${infer Name}` ? Name : never
-  >
 
   type TooltipProps = {
     x: number
@@ -116,7 +112,12 @@
     color_range?: [number, number] // Min/max for color scaling (auto detected if not provided)
     // Props for the ColorBar component, plus an optional 'margin' for auto-placement.
     // Set to null or undefined to hide the color bar.
-    color_bar?: (ComponentProps<typeof ColorBar> & { margin?: number | Sides }) | null
+    color_bar?:
+      | (ComponentProps<typeof ColorBar> & {
+          margin?: number | Sides
+          tween?: TweenedOptions<{ x: number; y: number }>
+        })
+      | null
     // Label auto-placement simulation parameters
     label_placement_config?: Partial<LabelPlacementConfig>
   }
@@ -312,11 +313,11 @@
   // Color scale function
   let color_scale_fn = $derived.by(() => {
     const interpolator_name =
-      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3sc
+      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3_sc
     const interpolator =
-      typeof d3sc[interpolator_name] === `function`
-        ? d3sc[interpolator_name]
-        : d3sc.interpolateViridis
+      typeof d3_sc[interpolator_name] === `function`
+        ? d3_sc[interpolator_name]
+        : d3_sc.interpolateViridis
 
     return color_scale_type === `log`
       ? scaleSequentialLog(interpolator).domain([
@@ -329,10 +330,10 @@
   // Extract the interpolator function itself for the ColorBar
   let color_interpolator_fn = $derived.by(() => {
     const interpolator_name =
-      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3sc
-    return typeof d3sc[interpolator_name] === `function`
-      ? d3sc[interpolator_name]
-      : d3sc.interpolateViridis
+      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3_sc
+    return typeof d3_sc[interpolator_name] === `function`
+      ? d3_sc[interpolator_name]
+      : d3_sc.interpolateViridis
   })
 
   // Filter series data to only include points within bounds and augment with internal data
@@ -382,17 +383,11 @@
         })
 
         // Filter to points within the plot bounds
-        // This data contains the extra properties
+        const is_valid_dim = (val: number | null | undefined, min: number, max: number) =>
+          val !== null && val !== undefined && !isNaN(val) && val >= min && val <= max
+
         const filtered_data_with_extras = processed_points.filter(
-          (pt) =>
-            !isNaN(pt.x) &&
-            pt.x !== null &&
-            !isNaN(pt.y) &&
-            pt.y !== null &&
-            pt.x >= x_min &&
-            pt.x <= x_max &&
-            pt.y >= y_min &&
-            pt.y <= y_max,
+          (pt) => is_valid_dim(pt.x, x_min, x_max) && is_valid_dim(pt.y, y_min, y_max),
         )
 
         // Return structure consistent with DataSeries but acknowledge internal data structure (filtered_data)
@@ -451,29 +446,38 @@
     return best_quadrant
   })
 
-  // Calculate automatic position style for the color bar
-  let color_bar_position_style = $derived.by(() => {
+  // Initialize tweened values for color bar position
+  const tweened_coords = new Tween({ x: 0, y: 0 }, { duration: 400, ...color_bar?.tween })
+
+  $effect(() => {
     const margin = color_bar?.margin
     const margin_obj =
       typeof margin === `number` ? { t: margin, l: margin, b: margin, r: margin } : margin
-    const default_margin = 10 // Default margin if not specified or if prop is just a number
+    const default_margin = 10 // Default margin
 
     const m_t = margin_obj?.t ?? default_margin
     const m_l = margin_obj?.l ?? default_margin
     const m_b = margin_obj?.b ?? default_margin
     const m_r = margin_obj?.r ?? default_margin
     const { t, l, b, r } = pad
-    switch (least_dense_quadrant) {
-      case `top_left`:
-        return `top: ${t + m_t}px; left: ${l + m_l}px;`
-      case `bottom_left`:
-        return `bottom: ${b + m_b}px; left: ${l + m_l}px;`
-      case `bottom_right`:
-        return `bottom: ${b + m_b}px; right: ${r + m_r}px;`
-      case `top_right`:
-      default: // Default fall-through
-        return `top: ${t + m_t}px; right: ${r + m_r}px;`
+
+    let [target_x, target_y] = [0, 0]
+
+    if (least_dense_quadrant === `top_left`) {
+      target_x = l + m_l
+      target_y = t + m_t
+    } else if (least_dense_quadrant === `bottom_left`) {
+      target_x = l + m_l
+      target_y = height - (b + m_b)
+    } else if (least_dense_quadrant === `bottom_right`) {
+      target_x = width - (r + m_r)
+      target_y = height - (b + m_b)
+    } else {
+      target_x = width - (r + m_r)
+      target_y = t + m_t
     }
+
+    if (width > 0 && height > 0) tweened_coords.set({ x: target_x, y: target_y })
   })
 
   // Generate logarithmic ticks
@@ -1071,8 +1075,14 @@
           tick_align: `primary`,
           range: effective_color_range as [number, number],
           color_scale: color_interpolator_fn,
-          wrapper_style: `position: absolute;
-            ${color_bar_position_style} /* Apply auto positioning */
+          wrapper_style: `
+            position: absolute;
+            left: ${tweened_coords.current.x}px;
+            top: ${tweened_coords.current.y}px;
+            ${least_dense_quadrant === `bottom_right` || least_dense_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
+            ${least_dense_quadrant === `top_right` || least_dense_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
+            /* Combine transforms if needed */
+            ${least_dense_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
             ${color_bar?.wrapper_style ?? ``} /* Add user wrapper style */
           `,
           // user-overridable inner style
