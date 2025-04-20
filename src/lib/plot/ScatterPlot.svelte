@@ -79,6 +79,7 @@
     // Label auto-placement simulation parameters
     label_placement_config?: Partial<LabelPlacementConfig>
   }
+  type Sides = { t?: number; b?: number; l?: number; r?: number }
 
   interface Props {
     series?: DataSeries[]
@@ -87,7 +88,7 @@
     y_lim?: [number | null, number | null]
     x_range?: [number, number] // Explicit ranges for x and y axes. If provided, this overrides the auto-computed range.
     y_range?: [number, number] // Use this to set fixed ranges regardless of the data.
-    padding?: { t?: number; b?: number; l?: number; r?: number }
+    padding?: Sides
     x_label?: string
     x_label_shift?: { x?: number; y?: number } // horizontal and vertical shift of x-axis label in px
     x_tick_label_shift?: { x?: number; y?: number } // horizontal and vertical shift of x-axis tick labels in px
@@ -115,7 +116,7 @@
     color_range?: [number, number] // Min/max for color scaling (auto detected if not provided)
     // Props for the ColorBar component, plus an optional 'margin' for auto-placement.
     // Set to null or undefined to hide the color bar.
-    color_bar?: (ComponentProps<typeof ColorBar> & { margin?: number }) | null
+    color_bar?: (ComponentProps<typeof ColorBar> & { margin?: number | Sides }) | null
     // Label auto-placement simulation parameters
     label_placement_config?: Partial<LabelPlacementConfig>
   }
@@ -452,18 +453,26 @@
 
   // Calculate automatic position style for the color bar
   let color_bar_position_style = $derived.by(() => {
-    const margin = color_bar?.margin ?? 10 // Use margin from prop, default 10
+    const margin = color_bar?.margin
+    const margin_obj =
+      typeof margin === `number` ? { t: margin, l: margin, b: margin, r: margin } : margin
+    const default_margin = 10 // Default margin if not specified or if prop is just a number
+
+    const m_t = margin_obj?.t ?? default_margin
+    const m_l = margin_obj?.l ?? default_margin
+    const m_b = margin_obj?.b ?? default_margin
+    const m_r = margin_obj?.r ?? default_margin
     const { t, l, b, r } = pad
     switch (least_dense_quadrant) {
       case `top_left`:
-        return `top: ${t + margin}px; left: ${l + margin}px;`
+        return `top: ${t + m_t}px; left: ${l + m_l}px;`
       case `bottom_left`:
-        return `bottom: ${b + margin}px; left: ${l + margin}px;`
+        return `bottom: ${b + m_b}px; left: ${l + m_l}px;`
       case `bottom_right`:
-        return `bottom: ${b + margin}px; right: ${r + margin}px;`
+        return `bottom: ${b + m_b}px; right: ${r + m_r}px;`
       case `top_right`:
       default: // Default fall-through
-        return `top: ${t + margin}px; right: ${r + margin}px;`
+        return `top: ${t + m_t}px; right: ${r + m_r}px;`
     }
   })
 
@@ -583,10 +592,7 @@
   function get_relative_coords(evt: MouseEvent): { x: number; y: number } | null {
     const svg_box = (evt.currentTarget as SVGElement)?.getBoundingClientRect()
     if (!svg_box) return null
-    return {
-      x: evt.clientX - svg_box.left,
-      y: evt.clientY - svg_box.top,
-    }
+    return { x: evt.clientX - svg_box.left, y: evt.clientY - svg_box.top }
   }
 
   function handle_mouse_down(evt: MouseEvent) {
@@ -665,7 +671,6 @@
   }
 
   // --- Tooltip Logic (extracted to function) ---
-
   function on_mouse_move(evt: MouseEvent) {
     hovered = true
 
@@ -724,7 +729,7 @@
   }
 
   // Merge user config with defaults before the effect that uses it
-  let effective_label_config = $derived({
+  let actual_label_config = $derived({
     collision_strength: 1.1,
     link_strength: 0.8,
     link_distance: 10,
@@ -733,12 +738,6 @@
   })
 
   $effect(() => {
-    // Explicitly access reactive dependencies to ensure the effect re-runs
-    const current_config = effective_label_config
-    const current_series = filtered_series
-    const current_x_scale = x_scale_fn
-    const current_y_scale = y_scale_fn
-
     if (!width || !height) return
 
     // 1. Collect nodes for simulation (only those with auto_placement)
@@ -746,13 +745,13 @@
     const anchor_nodes: AnchorNode[] = []
     const links: { source: string; target: string }[] = []
 
-    current_series.forEach((series_data) => {
+    filtered_series.forEach((series_data) => {
       series_data.filtered_data.forEach((point) => {
         if (point.point_label?.auto_placement && point.point_label.text) {
           const anchor_x = x_format?.startsWith(`%`)
-            ? current_x_scale(new Date(point.x))
-            : current_x_scale(point.x)
-          const anchor_y = current_y_scale(point.y)
+            ? x_scale_fn(new Date(point.x))
+            : x_scale_fn(point.x)
+          const anchor_y = y_scale_fn(point.y)
 
           const id = `${point.series_idx}-${point.point_idx}`
 
@@ -806,8 +805,8 @@
         `link`,
         forceLink(links)
           .id((d) => (d as { id: string }).id)
-          .distance(current_config.link_distance)
-          .strength(current_config.link_strength),
+          .distance(actual_label_config.link_distance)
+          .strength(actual_label_config.link_strength),
       ) // Cast d to ensure id exists
       .force(
         `collide`,
@@ -829,19 +828,17 @@
             }
             return 0 // Should not happen if nodes are constructed correctly
           })
-          .strength(current_config.collision_strength),
+          .strength(actual_label_config.collision_strength),
       )
       .stop()
 
     // Run simulation for a fixed number of ticks
-    simulation.tick(current_config.placement_ticks)
+    simulation.tick(actual_label_config.placement_ticks)
 
     // 3. Store the final positions
-    const new_positions: Record<string, { x: number; y: number }> = {}
     nodes_to_simulate.forEach((node) => {
-      new_positions[node.id] = { x: node.x!, y: node.y! }
+      label_positions[node.id] = { x: node.x!, y: node.y! }
     })
-    label_positions = new_positions
   })
 </script>
 
