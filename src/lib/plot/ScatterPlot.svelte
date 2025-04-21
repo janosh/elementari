@@ -63,6 +63,9 @@
     link_distance: number // Target distance for the link force
     placement_ticks: number // Number of simulation ticks to run
   }
+  type HoverConfig = {
+    threshold_px: number // Max screen distance (pixels) to trigger hover
+  }
 
   // Type for anchor nodes used in simulation, now including point radius
   interface AnchorNode extends SimulationNodeDatum {
@@ -120,6 +123,7 @@
       | null
     // Label auto-placement simulation parameters
     label_placement_config?: Partial<LabelPlacementConfig>
+    hover_config?: Partial<HoverConfig>
   }
   let {
     series = [],
@@ -155,6 +159,7 @@
     color_range,
     color_bar = {},
     label_placement_config = {},
+    hover_config = {},
   }: Props = $props()
 
   let width = $state(0)
@@ -401,7 +406,7 @@
   )
 
   // Calculate point counts per quadrant for color bar placement
-  let quadrant_counts = $derived(() => {
+  let quadrant_counts = $derived.by(() => {
     const counts: QuadrantCounts = {
       top_left: 0,
       top_right: 0,
@@ -432,14 +437,13 @@
 
   // Determine the least dense quadrant
   let least_dense_quadrant = $derived.by(() => {
-    const counts = quadrant_counts()
     let min_count = Infinity
     let best_quadrant: keyof QuadrantCounts = `top_right` // Default
 
     // Iterate and find the quadrant with the minimum count
-    for (const quadrant of Object.keys(counts) as (keyof QuadrantCounts)[]) {
-      if (counts[quadrant] < min_count) {
-        min_count = counts[quadrant]
+    for (const quadrant of Object.keys(quadrant_counts) as (keyof QuadrantCounts)[]) {
+      if (quadrant_counts[quadrant] < min_count) {
+        min_count = quadrant_counts[quadrant]
         best_quadrant = quadrant
       }
     }
@@ -679,50 +683,57 @@
     hovered = true
 
     const svg_box = (evt.currentTarget as SVGElement)?.getBoundingClientRect()
-    if (!svg_box) return
+    if (!svg_box || !width || !height) return
 
-    // Get mouse position relative to SVG
+    // Get mouse position relative to SVG (screen coordinates)
     const mouse_x_rel = evt.clientX - svg_box.left
     const mouse_y_rel = evt.clientY - svg_box.top
 
-    // Convert to data values
-    const mouse_x = x_format?.startsWith(`%`)
-      ? new Date(x_scale_fn.invert(mouse_x_rel))
-      : x_scale_fn.invert(mouse_x_rel)
-    const mouse_y = y_scale_fn.invert(mouse_y_rel)
-
-    // Find closest point to mouse
-    // Internal closest point can hold extra props
     let closest_point_internal: InternalPoint | null = null
-    let min_distance = Infinity
-    // Type needs to match the complex return type of filtered_series derived
     let closest_series: (DataSeries & { filtered_data: InternalPoint[] }) | null = null
+    let min_screen_dist_sq = Infinity
+    const { threshold_px = 20 } = hover_config // Use configured threshold
+    const hover_threshold_px_sq = threshold_px * threshold_px
 
+    // Iterate through points to find the closest one in screen coordinates
     for (const series_data of filtered_series) {
       if (!series_data?.filtered_data) continue
 
       for (const point of series_data.filtered_data) {
-        // Calculate distance to point (data coordinates)
-        const dx = x_format?.startsWith(`%`)
-          ? Math.abs(new Date(point.x).getTime() - (mouse_x as Date).getTime()) / 86400000 // Normalize time diff
-          : Math.abs(point.x - (mouse_x as number))
-        const dy = Math.abs(point.y - mouse_y)
-        const distance = dx * dx + dy * dy
+        // Calculate screen coordinates of the point
+        const point_cx = x_format?.startsWith(`%`)
+          ? x_scale_fn(new Date(point.x))
+          : x_scale_fn(point.x)
+        const point_cy = y_scale_fn(point.y)
 
-        if (distance < min_distance) {
-          min_distance = distance
+        // Calculate squared screen distance between mouse and point
+        const screen_dx = mouse_x_rel - point_cx
+        const screen_dy = mouse_y_rel - point_cy
+        const screen_distance_sq = screen_dx * screen_dx + screen_dy * screen_dy
+
+        // Update if this point is closer
+        if (screen_distance_sq < min_screen_dist_sq) {
+          min_screen_dist_sq = screen_distance_sq
           closest_point_internal = point
           closest_series = series_data
         }
       }
     }
 
-    if (closest_point_internal && closest_series) {
+    // Check if the closest point is within the hover threshold
+    if (
+      closest_point_internal &&
+      closest_series &&
+      min_screen_dist_sq <= hover_threshold_px_sq
+    ) {
       tooltip_point = closest_point_internal
       // Construct object matching change signature
       const { x, y, metadata } = closest_point_internal // Extract base Point props
       // Call change handler with closest point's data
       change({ x, y, metadata, series: closest_series })
+    } else {
+      // No point close enough or no points at all
+      tooltip_point = null
     }
   }
 
