@@ -646,215 +646,178 @@ const data = {
 }
 ```
 
-## Log-Scaled Axes
+## Interactive Log-Scaled Axes
 
-ScatterPlot supports logarithmic scaling for data that spans multiple orders of magnitude.
-
-### X-Axis Log Scale
-
-Visualize exponential growth or data with large ranges on the X-axis:
+ScatterPlot supports logarithmic scaling for data that spans multiple orders of magnitude. This example combines multiple datasets and allows you to dynamically switch between linear and logarithmic scales for both the X and Y axes using the checkboxes below. Observe how the appearance of the data changes, particularly for power-law relationships which appear as straight lines on log-log plots.
 
 ```svelte example stackblitz
 <script>
   import { ScatterPlot } from '$lib'
 
-  // Create data with exponential growth on x-axis
-  const x_log_data = {
-    x: [0.1, 0.5, 1, 5, 10, 50, 100, 500, 1000, 5000],
-    y: [10, 20, 25, 35, 40, 50, 55, 65, 70, 80],
-    point_style: { fill: 'steelblue', radius: 6 },
-    point_label: [{ text: '0.1', offset_y: -15 }, {}, {}, {}, {}, {}, {}, {}, {}, { text: '5000', offset_y: -15 }]
+  const point_count = 50;
+
+  // Series 1: Exponential Decay
+  const decay_data = {
+    x: [],
+    y: [],
+    point_style: { fill: 'coral', radius: 4 },
+    metadata: []
+  };
+  for (let idx = 0; idx < point_count; idx++) {
+    const x_val = 0.1 + (idx / (point_count - 1)) * 10; // x from 0.1 to 10.1
+    const y_val = 10000 * Math.exp(-0.5 * x_val);
+    decay_data.x.push(x_val);
+    // Ensure y is not exactly 0 for log scale, clamp to a small positive value
+    decay_data.y.push(Math.max(y_val, 1e-9));
+    decay_data.metadata.push({ series: 'Exponential Decay' });
   }
-</script>
 
-<div>
-  <h3>Exponential X-Axis Data (Log Scale)</h3>
-  <p>
-    Notice how equally spaced values on a log scale represent equal ratios rather than equal intervals.
-    The distance from 1 to 10 is the same as 10 to 100.
-  </p>
-  <ScatterPlot
-    series={[x_log_data]}
-    x_scale_type="log"
-    y_scale_type="linear"
-    x_label="Log-Scaled X Axis"
-    y_label="Linear Y Axis"
-    markers="line+points"
-    style="height: 350px; width: 100%;"
-  />
-</div>
-```
-
-### Y-Axis Log Scale
-
-Perfect for data with exponential growth on the Y-axis:
-
-```svelte example stackblitz
-<script>
-  import { ScatterPlot } from '$lib'
-
-  // Create data with exponential growth on y-axis
-  const y_log_data = {
-    x: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    y: [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000],
-    point_style: { fill: 'orangered', radius: 6 },
-    point_label: [{ text: '1', offset_x: 15 }, {}, {}, {}, {}, {}, {}, {}, {}, { text: '30,000', offset_x: 15 }]
+  // Series 2: Logarithmic Sine Wave
+  const log_sine_data = {
+    x: [],
+    y: [],
+    point_style: { fill: 'deepskyblue', radius: 4 },
+    metadata: []
+  };
+  for (let idx = 0; idx < point_count * 2; idx++) { // More points for smoother curve
+    const x_val = Math.pow(10, -1 + (idx / (point_count * 2 - 1)) * 4); // x from 0.1 to 1000 log-spaced
+    const y_val = 500 + 400 * Math.sin(Math.log10(x_val) * 5);
+    log_sine_data.x.push(x_val);
+    log_sine_data.y.push(Math.max(y_val, 1e-9)); // Clamp potential near-zero y
+    log_sine_data.metadata.push({ series: 'Log Sine Wave' });
   }
-</script>
 
-<div>
-  <h3>Exponential Y-Axis Data (Log Scale)</h3>
-  <p>
-    Y-axis log scaling makes it easy to visualize data that grows exponentially or spans many orders of magnitude.
-    Percentage growth appears as straight lines on a log scale.
-  </p>
-  <ScatterPlot
-    series={[y_log_data]}
-    x_scale_type="linear"
-    y_scale_type="log"
-    x_label="Linear X Axis"
-    y_label="Log-Scaled Y Axis"
-    y_format="~s"
-    markers="line+points"
-    style="height: 350px; width: 100%;"
-  />
-</div>
-```
+  // Series 3: Cluster + Outliers (Points only)
+  const cluster_data = {
+    x: [],
+    y: [],
+    point_style: { fill: 'limegreen', radius: 5 },
+    markers: 'points', // Override: Show only points for this series
+    metadata: []
+  };
+  // Central cluster
+  for (let idx = 0; idx < 20; idx++) {
+    const x_val = 10 + (Math.random() - 0.5) * 8; // Cluster around x=10
+    const y_val = 10 + (Math.random() - 0.5) * 8; // Cluster around y=10
+    cluster_data.x.push(x_val);
+    cluster_data.y.push(y_val);
+    cluster_data.metadata.push({ series: 'Cluster', type: 'cluster' });
+  }
+  // Outliers
+  cluster_data.x.push(0.5, 800, 50);
+  cluster_data.y.push(5000, 0.2, 0.1);
+  cluster_data.metadata.push(
+    { series: 'Cluster', type: 'outlier', label: 'Outlier 1' },
+    { series: 'Cluster', type: 'outlier', label: 'Outlier 2' },
+    { series: 'Cluster', type: 'outlier', label: 'Outlier 3' }
+  );
 
-### Both Axes Log-Scaled
-
-For comparing data across multiple orders of magnitude on both axes:
-
-```svelte example stackblitz
-<script>
-  import { ScatterPlot } from '$lib'
-
-  // Generate power law relationship data (y = x^2)
+  // Series 4: Power Law (y = x^2)
   const power_law_data = {
     x: [],
     y: [],
-    point_style: { fill: 'mediumseagreen', radius: 5 }
+    point_style: { fill: 'mediumseagreen', radius: 5 },
+    metadata: []
+  }
+  for (let idx = -1; idx <= 3; idx += 0.25) {
+    const x_val = Math.pow(10, idx)
+    const y_val = Math.pow(x_val, 2);  // y = x^2
+    power_law_data.x.push(x_val);
+    power_law_data.y.push(Math.max(y_val, 1e-9)); // Clamp y
+    power_law_data.metadata.push({ series: 'y = x^2' });
   }
 
-  // Add points from 0.1 to 1000 with exponential spacing
-  for (let i = -1; i <= 3; i += 0.25) {
-    const x = Math.pow(10, i)
-    const y = Math.pow(x, 2);  // y = x^2 (power law relationship)
-    power_law_data.x.push(x)
-    power_law_data.y.push(y)
-  }
-
-  // Add another series with a different power law (y = x^0.5)
+  // Series 5: Inverse Power Law (y = x^0.5)
   const inverse_power_data = {
     x: [],
     y: [],
-    point_style: { fill: 'purple', radius: 5 }
+    point_style: { fill: 'purple', radius: 5 },
+    metadata: []
+  }
+  for (let idx = -1; idx <= 3; idx += 0.25) {
+    const x_val = Math.pow(10, idx)
+    const y_val = Math.pow(x_val, 0.5); // y = √x
+    inverse_power_data.x.push(x_val);
+    inverse_power_data.y.push(Math.max(y_val, 1e-9)); // Clamp y
+    inverse_power_data.metadata.push({ series: 'y = x^0.5' });
   }
 
-  // Similar range but with y = sqrt(x)
-  for (let i = -1; i <= 3; i += 0.25) {
-    const x = Math.pow(10, i)
-    const y = Math.pow(x, 0.5);  // y = √x (square root relationship)
-    inverse_power_data.x.push(x)
-    inverse_power_data.y.push(y)
-  }
+  // Combine all series
+  const all_series = [decay_data, log_sine_data, cluster_data, power_law_data, inverse_power_data]
+
+  // State for controlling scale types
+  let x_is_log = $state(false)
+  let y_is_log = $state(false)
+
+  // Derived scale types based on state
+  let x_scale_type = $derived(x_is_log ? `log` : `linear`)
+  let y_scale_type = $derived(y_is_log ? `log` : `linear`)
+
+  // Reactive limits based on scale type to avoid log(0) issues and accommodate data
+  let x_limit = $derived(x_is_log ? [0.1, 1000] : [null, 1000])
+  let y_limit = $derived(y_is_log ? [0.1, 10000] : [null, 10000])
+
 </script>
 
 <div>
-  <h3>Power Law Relationships (Both Axes Log-Scaled)</h3>
-  <p>
-    Log-log plots are ideal for power law relationships. A straight line on a log-log plot
-    indicates a power law relationship (y = x^n), with the slope indicating the exponent.
-  </p>
+  <div style="display: flex; justify-content: center; gap: 2em; margin-bottom: 1em;">
+    <label>
+      <input type="checkbox" bind:checked={x_is_log} />
+      Log X-Axis
+    </label>
+    <label>
+      <input type="checkbox" bind:checked={y_is_log} />
+      Log Y-Axis
+    </label>
+  </div>
 
-  <div style="display: flex; justify-content: center; margin-bottom: 1em;">
-    <div style="margin: 0 1em; display: flex; align-items: center;">
+  <div style="display: flex; justify-content: center; margin-bottom: 1em; flex-wrap: wrap; gap: 0 1.5em;">
+    <div style="margin: 0.25em 0; display: flex; align-items: center;">
+      <span style="display: inline-block; width: 12px; height: 12px; background: coral; border-radius: 50%; margin-right: 0.5em;"></span>
+      Exponential Decay
+    </div>
+    <div style="margin: 0.25em 0; display: flex; align-items: center;">
+      <span style="display: inline-block; width: 12px; height: 12px; background: deepskyblue; border-radius: 50%; margin-right: 0.5em;"></span>
+      Log Sine Wave
+    </div>
+     <div style="margin: 0.25em 0; display: flex; align-items: center;">
+      <span style="display: inline-block; width: 12px; height: 12px; background: limegreen; border-radius: 50%; margin-right: 0.5em;"></span>
+      Cluster (Points Only)
+    </div>
+    <div style="margin: 0.25em 0; display: flex; align-items: center;">
       <span style="display: inline-block; width: 12px; height: 12px; background: mediumseagreen; border-radius: 50%; margin-right: 0.5em;"></span>
       y = x<sup>2</sup>
     </div>
-    <div style="margin: 0 1em; display: flex; align-items: center;">
+    <div style="margin: 0.25em 0; display: flex; align-items: center;">
       <span style="display: inline-block; width: 12px; height: 12px; background: purple; border-radius: 50%; margin-right: 0.5em;"></span>
-      y = x<sup>0.5</sup>
+      y = x<sup>0.5</sup> (√x)
     </div>
   </div>
 
-  <ScatterPlot
-    series={[power_law_data, inverse_power_data]}
-    x_scale_type="log"
-    y_scale_type="log"
-    x_label="x (log scale)"
-    y_label="y (log scale)"
-    x_format="~s"
-    y_format="~s"
-    markers="line+points"
-    style="height: 400px; width: 100%;"
-  />
-</div>
-```
-
-### Scientific Data with Log Scale
-
-This example demonstrates a real-world use case with scientific data spanning many orders of magnitude:
-
-```svelte example stackblitz
-<script>
-  import { ScatterPlot } from '$lib'
-
-  // Typical particle size distribution data
-  const particle_data = {
-    // Particle size in micrometers (µm) - using non-powers of 10 to test gridlines
-    x: [0.17, 0.42, 0.83, 1.3, 2.7, 4.9, 8.6, 23.4, 47.8, 93.2, 187, 422, 876],
-    // Number of particles detected - also using non-power-of-10 values
-    y: [58423, 32756, 12384, 6290, 2745, 1372, 687, 253, 124, 63, 31, 8, 2],
-    point_style: {
-      fill: 'royalblue',
-      radius: 6,
-      stroke: 'darkblue',
-      stroke_width: 1
-    },
-    point_hover: {
-      scale: 1.5,
-      stroke: 'white',
-      stroke_width: 2
-    }
-  }
-
-  let hover_point = null
-</script>
-
-<div>
-  <h3>Particle Size Distribution (Log-Log Plot)</h3>
-  <p>
-    Scientists often use log-log plots for data spanning multiple orders of magnitude.
-    This example shows a particle size distribution from 0.1µm to 1000µm (1mm).
-  </p>
-
-  <ScatterPlot
-    series={[particle_data]}
-    x_scale_type="log"
-    y_scale_type="log"
-    x_label="Particle Size (µm)"
-    y_label="Particle Count"
-    x_format="~s"
-    y_format="~s"
-    markers="line+points"
-    style="height: 400px; width: 100%;"
-    change={(point) => hover_point = point}
-  >
-    {#snippet tooltip({ x, y, x_formatted, y_formatted })}
-      <div style="white-space: nowrap;">
-        <strong>Particle Data</strong><br />
-        Size: {x_formatted} µm<br />
-        Count: {y_formatted} particles
-      </div>
-    {/snippet}
-  </ScatterPlot>
-
-  {#if hover_point}
-    <div style="margin-top: 1em; text-align: center;">
-      A particle size of {hover_point.x.toFixed(1)} µm corresponds to {hover_point.y.toFixed(0)} particles
-    </div>
-  {/if}
+  <!-- Use #key to ensure plot redraws correctly when scale types change -->
+  {#key `${x_scale_type}-${y_scale_type}`}
+    <ScatterPlot
+      series={all_series}
+      {x_scale_type}
+      {y_scale_type}
+      x_lim={x_limit}
+      y_lim={y_limit}
+      x_label={`X Axis (${x_scale_type})`}
+      y_label={`Y Axis (${y_scale_type})`}
+      x_format={x_is_log ? `~s` : ``}
+      y_format={y_is_log ? `~s` : ``}
+      markers="line+points"
+      style="height: 400px; width: 100%;"
+    >
+      {#snippet tooltip({ x, y, x_formatted, y_formatted, metadata })}
+        <div style="white-space: nowrap;">
+          <strong>{metadata.label ?? metadata.series}</strong><br/>
+          X: {x_formatted || x.toPrecision(3)}<br/>
+          Y: {y_formatted || y.toPrecision(3)}
+        </div>
+      {/snippet}
+    </ScatterPlot>
+  {/key}
 </div>
 ```
 

@@ -59,6 +59,8 @@ export interface PlotPoint extends Point {
 export interface DataSeries {
   x: number[]
   y: number[]
+  // Optional marker display type override for this specific series
+  markers?: `line` | `points` | `line+points`
   color_values?: (number | null)[] | null
   metadata?: Record<string, unknown>[] | Record<string, unknown> // Can be array or single object
   point_style?: PointStyle[] | PointStyle // Can be array or single object

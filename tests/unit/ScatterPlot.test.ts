@@ -1,7 +1,3 @@
-/**
- * @vitest-environment happy-dom
- */
-
 import { ScatterPlot } from '$lib'
 import type { DataSeries, LabelStyle, PointStyle } from '$lib/plot'
 import { mount } from 'svelte'

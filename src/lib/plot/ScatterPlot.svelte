@@ -897,71 +897,79 @@
       <!-- Lines -->
       {#if markers?.includes(`line`)}
         {#each filtered_series ?? [] as series, series_idx (series_idx)}
-          {@const first_point = series.filtered_data?.[0] as InternalPoint}
-          {@const series_color =
-            first_point?.color_value != null
-              ? color_scale_fn(first_point.color_value)
-              : typeof series?.point_style === `object` && series?.point_style?.fill
-                ? (series.point_style.fill as string)
-                : `rgba(255, 255, 255, 0.5)`}
+          {@const series_markers = series.markers ?? markers}
+          {#if series_markers?.includes(`line`)}
+            {@const first_point = series.filtered_data?.[0] as InternalPoint}
+            {@const series_color =
+              first_point?.color_value != null
+                ? color_scale_fn(first_point.color_value)
+                : typeof series?.point_style === `object` && series?.point_style?.fill
+                  ? (series.point_style.fill as string)
+                  : `rgba(255, 255, 255, 0.5)`}
 
-          <Line
-            points={(series?.filtered_data ?? []).map((point) => [
-              x_format?.startsWith(`%`)
-                ? x_scale_fn(new Date(point.x))
-                : x_scale_fn(point.x),
-              y_scale_fn(point.y),
-            ])}
-            origin={[
-              x_format?.startsWith(`%`) ? x_scale_fn(new Date(x_min)) : x_scale_fn(x_min),
-              y_scale_fn(y_min),
-            ]}
-            line_color={series_color}
-            line_width={1}
-            area_color="transparent"
-          />
+            <Line
+              points={(series?.filtered_data ?? []).map((point) => [
+                x_format?.startsWith(`%`)
+                  ? x_scale_fn(new Date(point.x))
+                  : x_scale_fn(point.x),
+                y_scale_fn(point.y),
+              ])}
+              origin={[
+                x_format?.startsWith(`%`)
+                  ? x_scale_fn(new Date(x_min))
+                  : x_scale_fn(x_min),
+                y_scale_fn(y_min),
+              ]}
+              line_color={series_color}
+              line_width={1}
+              area_color="transparent"
+            />
+          {/if}
         {/each}
       {/if}
 
       <!-- Points -->
       {#if markers?.includes(`points`)}
         {#each filtered_series ?? [] as series, series_idx (series_idx)}
-          {#each series.filtered_data as point, point_idx (point_idx)}
-            {@const point_color =
-              point.color_value != null ? color_scale_fn(point.color_value) : undefined}
+          {@const series_markers = series.markers ?? markers}
+          {#if series_markers?.includes(`points`)}
+            {#each series.filtered_data as point, point_idx (point_idx)}
+              {@const point_color =
+                point.color_value != null ? color_scale_fn(point.color_value) : undefined}
 
-            {@const label_id = `${point.series_idx}-${point.point_idx}`}
-            {@const calculated_label_pos = label_positions[label_id]}
-            {@const label_style = point.point_label ?? {}}
-            {@const final_label = calculated_label_pos
-              ? {
-                  ...label_style,
-                  offset_x:
-                    calculated_label_pos.x -
-                    (x_format?.startsWith(`%`)
-                      ? x_scale_fn(new Date(point.x))
-                      : x_scale_fn(point.x)),
-                  offset_y: calculated_label_pos.y - y_scale_fn(point.y),
-                }
-              : label_style}
+              {@const label_id = `${point.series_idx}-${point.point_idx}`}
+              {@const calculated_label_pos = label_positions[label_id]}
+              {@const label_style = point.point_label ?? {}}
+              {@const final_label = calculated_label_pos
+                ? {
+                    ...label_style,
+                    offset_x:
+                      calculated_label_pos.x -
+                      (x_format?.startsWith(`%`)
+                        ? x_scale_fn(new Date(point.x))
+                        : x_scale_fn(point.x)),
+                    offset_y: calculated_label_pos.y - y_scale_fn(point.y),
+                  }
+                : label_style}
 
-            <ScatterPoint
-              x={x_format?.startsWith(`%`)
-                ? x_scale_fn(new Date(point.x))
-                : x_scale_fn(point.x)}
-              y={y_scale_fn(point.y)}
-              style={{
-                ...(point.point_style ?? {}),
-                fill: point_color ?? (point?.point_style?.fill as string | undefined),
-              }}
-              hover={point.point_hover ?? {}}
-              label={final_label}
-              offset={point.point_offset ?? { x: 0, y: 0 }}
-              tween_duration={point.point_tween_duration ?? 600}
-              origin_x={plot_center_x}
-              origin_y={plot_center_y}
-            />
-          {/each}
+              <ScatterPoint
+                x={x_format?.startsWith(`%`)
+                  ? x_scale_fn(new Date(point.x))
+                  : x_scale_fn(point.x)}
+                y={y_scale_fn(point.y)}
+                style={{
+                  ...(point.point_style ?? {}),
+                  fill: point_color ?? (point?.point_style?.fill as string | undefined),
+                }}
+                hover={point.point_hover ?? {}}
+                label={final_label}
+                offset={point.point_offset ?? { x: 0, y: 0 }}
+                tween_duration={point.point_tween_duration ?? 600}
+                origin_x={plot_center_x}
+                origin_y={plot_center_y}
+              />
+            {/each}
+          {/if}
         {/each}
       {/if}
 
