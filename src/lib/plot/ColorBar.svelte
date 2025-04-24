@@ -157,9 +157,12 @@
 
   // Generate color stops for the gradient background
   let ramped = $derived(
-    [...Array(steps).keys()].map((_, idx) =>
-      (color_scale_fn as (t: number) => string)?.(idx / steps),
-    ),
+    [...Array(steps).keys()].map((_, idx) => {
+      const t = idx / (steps - 1) // Normalized position along the bar (0 to 1)
+      const [min_val, max_val] = scale_for_ticks.domain()
+      const data_value = min_val + t * (max_val - min_val)
+      return (color_scale_fn as (x: number) => string)?.(data_value) ?? `transparent`
+    }),
   )
 
   // Determine wrapper flex-direction based on the actual label_side
@@ -173,7 +176,7 @@
   let bar_dynamic_style = $derived(`
     --cbar-width: ${orientation === `horizontal` ? `100%` : `var(--cbar-thickness, 14px)`};
     --cbar-height: ${orientation === `vertical` ? `100%` : `var(--cbar-thickness, 14px)`};
-    background: linear-gradient(${grad_dir}, ${ramped});
+    background: linear-gradient(${grad_dir}, ${ramped.join(`, `)});
   `)
 
   // Calculate additional margin for the main label if it overlaps with ticks

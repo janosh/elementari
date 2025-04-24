@@ -298,15 +298,6 @@
       : scaleSequential(interpolator).domain([color_min, color_max])
   })
 
-  // Extract the interpolator function itself for the ColorBar
-  let color_interpolator_fn = $derived.by(() => {
-    const interpolator_name =
-      `interpolate${color_scheme.charAt(0).toUpperCase()}${color_scheme.slice(1).toLowerCase()}` as keyof typeof d3_sc
-    return typeof d3_sc[interpolator_name] === `function`
-      ? d3_sc[interpolator_name]
-      : d3_sc.interpolateViridis
-  })
-
   // Filter series data to only include points within bounds and augment with internal data
   let filtered_series = $derived(
     series
@@ -1137,14 +1128,10 @@
       {#if markers?.includes(`points`)}
         {#each filtered_series ?? [] as series, series_idx (series.label ?? JSON.stringify(series))}
           {@const series_markers = series.markers ?? markers}
+          {@const { color_values } = series}
           <g data-series-idx={series_idx}>
             {#if series_markers?.includes(`points`)}
               {#each series.filtered_data as point, point_idx (point_idx)}
-                {@const point_color =
-                  point.color_value != null
-                    ? color_scale_fn(point.color_value)
-                    : undefined}
-
                 {@const label_id = `${point.series_idx}-${point.point_idx}`}
                 {@const calculated_label_pos = label_positions[label_id]}
                 {@const label_style = point.point_label ?? {}}
@@ -1159,7 +1146,7 @@
                       offset_y: calculated_label_pos.y - y_scale_fn(point.y),
                     }
                   : label_style}
-
+                {@const color_value = color_values?.[point_idx]}
                 <ScatterPoint
                   x={x_format?.startsWith(`%`)
                     ? x_scale_fn(new Date(point.x))
@@ -1167,7 +1154,6 @@
                   y={y_scale_fn(point.y)}
                   style={{
                     ...(point.point_style ?? {}),
-                    fill: point_color ?? (point?.point_style?.fill as string | undefined),
                   }}
                   hover={point.point_hover ?? {}}
                   label={final_label}
@@ -1175,6 +1161,9 @@
                   tween_duration={point.point_tween_duration ?? 600}
                   origin_x={plot_center_x}
                   origin_y={plot_center_y}
+                  --point-fill-color={(color_value != null
+                    ? color_scale_fn(color_value)
+                    : undefined) ?? point.point_style?.fill}
                 />
               {/each}
             {/if}
@@ -1302,7 +1291,7 @@
           tick_labels: 4,
           tick_align: `primary`,
           range: effective_color_range as [number, number],
-          color_scale: color_interpolator_fn,
+          color_scale: color_scale_fn,
           wrapper_style: `
             position: absolute;
             left: ${tweened_colorbar_coords.current.x}px;
