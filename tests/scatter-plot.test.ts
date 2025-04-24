@@ -11,7 +11,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     await expect(section).toBeVisible()
     const scatter_plot = section.locator(`.scatter`)
     await expect(scatter_plot).toBeVisible()
-    const svg = scatter_plot.locator(`svg`)
+    const svg = scatter_plot.locator(`svg[role='img']`)
     await expect(svg).toBeVisible()
 
     // Stricter: Check marker count
@@ -275,7 +275,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     // Test the bind:hovered functionality using the specific example
     const section = page.locator(`#bind-hovered`)
     const scatter_plot = section.locator(`.scatter`)
-    const svg = scatter_plot.locator(`svg`)
+    const svg = scatter_plot.locator(`svg[role='img']`)
     const hover_status = page.locator(`#hover-status`)
 
     // Initial state: not hovered
@@ -314,7 +314,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     page,
   }) => {
     const plot_locator = page.locator(`#basic-example .scatter`)
-    const svg = plot_locator.locator(`svg`)
+    const svg = plot_locator.locator(`svg[role='img']`)
     const x_axis = plot_locator.locator(`g.x-axis`)
     const y_axis = plot_locator.locator(`g.y-axis`)
     const zoom_rect = plot_locator.locator(`rect.zoom-rect`)
@@ -539,5 +539,58 @@ test.describe(`ScatterPlot Component Tests`, () => {
       positions_manual[single_label].y,
       1,
     )
+  })
+
+  test.describe(`Legend Rendering`, () => {
+    const legend_selector = `.legend` // Use data attribute selector
+
+    test(`legend does NOT render for single series by default`, async ({
+      page,
+    }) => {
+      const legend_section = page.locator(`#legend-tests`)
+      const plot = legend_section.locator(`#legend-single-default`)
+      await expect(plot.locator(legend_selector)).toHaveCount(0)
+    })
+
+    test(`legend does NOT render when legend prop is null`, async ({
+      page,
+    }) => {
+      const legend_section = page.locator(`#legend-tests`)
+      const plot = legend_section.locator(`#legend-single-null`)
+      await expect(plot.locator(legend_selector)).toHaveCount(0)
+    })
+
+    test(`legend renders for single series when explicitly configured`, async ({
+      page,
+    }) => {
+      const plot_locator = page.locator(`#legend-single-config`)
+      // await page.pause() // Remove pause
+      await expect(plot_locator).toBeVisible()
+      const legend_locator = plot_locator.locator(legend_selector)
+      await expect(legend_locator).toBeVisible()
+      const label_span = legend_locator.locator(`.legend-label`)
+      // Check legend item text - should now use default 'Series 1' as test data lacks top-level label
+      await expect(label_span).toHaveText(`Single Series`)
+    })
+
+    test(`legend renders for multiple series by default`, async ({ page }) => {
+      const plot_locator = page.locator(`#legend-multi-default`)
+      // await page.pause() // Remove pause
+      await expect(plot_locator).toBeVisible()
+      const legend_locator = plot_locator.locator(legend_selector)
+      await expect(legend_locator).toBeVisible()
+      // Check legend item count
+      await expect(legend_locator.locator(`.legend-item`)).toHaveCount(2)
+      // Check legend item texts - should now use defaults 'Series 1', 'Series 2'
+      const label_span = legend_locator.locator(`.legend-label`)
+      await expect(label_span.nth(0)).toHaveText(`Series A`)
+      await expect(label_span.nth(1)).toHaveText(`Series B`)
+    })
+
+    test(`legend does NOT render for zero series`, async ({ page }) => {
+      const legend_section = page.locator(`#legend-tests`)
+      const plot = legend_section.locator(`#legend-zero`)
+      await expect(plot.locator(legend_selector)).toHaveCount(0) // Changed assertion for consistency
+    })
   })
 })

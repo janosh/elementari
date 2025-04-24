@@ -1,15 +1,28 @@
 <script lang="ts">
   import type { Point } from '$lib'
-  import { ColorBar, Line } from '$lib'
+  import { ColorBar, Line, marker_types } from '$lib'
   import type { D3ColorSchemeName } from '$lib/colors'
-  import type { DataSeries, InternalPoint, PlotPoint } from '$lib/plot'
+  import type {
+    AnchorNode,
+    DataSeries,
+    HoverConfig,
+    InternalPoint,
+    LabelNode,
+    LabelPlacementConfig,
+    LegendConfig,
+    LineType,
+    MarkerType,
+    PlotPoint,
+    PointStyle,
+    QuadrantCounts,
+    ScaleType,
+    Sides,
+    TimeInterval,
+    TooltipProps,
+  } from '$lib/plot'
+  import PlotLegend from '$lib/plot/PlotLegend.svelte'
   import { extent, range } from 'd3-array'
-  import {
-    forceCollide,
-    forceLink,
-    forceSimulation,
-    type SimulationNodeDatum,
-  } from 'd3-force'
+  import { forceCollide, forceLink, forceSimulation } from 'd3-force'
   import { format } from 'd3-format'
   import {
     scaleLinear,
@@ -23,62 +36,6 @@
   import type { ComponentProps, Snippet } from 'svelte'
   import { Tween, type TweenedOptions } from 'svelte/motion'
   import ScatterPoint from './ScatterPoint.svelte'
-
-  type TooltipProps = {
-    x: number
-    y: number
-    cx: number
-    cy: number
-    x_formatted: string
-    y_formatted: string
-    metadata?: Record<string, unknown>
-    color_value?: number | null
-    label?: string | null
-  }
-
-  type TimeInterval = `day` | `month` | `year`
-  type ScaleType = `linear` | `log`
-  type QuadrantCounts = {
-    top_left: number
-    top_right: number
-    bottom_left: number
-    bottom_right: number
-  }
-
-  // Type for nodes used in the d3-force simulation for label placement
-  interface LabelNode extends SimulationNodeDatum {
-    id: string // unique identifier, e.g., series_idx-point_idx
-    anchor_x: number // Original x coordinate of the point (scaled)
-    anchor_y: number // Original y coordinate of the point (scaled)
-    point_node: InternalPoint // Reference to the original data point
-    label_width: number // Estimated width for collision
-    label_height: number // Estimated height for collision
-    // x, y, vx, vy are added by d3-force
-  }
-
-  // Configuration for the label auto-placement simulation
-  interface LabelPlacementConfig {
-    collision_strength: number // Strength of the collision force (prevents overlap)
-    link_strength: number // Strength of the link force (pulls label to point)
-    link_distance: number // Target distance for the link force
-    placement_ticks: number // Number of simulation ticks to run
-  }
-  type HoverConfig = {
-    threshold_px: number // Max screen distance (pixels) to trigger hover
-  }
-
-  // Type for anchor nodes used in simulation, now including point radius
-  interface AnchorNode extends SimulationNodeDatum {
-    id: string
-    fx: number
-    fy: number
-    point_radius: number // Radius of the corresponding scatter point
-    show_color_bar?: boolean // Whether to show the color bar when color scaling is active
-    color_bar?: ComponentProps<typeof ColorBar> | null
-    // Label auto-placement simulation parameters
-    label_placement_config?: Partial<LabelPlacementConfig>
-  }
-  type Sides = { t?: number; b?: number; l?: number; r?: number }
 
   interface Props {
     series?: DataSeries[]
@@ -124,6 +81,7 @@
     // Label auto-placement simulation parameters
     label_placement_config?: Partial<LabelPlacementConfig>
     hover_config?: Partial<HoverConfig>
+    legend?: LegendConfig | null // Configuration for the legend
   }
   let {
     series = [],
@@ -160,6 +118,7 @@
     color_bar = {},
     label_placement_config = {},
     hover_config = {},
+    legend = {}, // Default legend config
   }: Props = $props()
 
   let width = $state(0)
@@ -173,9 +132,15 @@
   let initial_y_range = $state<[number, number]>([0, 1])
   let current_x_range = $state<[number, number]>([0, 1])
   let current_y_range = $state<[number, number]>([0, 1])
+  let series_visibility = $state<boolean[]>([])
 
   // State to hold the calculated label positions after simulation
   let label_positions = $state<Record<string, { x: number; y: number }>>({})
+
+  // Initialize series visibility state based on input prop
+  $effect(() => {
+    series_visibility = series.map((s) => s?.visible ?? true)
+  })
 
   // Create raw data points from all series
   let all_points = $derived(
@@ -345,11 +310,20 @@
   let filtered_series = $derived(
     series
       .map((data_series, series_idx) => {
+        if (!series_visibility[series_idx]) {
+          return {
+            ...data_series,
+            visible: false,
+            filtered_data: [],
+          } as DataSeries & { filtered_data: InternalPoint[] }
+        }
+
         if (!data_series) {
           // Return empty data consistent with DataSeries structure
           return {
             x: [],
             y: [],
+            visible: true, // Assume visible if undefined but we somehow process it
             filtered_data: [],
           } as unknown as DataSeries & { filtered_data: InternalPoint[] }
         }
@@ -384,6 +358,7 @@
             point_tween_duration: rest.point_tween_duration,
             series_idx,
             point_idx,
+            series_visible: true, // Mark points from visible series
           }
         })
 
@@ -398,6 +373,7 @@
         // Return structure consistent with DataSeries but acknowledge internal data structure (filtered_data)
         return {
           ...data_series,
+          visible: true, // Mark series as visible here
           filtered_data: filtered_data_with_extras as InternalPoint[],
         } as DataSeries & { filtered_data: InternalPoint[] }
       })
@@ -436,52 +412,160 @@
   })
 
   // Determine the least dense quadrant
-  let least_dense_quadrant = $derived.by(() => {
-    let min_count = Infinity
-    let best_quadrant: keyof QuadrantCounts = `top_right` // Default
+  let ranked_quadrants = $derived.by(() => {
+    const quadrants = Object.keys(quadrant_counts) as (keyof QuadrantCounts)[]
+    return quadrants.sort((a, b) => quadrant_counts[a] - quadrant_counts[b])
+  })
 
-    // Iterate and find the quadrant with the minimum count
-    for (const quadrant of Object.keys(quadrant_counts) as (keyof QuadrantCounts)[]) {
-      if (quadrant_counts[quadrant] < min_count) {
-        min_count = quadrant_counts[quadrant]
-        best_quadrant = quadrant
-      }
-    }
-    return best_quadrant
+  // Assign quadrants to legend and color bar
+  let legend_quadrant = $derived.by(() => {
+    if (!legend) return null // No legend, no quadrant
+    return ranked_quadrants[0] // Legend goes to the least dense
+  })
+
+  let color_bar_quadrant = $derived.by(() => {
+    if (!color_bar || all_color_values.length === 0) return null // No color bar, no quadrant
+    // If legend exists, color bar goes to 2nd least dense, otherwise least dense
+    return legend ? ranked_quadrants[1] : ranked_quadrants[0]
   })
 
   // Initialize tweened values for color bar position
-  const tweened_coords = new Tween({ x: 0, y: 0 }, { duration: 400, ...color_bar?.tween })
+  const tweened_colorbar_coords = new Tween(
+    { x: 0, y: 0 },
+    { duration: 400, ...(color_bar?.tween ?? {}) },
+  )
+  // Initialize tweened values for legend position
+  const tweened_legend_coords = new Tween(
+    { x: 0, y: 0 },
+    { duration: 400, ...(legend?.tween ?? {}) },
+  )
 
+  // State for initial (non-responsive) legend placement
+  let initial_legend_quadrant = $state<keyof QuadrantCounts | null>(null)
+  let is_initial_legend_quadrant_calculated = $state(false)
+
+  // Effect to calculate the initial quadrant ONCE
   $effect(() => {
-    const margin = color_bar?.margin
-    const margin_obj =
-      typeof margin === `number` ? { t: margin, l: margin, b: margin, r: margin } : margin
-    const default_margin = 10 // Default margin
+    // Run only if we have dimensions, a calculated quadrant, and haven't calculated the initial one yet
+    if (
+      width > 0 &&
+      height > 0 &&
+      legend_quadrant &&
+      !is_initial_legend_quadrant_calculated
+    ) {
+      const is_responsive = legend?.responsive ?? false
+      const style = legend?.wrapper_style ?? ``
+      const is_fixed_position =
+        /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
 
-    const m_t = margin_obj?.t ?? default_margin
-    const m_l = margin_obj?.l ?? default_margin
-    const m_b = margin_obj?.b ?? default_margin
-    const m_r = margin_obj?.r ?? default_margin
-    const { t, l, b, r } = pad
+      // Set initial quadrant only if mode is initial and position is not fixed
+      if (!is_responsive && !is_fixed_position) {
+        initial_legend_quadrant = legend_quadrant
+        is_initial_legend_quadrant_calculated = true
+      }
+    }
+  })
 
-    let [target_x, target_y] = [0, 0]
+  // Effect to update legend position
+  $effect(() => {
+    if (!width || !height) return // Need dimensions
 
-    if (least_dense_quadrant === `top_left`) {
-      target_x = l + m_l
-      target_y = t + m_t
-    } else if (least_dense_quadrant === `bottom_left`) {
-      target_x = l + m_l
-      target_y = height - (b + m_b)
-    } else if (least_dense_quadrant === `bottom_right`) {
-      target_x = width - (r + m_r)
-      target_y = height - (b + m_b)
-    } else {
-      target_x = width - (r + m_r)
-      target_y = t + m_t
+    // Calculate Color Bar Position
+    if (color_bar_quadrant) {
+      const margin = color_bar?.margin
+      const margin_obj =
+        typeof margin === `number`
+          ? { t: margin, l: margin, b: margin, r: margin }
+          : margin
+      const default_margin = 10 // Default margin
+
+      const m_t = margin_obj?.t ?? default_margin
+      const m_l = margin_obj?.l ?? default_margin
+      const m_b = margin_obj?.b ?? default_margin
+      const m_r = margin_obj?.r ?? default_margin
+      const { t, l, b, r } = pad
+
+      let [target_x, target_y] = [0, 0]
+
+      if (color_bar_quadrant === `top_left`) {
+        target_x = l + m_l
+        target_y = t + m_t
+      } else if (color_bar_quadrant === `bottom_left`) {
+        target_x = l + m_l
+        target_y = height - (b + m_b)
+      } else if (color_bar_quadrant === `bottom_right`) {
+        target_x = width - (r + m_r)
+        target_y = height - (b + m_b)
+      } else {
+        // Default to top_right if somehow quadrant is unexpected
+        target_x = width - (r + m_r)
+        target_y = t + m_t
+      }
+
+      tweened_colorbar_coords.set({ x: target_x, y: target_y })
     }
 
-    if (width > 0 && height > 0) tweened_coords.set({ x: target_x, y: target_y })
+    // Calculate Legend Position based on mode (responsive, initial, fixed)
+    if (legend_quadrant) {
+      const is_responsive = legend?.responsive ?? false
+      const style = legend?.wrapper_style ?? ``
+      const is_fixed_position =
+        /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
+
+      let quadrant_to_use: keyof QuadrantCounts | null = null
+
+      if (!is_fixed_position) {
+        if (is_responsive) {
+          quadrant_to_use = legend_quadrant // Use current least dense
+        } else {
+          // Use the stored initial quadrant if calculated, otherwise wait or use current as fallback
+          quadrant_to_use = is_initial_legend_quadrant_calculated
+            ? initial_legend_quadrant
+            : legend_quadrant // Fallback to current if initial not ready
+        }
+      }
+
+      // Reset initial calculation flag if mode changes TO responsive or TO fixed
+      if ((is_responsive || is_fixed_position) && is_initial_legend_quadrant_calculated) {
+        is_initial_legend_quadrant_calculated = false
+        initial_legend_quadrant = null // Clear stored quadrant
+      }
+
+      // Apply position update only if auto-placing (not fixed) and a quadrant is determined
+      if (quadrant_to_use) {
+        const margin = legend?.margin
+        const margin_obj =
+          typeof margin === `number`
+            ? { t: margin, l: margin, b: margin, r: margin }
+            : margin
+        const default_margin = 10 // Default margin
+
+        const m_t = margin_obj?.t ?? default_margin
+        const m_l = margin_obj?.l ?? default_margin
+        const m_b = margin_obj?.b ?? default_margin
+        const m_r = margin_obj?.r ?? default_margin
+        const { t, l, b, r } = pad
+
+        let [target_x, target_y] = [0, 0]
+
+        if (quadrant_to_use === `top_left`) {
+          target_x = l + m_l
+          target_y = t + m_t
+        } else if (quadrant_to_use === `bottom_left`) {
+          target_x = l + m_l
+          target_y = height - (b + m_b)
+        } else if (quadrant_to_use === `bottom_right`) {
+          target_x = width - (r + m_r)
+          target_y = height - (b + m_b)
+        } else {
+          // Default top_right
+          target_x = width - (r + m_r)
+          target_y = t + m_t
+        }
+
+        tweened_legend_coords.set({ x: target_x, y: target_y })
+      }
+    }
   })
 
   // Generate logarithmic ticks
@@ -855,6 +939,73 @@
       label_positions[node.id] = { x: node.x!, y: node.y! }
     })
   })
+
+  // Function to toggle series visibility
+  function toggle_series_visibility(series_idx: number) {
+    if (series_idx >= 0 && series_idx < series_visibility.length) {
+      series_visibility[series_idx] = !series_visibility[series_idx]
+    }
+  }
+
+  // Prepare data needed for the legend component
+  let legend_data = $derived.by(() => {
+    return series.map((data_series, series_idx) => {
+      // Extract necessary info for legend rendering
+      const is_visible = series_visibility[series_idx] ?? true
+      const label = data_series?.label ?? `Series ${series_idx + 1}`
+
+      // Explicitly define the type for display_style matching PlotLegend expectations
+      type LegendDisplayStyle = {
+        marker_shape?: MarkerType
+        marker_color?: string
+        line_type?: LineType
+        line_color?: string
+      }
+      const display_style: LegendDisplayStyle = {}
+
+      const series_markers = data_series?.markers ?? markers
+
+      // Check point_style (could be object or array)
+      const first_point_style = Array.isArray(data_series?.point_style)
+        ? (data_series.point_style[0] as PointStyle)
+        : (data_series?.point_style as PointStyle)
+
+      if (series_markers?.includes(`points`) && first_point_style) {
+        // Assign shape only if it's one of the allowed types, else default to circle
+        let final_shape: MarkerType = `circle` // Default shape
+        const shape_from_style = first_point_style.shape
+        if (shape_from_style && marker_types.includes(shape_from_style as MarkerType)) {
+          final_shape = shape_from_style as MarkerType // Cast validated shape
+        }
+        display_style.marker_shape = final_shape
+
+        display_style.marker_color = first_point_style.fill ?? `black`
+        if (first_point_style.stroke) {
+          // Use stroke color if fill is none or transparent
+          if (
+            !display_style.marker_color ||
+            display_style.marker_color === `none` ||
+            display_style.marker_color.startsWith(`rgba(`, 0) // Check if transparent
+          ) {
+            display_style.marker_color = first_point_style.stroke
+          }
+        }
+      }
+
+      // Check line_style
+      if (series_markers?.includes(`line`)) {
+        display_style.line_type = `solid` // Defaulting to solid for now
+        display_style.line_color = display_style.marker_color ?? `black` // Use marker color if available
+      }
+
+      return {
+        series_idx,
+        label,
+        visible: is_visible,
+        display_style,
+      }
+    })
+  })
 </script>
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
@@ -896,7 +1047,7 @@
 
       <!-- Lines -->
       {#if markers?.includes(`line`)}
-        {#each filtered_series ?? [] as series, series_idx (series_idx)}
+        {#each filtered_series ?? [] as series (series.label ?? JSON.stringify(series))}
           {@const series_markers = series.markers ?? markers}
           {#if series_markers?.includes(`line`)}
             {@const first_point = series.filtered_data?.[0] as InternalPoint}
@@ -930,7 +1081,7 @@
 
       <!-- Points -->
       {#if markers?.includes(`points`)}
-        {#each filtered_series ?? [] as series, series_idx (series_idx)}
+        {#each filtered_series ?? [] as series (series.label ?? JSON.stringify(series))}
           {@const series_markers = series.markers ?? markers}
           {#if series_markers?.includes(`points`)}
             {#each series.filtered_data as point, point_idx (point_idx)}
@@ -1087,7 +1238,7 @@
     </svg>
 
     <!-- Color Bar -->
-    {#if color_bar && all_color_values.length > 0}
+    {#if color_bar && all_color_values.length > 0 && color_bar_quadrant}
       <ColorBar
         {...{
           tick_labels: 4,
@@ -1096,18 +1247,37 @@
           color_scale: color_interpolator_fn,
           wrapper_style: `
             position: absolute;
-            left: ${tweened_coords.current.x}px;
-            top: ${tweened_coords.current.y}px;
-            ${least_dense_quadrant === `bottom_right` || least_dense_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
-            ${least_dense_quadrant === `top_right` || least_dense_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
-            /* Combine transforms if needed */
-            ${least_dense_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
+            left: ${tweened_colorbar_coords.current.x}px;
+            top: ${tweened_colorbar_coords.current.y}px;
+            ${color_bar_quadrant === `bottom_right` || color_bar_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
+            ${color_bar_quadrant === `top_right` || color_bar_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
+            ${color_bar_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
             ${color_bar?.wrapper_style ?? ``} /* Add user wrapper style */
           `,
           // user-overridable inner style
           style: `width: 280px; height: 20px; ${color_bar?.style ?? ``}`,
           ...color_bar,
         }}
+      />
+    {/if}
+
+    <!-- Legend -->
+    <!-- Only render if multiple series or if legend prop was explicitly provided by user (even if empty object) -->
+    {#if legend != null && legend_data.length > 0 && legend_quadrant && (legend_data.length > 1 || (legend != null && JSON.stringify(legend) !== `{}`))}
+      <PlotLegend
+        series_data={legend_data}
+        on_toggle={toggle_series_visibility}
+        {...legend}
+        wrapper_style={`
+          position: absolute;
+          left: ${tweened_legend_coords.current.x}px;
+          top: ${tweened_legend_coords.current.y}px;
+          /* Adjust transform based on quadrant to keep legend inside plot area */
+          ${legend_quadrant === `bottom_right` || legend_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
+          ${legend_quadrant === `top_right` || legend_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
+          ${legend_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
+          ${legend?.wrapper_style ?? ``}
+        `}
       />
     {/if}
   {/if}

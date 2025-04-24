@@ -87,7 +87,7 @@ describe(`ColorBar Vertical`, () => {
     expect(label_span.textContent).toBe(`Test Vertical Default`)
     // Check rotation via attribute due to happy-dom issues
     expect(label_span.getAttribute(`style`)).toContain(
-      `transform: rotate(-90deg);`,
+      `transform: rotate(-90deg) translate(50%); transform-origin: right bottom;`,
     )
 
     const cbar_div = doc_query(`.colorbar > div.bar`)

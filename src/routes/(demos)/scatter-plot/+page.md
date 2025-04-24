@@ -12,14 +12,16 @@ A simple scatter plot showing different display modes (points, lines, or both):
   const basic_data = {
     x: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     y: [5, 7, 2, 8, 4, 9, 3, 6, 8, 5],
-    point_style: { fill: 'steelblue', radius: 5 }
+    point_style: { fill: 'steelblue', radius: 5 },
+    label: 'Basic Data'
   }
 
   // Multiple series data
   const second_series = {
     x: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     y: [2, 4, 6, 3, 7, 5, 8, 4, 6, 9],
-    point_style: { fill: 'orangered', radius: 4 }
+    point_style: { fill: 'orangered', radius: 4 },
+    label: 'Second Series'
   }
 
   // Currently selected display mode
@@ -165,12 +167,16 @@ Demonstrate various point styles, custom tooltips, and hover effects:
         text: 'Glowing microdots',
         offset_y: -20,
         font_size: '12px'
-      }
+      },
+      label: 'Glowing microdots'
     }
   ]
 
   // Only show labels for the first point in each series
   series_with_styles.forEach((series, series_idx) => {
+    if (!series.label) {
+      series.label = series.point_label?.text || `Style ${series_idx + 1}`;
+    }
     // Create a metadata array with empty objects except for the first one
     series.metadata = Array(point_count).fill({}).map((_, idx) => {
       return idx === 0 ? { firstPoint: true, seriesName: series.point_label.text } : {}
@@ -226,6 +232,7 @@ This example demonstrates how to apply different styles to individual points wit
 ```svelte example stackblitz
 <script>
   import { ScatterPlot } from '$lib'
+  import { marker_types } from '$lib/plot'
 
   // Create a dataset with points arranged in a spiral pattern
   const point_count = 40
@@ -251,17 +258,10 @@ This example demonstrates how to apply different styles to individual points wit
 
     // Store angle in metadata
     spiral_data.metadata.push({ angle, radius })
-
-    // Create unique style for each point
     // Change color gradually along the spiral
     const hue = (idx / point_count) * 360
-
     // Change size dramatically from tiny to huge
     const size_factor = 1 + idx / 5; // More aggressive size increase
-
-    // Alternate marker types
-    const marker_types = ['circle', 'diamond', 'star', 'triangle', 'cross', 'wye']
-    const marker_idx = idx % marker_types.length
 
     // Create the point style
     spiral_data.point_style.push({
@@ -269,7 +269,7 @@ This example demonstrates how to apply different styles to individual points wit
       radius: 1 + size_factor * 3, // Much larger variation in size
       stroke: 'white',
       stroke_width: 1 + idx / 20, // Gradually thicker stroke
-      marker_type: marker_types[marker_idx],
+      marker_type: marker_types[idx % marker_types.length],
       marker_size: 20 + size_factor * 25 // More dramatic size progression
     })
   }
@@ -343,7 +343,8 @@ This example shows categorized data with color coding, custom tick intervals, an
       metadata: points.map(p => ({
         category: p.category,
         color: p.color
-      }))
+      })),
+      label: category
     }
   })
 
@@ -428,12 +429,14 @@ Using time data on the x-axis with custom formatting:
       x: dates,
       y: values1,
       point_style: { fill: 'steelblue', radius: 4 },
+      label: 'Series A',
       metadata: Array.from({ length: 30 }, (_, idx) => ({ series: 'Series A', day: idx }))
     },
     {
       x: dates,
       y: values2,
       point_style: { fill: 'orangered', radius: 4 },
+      label: 'Series B',
       metadata: Array.from({ length: 30 }, (_, idx) => ({ series: 'Series B', day: idx }))
     }
   ]
@@ -473,6 +476,7 @@ Using time data on the x-axis with custom formatting:
     x_label="Date"
     y_label="Value"
     style="height: 350px; width: 100%;"
+    legend={{ layout: `horizontal`, n_items: 3, wrapper_style: `max-width: none; justify-content: center;` }}
   >
     {#snippet tooltip({ x, y, x_formatted, y_formatted, metadata })}
       <div style="white-space: nowrap;">
@@ -661,6 +665,7 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
     x: [],
     y: [],
     point_style: { fill: 'coral', radius: 4 },
+    label: 'Exponential Decay',
     metadata: []
   };
   for (let idx = 0; idx < point_count; idx++) {
@@ -677,6 +682,7 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
     x: [],
     y: [],
     point_style: { fill: 'deepskyblue', radius: 4 },
+    label: 'Log Sine Wave',
     metadata: []
   };
   for (let idx = 0; idx < point_count * 2; idx++) { // More points for smoother curve
@@ -687,36 +693,12 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
     log_sine_data.metadata.push({ series: 'Log Sine Wave' });
   }
 
-  // Series 3: Cluster + Outliers (Points only)
-  const cluster_data = {
-    x: [],
-    y: [],
-    point_style: { fill: 'limegreen', radius: 5 },
-    markers: 'points', // Override: Show only points for this series
-    metadata: []
-  };
-  // Central cluster
-  for (let idx = 0; idx < 20; idx++) {
-    const x_val = 10 + (Math.random() - 0.5) * 8; // Cluster around x=10
-    const y_val = 10 + (Math.random() - 0.5) * 8; // Cluster around y=10
-    cluster_data.x.push(x_val);
-    cluster_data.y.push(y_val);
-    cluster_data.metadata.push({ series: 'Cluster', type: 'cluster' });
-  }
-  // Outliers
-  cluster_data.x.push(0.5, 800, 50);
-  cluster_data.y.push(5000, 0.2, 0.1);
-  cluster_data.metadata.push(
-    { series: 'Cluster', type: 'outlier', label: 'Outlier 1' },
-    { series: 'Cluster', type: 'outlier', label: 'Outlier 2' },
-    { series: 'Cluster', type: 'outlier', label: 'Outlier 3' }
-  );
-
   // Series 4: Power Law (y = x^2)
   const power_law_data = {
     x: [],
     y: [],
     point_style: { fill: 'mediumseagreen', radius: 5 },
+    label: 'y = x^2',
     metadata: []
   }
   for (let idx = -1; idx <= 3; idx += 0.25) {
@@ -732,6 +714,7 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
     x: [],
     y: [],
     point_style: { fill: 'purple', radius: 5 },
+    label: 'y = x^0.5',
     metadata: []
   }
   for (let idx = -1; idx <= 3; idx += 0.25) {
@@ -743,7 +726,7 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
   }
 
   // Combine all series
-  const all_series = [decay_data, log_sine_data, cluster_data, power_law_data, inverse_power_data]
+  const all_series = [decay_data, log_sine_data, power_law_data, inverse_power_data]
 
   // State for controlling scale types
   let x_is_log = $state(false)
@@ -754,8 +737,8 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
   let y_scale_type = $derived(y_is_log ? `log` : `linear`)
 
   // Reactive limits based on scale type to avoid log(0) issues and accommodate data
-  let x_limit = $derived(x_is_log ? [0.1, 1000] : [null, 1000])
-  let y_limit = $derived(y_is_log ? [0.1, 10000] : [null, 10000])
+  let x_lim = $derived(x_is_log ? [0.1, 1000] : [null, 1000])
+  let y_lim = $derived(y_is_log ? [0.1, 10000] : [null, 10000])
 
 </script>
 
@@ -771,41 +754,19 @@ ScatterPlot supports logarithmic scaling for data that spans multiple orders of 
     </label>
   </div>
 
-  <div style="display: flex; justify-content: center; margin-bottom: 1em; flex-wrap: wrap; gap: 0 1.5em;">
-    <div style="margin: 0.25em 0; display: flex; align-items: center;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: coral; border-radius: 50%; margin-right: 0.5em;"></span>
-      Exponential Decay
-    </div>
-    <div style="margin: 0.25em 0; display: flex; align-items: center;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: deepskyblue; border-radius: 50%; margin-right: 0.5em;"></span>
-      Log Sine Wave
-    </div>
-     <div style="margin: 0.25em 0; display: flex; align-items: center;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: limegreen; border-radius: 50%; margin-right: 0.5em;"></span>
-      Cluster (Points Only)
-    </div>
-    <div style="margin: 0.25em 0; display: flex; align-items: center;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: mediumseagreen; border-radius: 50%; margin-right: 0.5em;"></span>
-      y = x<sup>2</sup>
-    </div>
-    <div style="margin: 0.25em 0; display: flex; align-items: center;">
-      <span style="display: inline-block; width: 12px; height: 12px; background: purple; border-radius: 50%; margin-right: 0.5em;"></span>
-      y = x<sup>0.5</sup> (√x)
-    </div>
-  </div>
 
   <!-- Use #key to ensure plot redraws correctly when scale types change -->
-  {#key `${x_scale_type}-${y_scale_type}`}
+  {#key [x_scale_type, y_scale_type]}
     <ScatterPlot
       series={all_series}
       {x_scale_type}
       {y_scale_type}
-      x_lim={x_limit}
-      y_lim={y_limit}
-      x_label={`X Axis (${x_scale_type})`}
-      y_label={`Y Axis (${y_scale_type})`}
-      x_format={x_is_log ? `~s` : ``}
-      y_format={y_is_log ? `~s` : ``}
+      {x_lim}
+      {y_lim}
+      x_label="X Axis ({x_scale_type})"
+      y_label="Y Axis ({y_scale_type})"
+      x_format="~s"
+      y_format="~s"
       markers="line+points"
       style="height: 400px; width: 100%;"
     >
@@ -839,23 +800,25 @@ This example combines multiple features including different display modes, custo
   // Create three data series with different styling
   const series_data = categories.map((category, cat_idx) => {
     const points = 10
+    const marker_type_for_series = marker_types[cat_idx % marker_types.length];
     return {
       x: Array.from({ length: points }, (_, idx) => idx + 1),
       y: Array.from({ length: points }, () => 3 + cat_idx * 3 + Math.random() * 2),
-      point_style: Array.from({ length: points }, (_, idx) => ({
+      point_style: {
         fill: category_colors[cat_idx],
         radius: 6 - cat_idx,
         stroke: 'black',
         stroke_width: 0.5,
-        marker_type: marker_types[idx % marker_types.length],
-        marker_size: 15 + cat_idx * 5
-      })),
+        marker_type: marker_type_for_series,
+        marker_size: 40 + cat_idx * 5
+      },
       metadata: Array.from({ length: points }, (_, idx) => ({
         category,
         color: category_colors[cat_idx],
-        marker: marker_types[idx % marker_types.length],
+        marker: marker_type_for_series,
         idx
-      }))
+      })),
+      label: category
     }
   })
 
@@ -888,8 +851,7 @@ This example combines multiple features including different display modes, custo
   let selected_point = null
 
   // Update series based on visibility toggles
-  $: displayed_series = series_data.filter((_, idx) =>
-    visible_series[categories[idx]])
+  let displayed_series = $derived(series_data.filter((_, idx) => visible_series[categories[idx]]))
 
   // Generate random data points across positive and negative space
   const sample_count = 40
@@ -942,6 +904,7 @@ This example combines multiple features including different display modes, custo
     markers={display_mode}
     change={(event) => (selected_point = event)}
     style="height: 400px; width: 100%;"
+    legend={null}
   >
     {#snippet tooltip({ x, y, metadata })}
       <div style="white-space: nowrap;">
@@ -1261,10 +1224,8 @@ This example shows how to place the color bar vertically on the right side of th
     </div>
   </div>
 
-  <p>
-    The color bar is positioned vertically to the right, outside the plot.
-    The plot's right padding is increased to prevent overlap. Use the controls above to change the color scheme and scale type.
-  </p>
+  The color bar is positioned vertically to the right, outside the plot.
+  The plot's right padding is increased to prevent overlap. Use the controls above to change the color scheme and scale type.
 
   {#key color_scale_type && selected_scheme}
     <ScatterPlot
@@ -1279,8 +1240,8 @@ This example shows how to place the color bar vertically on the right side of th
       padding={plot_padding}
       color_bar={{
         orientation: `vertical`,
-        label: `Value (${color_scale_type})`,
-        tick_side: `right`,
+        label: `Color Bar Title (${color_scale_type})`,
+        tick_side: `primary`,
         wrapper_style: `
           position: absolute;
           /* Position outside the plot area using padding values */
@@ -1291,7 +1252,7 @@ This example shows how to place the color bar vertically on the right side of th
         `,
         style: `width: 15px; height: 100%;`,
       }}
-      style="height: 400px; width: 100%;"
+      style="height: 400px;"
     >
       {#snippet tooltip({ x, y, metadata, color_value })}
         <div style="white-space: nowrap; padding: 0.25em; background: rgba(0,0,0,0.7); color: white;">

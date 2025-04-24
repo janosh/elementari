@@ -202,11 +202,20 @@
 
   // Label styles
   let current_label_style = $derived.by(() => {
-    const rotate_style =
+    let rotate_style = ``
+    if (
       orientation === `vertical` &&
       (actual_label_side === `left` || actual_label_side === `right`)
-        ? `transform: rotate(-90deg); white-space: nowrap;`
-        : ``
+    ) {
+      if (actual_label_side === `right`) {
+        // Label on the left (primary) side
+        rotate_style = `transform: rotate(90deg) translate(-50%); transform-origin: left bottom;`
+      } else {
+        // Label on the right (secondary) side
+        rotate_style = `transform: rotate(-90deg) translate(50%); transform-origin: right bottom;`
+      }
+    }
+
     return `${rotate_style} ${label_overlap_margin_style} ${label_style ?? ``}`.trim()
   })
 </script>
@@ -287,6 +296,7 @@
   span.label {
     text-align: center;
     padding: var(--cbar-label-padding, 0 5px);
+    transform: var(--cbar-label-transform);
   }
   span.tick-label {
     position: absolute;
