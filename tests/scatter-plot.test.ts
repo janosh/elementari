@@ -593,4 +593,129 @@ test.describe(`ScatterPlot Component Tests`, () => {
       await expect(plot.locator(legend_selector)).toHaveCount(0) // Changed assertion for consistency
     })
   })
+
+  test.describe(`Legend Interaction`, () => {
+    test(`single click toggles series visibility`, async ({ page }) => {
+      const plot_locator = page.locator(`#legend-multi-default .scatter`)
+      const legend_locator = plot_locator.locator(`.legend`)
+      const series_a_item = legend_locator.locator(`.legend-item`).nth(0)
+      const series_b_item = legend_locator.locator(`.legend-item`).nth(1)
+
+      // Initial: Both visible
+      await expect(
+        plot_locator.locator(`g[data-series-idx='0'] .marker`),
+      ).toHaveCount(10)
+      await expect(
+        plot_locator.locator(`g[data-series-idx='1'] .marker`),
+      ).toHaveCount(10)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // Click A -> Hide A
+      await series_a_item.click()
+      await expect(
+        plot_locator.locator(`g[data-series-idx='0'] .marker`),
+      ).toHaveCount(0)
+      await expect(
+        plot_locator.locator(`g[data-series-idx='1'] .marker`),
+      ).toHaveCount(10)
+      await expect(series_a_item).toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // Click B -> Hide B
+      await series_b_item.click()
+      await expect(
+        plot_locator.locator(`g[data-series-idx='0'] .marker`),
+      ).toHaveCount(0)
+      await expect(
+        plot_locator.locator(`g[data-series-idx='1'] .marker`),
+      ).toHaveCount(0)
+      await expect(series_a_item).toHaveClass(/hidden/)
+      await expect(series_b_item).toHaveClass(/hidden/)
+
+      // Click A -> Show A
+      await series_a_item.click()
+      await expect(
+        plot_locator.locator(`g[data-series-idx='0'] .marker`),
+      ).toHaveCount(10)
+      await expect(
+        plot_locator.locator(`g[data-series-idx='1'] .marker`),
+      ).toHaveCount(0)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).toHaveClass(/hidden/)
+    })
+
+    test(`double click isolates/restores series visibility`, async ({
+      page,
+    }) => {
+      const plot_locator = page.locator(`#legend-multi-default .scatter`)
+      const legend_locator = plot_locator.locator(`.legend`)
+      const series_a_item = legend_locator.locator(`.legend-item`).nth(0)
+      const series_b_item = legend_locator.locator(`.legend-item`).nth(1)
+
+      // Selectors for markers within each series group
+      const series_a_markers = plot_locator.locator(
+        `g[data-series-idx='0'] .marker`,
+      )
+      const series_b_markers = plot_locator.locator(
+        `g[data-series-idx='1'] .marker`,
+      )
+
+      // Initial: Both visible
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(10)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // Double-click A -> Isolate A (Hide B)
+      await series_a_item.dblclick()
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(0)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).toHaveClass(/hidden/)
+
+      // Double-click A again -> Restore (Show B)
+      await series_a_item.dblclick()
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(10)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // Double-click B -> Isolate B (Hide A)
+      await series_b_item.dblclick()
+      await expect(series_a_markers).toHaveCount(0)
+      await expect(series_b_markers).toHaveCount(10)
+      await expect(series_a_item).toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // Double-click B again -> Restore (Show A)
+      await series_b_item.dblclick()
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(10)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+
+      // --- Test interaction with single click --- //
+
+      // Isolate A
+      await series_a_item.dblclick()
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(0)
+
+      // Single click A (while isolated) -> Hide A (show nothing)
+      await series_a_item.click()
+      await expect(series_a_markers).toHaveCount(0)
+      await expect(series_b_markers).toHaveCount(0)
+      await expect(series_a_item).toHaveClass(/hidden/)
+      await expect(series_b_item).toHaveClass(/hidden/)
+
+      // Double click A (while hidden) -> Restore previous state (before isolation, i.e., both visible)
+      // Note: Double-clicking when the target is hidden should ideally restore the state *before* isolation.
+      await series_a_item.dblclick()
+      await expect(series_a_markers).toHaveCount(10)
+      await expect(series_b_markers).toHaveCount(10)
+      await expect(series_a_item).not.toHaveClass(/hidden/)
+      await expect(series_b_item).not.toHaveClass(/hidden/)
+    })
+  })
 })

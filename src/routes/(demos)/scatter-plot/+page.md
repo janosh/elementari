@@ -25,20 +25,18 @@ A simple scatter plot showing different display modes (points, lines, or both):
   }
 
   // Currently selected display mode
-  let display_mode = 'line+points'
+  let display_mode = $state('line+points')
 </script>
 
 <div>
-  <div style="margin-bottom: 1em;">
-    <label>
-      Display Mode:
-      <select bind:value={display_mode}>
-        <option value="points">Points only</option>
-        <option value="line">Lines only</option>
-        <option value="line+points">Lines and Points</option>
-      </select>
-    </label>
-  </div>
+  <label style="margin-bottom: 1em; display: block;">
+    Display Mode:
+    <select bind:value={display_mode}>
+      {#each [['points', 'Points only'], ['line', 'Lines only'], ['line+points', 'Lines and Points']] as [value, label] (value)}
+        <option value={value}>{label}</option>
+      {/each}
+    </select>
+  </label>
 
   <ScatterPlot
     series={[basic_data, second_series]}
@@ -349,29 +347,20 @@ This example shows categorized data with color coding, custom tick intervals, an
   })
 
   // Tick interval settings
-  let x_tick_interval = -5
-  let y_tick_interval = -5
+  const ticks = $state({ x: -5, y: -5 })
 </script>
 
 <div>
-  <div style="margin-bottom: 1em;">
-    <label>
-      X-Tick Interval:
-      <select bind:value={x_tick_interval}>
-        <option value={-2}>2 units</option>
-        <option value={-5}>5 units</option>
-        <option value={-10}>10 units</option>
+  {#each Object.keys(ticks) as axis (axis)}
+    <label style="display: inline-block; margin: 1em;">
+      {axis} Tick Interval:
+      <select bind:value={ticks[axis]}>
+      {#each [2, 5, 10] as num (num)}
+        <option value={-num}>{num} units</option>
+      {/each}
       </select>
     </label>
-    <label style="margin-left: 1em;">
-      Y-Tick Interval:
-      <select bind:value={y_tick_interval}>
-        <option value={-2}>2 units</option>
-        <option value={-5}>5 units</option>
-        <option value={-10}>10 units</option>
-      </select>
-    </label>
-  </div>
+  {/each}
 
   <ScatterPlot
     series={series_data}
@@ -379,8 +368,8 @@ This example shows categorized data with color coding, custom tick intervals, an
     y_label="Y Value"
     x_lim={[-15, 15]}
     y_lim={[-15, 15]}
-    x_ticks={x_tick_interval}
-    y_ticks={y_tick_interval}
+    x_ticks={ticks.x}
+    y_ticks={ticks.y}
     markers="points"
     style="height: 400px; width: 100%;"
   >
@@ -451,17 +440,17 @@ Using time data on the x-axis with custom formatting:
     <label>
       Date Format:
       <select bind:value={date_format}>
-        <option value="%b %d">Month Day (Jan 01)</option>
-        <option value="%Y-%m-%d">YYYY-MM-DD</option>
-        <option value="%d/%m">DD/MM</option>
+        {#each [['%b %d', 'Month Day (Jan 01)'], ['%Y-%m-%d', 'YYYY-MM-DD'], ['%d/%m', 'DD/MM']] as [value, label] (value)}
+          <option value={value}>{label}</option>
+        {/each}
       </select>
     </label>
     <label style="margin-left: 1em;">
       Y-Value Format:
       <select bind:value={y_format}>
-        <option value=".1f">1 decimal</option>
-        <option value=".2f">2 decimals</option>
-        <option value="d">Integer</option>
+        {#each [['.1f', '1 decimal'], ['.2f', '2 decimals'], ['d', 'Integer']] as [value, label] (value)}
+          <option value={value}>{label}</option>
+        {/each}
       </select>
     </label>
   </div>
@@ -823,32 +812,29 @@ This example combines multiple features including different display modes, custo
   })
 
   // Currently selected display mode
-  let display_mode = 'line+points'
+  let display_mode = $state('line+points')
 
   // Toggle series visibility
-  let visible_series = {
+  let visible_series = $state({
     [categories[0]]: true,
     [categories[1]]: true,
     [categories[2]]: true
-  }
+  })
 
   // Controls for random data points
-  let x_tick_interval = -5
-  let y_tick_interval = -5
+  let ticks = $state({ x: -5, y: -5 })
 
   // Grid controls
-  let x_grid = true
-  let y_grid = true
-  let grid_color = 'gray'
-  let grid_width = 0.4
-  let grid_dash = '4'
+  let grid = $state({ x: true, y: true })
+  let grid_color = $state('gray')
+  let grid_width = $state(0.4)
+  let grid_dash = $state('4')
 
   // Custom axis labels
-  let x_axis_label = "X Axis"
-  let y_axis_label = "Y Value"
+  let axis_labels = $state({ x: "X Axis", y: "Y Value" })
 
   // Selected point tracking
-  let selected_point = null
+  let selected_point = $state(null)
 
   // Update series based on visibility toggles
   let displayed_series = $derived(series_data.filter((_, idx) => visible_series[categories[idx]]))
@@ -899,8 +885,8 @@ This example combines multiple features including different display modes, custo
 
   <ScatterPlot
     series={displayed_series}
-    x_label={x_axis_label}
-    y_label={y_axis_label}
+    x_label={axis_labels.x}
+    y_label={axis_labels.y}
     markers={display_mode}
     change={(event) => (selected_point = event)}
     style="height: 400px; width: 100%;"
@@ -924,34 +910,23 @@ This example combines multiple features including different display modes, custo
 
   <h3 style="margin-top: 2em;">Random Points with Custom Controls</h3>
   <div style="margin-bottom: 1em; display: flex; flex-wrap: wrap; gap: 1em;">
-    <label>
-      X-Tick Interval:
-      <select bind:value={x_tick_interval}>
-        <option value={-2}>2 units</option>
-        <option value={-5}>5 units</option>
-        <option value={-10}>10 units</option>
-      </select>
-    </label>
+    {#each Object.keys(ticks) as axis (axis)}
+      <label>
+        {axis} Tick Interval:
+        <select bind:value={ticks[axis]}>
+          {#each [2, 5, 10] as num (num)}
+            <option value={-num}>{num} units</option>
+          {/each}
+        </select>
+      </label>
+    {/each}
 
-    <label>
-      Y-Tick Interval:
-      <select bind:value={y_tick_interval}>
-        <option value={-2}>2 units</option>
-        <option value={-5}>5 units</option>
-        <option value={-10}>10 units</option>
-      </select>
-    </label>
-
-    <label>
-      <input type="checkbox" bind:checked={x_grid} />
-      X Grid
-    </label>
-
-    <label>
-      <input type="checkbox" bind:checked={y_grid} />
-      Y Grid
-    </label>
-
+    {#each Object.keys(grid) as axis (axis)}
+      <label>
+        <input type="checkbox" bind:checked={grid[axis]} />
+        {axis} Grid
+      </label>
+    {/each}
 
     <label>
       Grid Color:
@@ -963,27 +938,24 @@ This example combines multiple features including different display modes, custo
       </select>
     </label>
 
-    <label>
-      X-Axis Label:
-      <input type="text" bind:value={x_axis_label} style="width: 120px" />
-    </label>
-
-    <label>
-      Y-Axis Label:
-      <input type="text" bind:value={y_axis_label} style="width: 120px" />
-    </label>
+    {#each Object.keys(axis_labels) as axis (axis)}
+      <label>
+        {axis} Label:
+        <input type="text" bind:value={axis_labels[axis]} style="width: 120px" />
+      </label>
+    {/each}
   </div>
 
   <ScatterPlot
     series={[sample_data]}
-    x_label={x_axis_label}
-    y_label={y_axis_label}
+    x_label={axis_labels.x}
+    y_label={axis_labels.y}
     x_lim={[-15, 15]}
     y_lim={[-15, 15]}
-    x_ticks={x_tick_interval}
-    y_ticks={y_tick_interval}
-    {x_grid}
-    {y_grid}
+    x_ticks={ticks.x}
+    y_ticks={ticks.y}
+    x_grid={grid.x}
+    y_grid={grid.y}
     markers="points"
     style="height: 400px; width: 100%;"
   >
@@ -1080,7 +1052,7 @@ This example demonstrates how the color bar automatically positions itself in on
     {#snippet tooltip({ x, y, metadata, color_value })}
       <div style="white-space: nowrap; padding: 0.25em; background: rgba(0,0,0,0.7); color: white;">
         Point ({x.toFixed(1)}, {y.toFixed(1)})<br />
-        Value: {color_value?.toFixed(2)}
+        Color value: {color_value?.toFixed(2)}
       </div>
     {/snippet}
   </ScatterPlot>
@@ -1192,14 +1164,14 @@ This example shows how to place the color bar vertically on the right side of th
 
   // --- Color Scaling Controls ---
   // Track which color scale type is active
-  let color_scale_type = `linear`
+  let color_scale_type = $state(`linear`)
 
   // Color scheme options
   const color_schemes = [
     `viridis`, `inferno`, `plasma`, `magma`, `cividis`,
     `turbo`, `warm`, `cool`, `spectral`
   ]
-  let selected_scheme = `cool` // Default matches original example
+  let selected_scheme = $state(`cool`) // Default matches original example
 </script>
 
 <div>
@@ -1227,40 +1199,38 @@ This example shows how to place the color bar vertically on the right side of th
   The color bar is positioned vertically to the right, outside the plot.
   The plot's right padding is increased to prevent overlap. Use the controls above to change the color scheme and scale type.
 
-  {#key color_scale_type && selected_scheme}
-    <ScatterPlot
-      series={[vertical_color_data]}
-      x_label="X Position"
-      y_label="Y Position"
-      x_lim={[0, 100]}
-      y_lim={[0, 100]}
-      markers="points"
-      color_scheme={selected_scheme}
-      {color_scale_type}
-      padding={plot_padding}
-      color_bar={{
-        orientation: `vertical`,
-        label: `Color Bar Title (${color_scale_type})`,
-        tick_side: `primary`,
-        wrapper_style: `
-          position: absolute;
-          /* Position outside the plot area using padding values */
-          right: 10px; /* Distance from the container's right edge */
-          top: ${plot_padding.t}px; /* Align with top padding */
-          /* Set height directly for the wrapper */
-          height: calc(100% - ${plot_padding.t + plot_padding.b}px); /* Fill vertical space */
-        `,
-        style: `width: 15px; height: 100%;`,
-      }}
-      style="height: 400px;"
-    >
-      {#snippet tooltip({ x, y, metadata, color_value })}
-        <div style="white-space: nowrap; padding: 0.25em; background: rgba(0,0,0,0.7); color: white;">
-          Point ({x.toFixed(1)}, {y.toFixed(1)})<br />
-          Value: {color_value?.toFixed(1)}
-        </div>
-      {/snippet}
-    </ScatterPlot>
-  {/key}
+  <ScatterPlot
+    series={[vertical_color_data]}
+    x_label="X Position"
+    y_label="Y Position"
+    x_lim={[0, 100]}
+    y_lim={[0, 100]}
+    markers="points"
+    color_scheme={selected_scheme}
+    {color_scale_type}
+    padding={plot_padding}
+    color_bar={{
+      orientation: `vertical`,
+      label: `Color Bar Title (${color_scale_type})`,
+      tick_side: `primary`,
+      wrapper_style: `
+        position: absolute;
+        /* Position outside the plot area using padding values */
+        right: 10px; /* Distance from the container's right edge */
+        top: ${plot_padding.t}px; /* Align with top padding */
+        /* Set height directly for the wrapper */
+        height: calc(100% - ${plot_padding.t + plot_padding.b}px); /* Fill vertical space */
+      `,
+      style: `width: 15px; height: 100%;`,
+    }}
+    style="height: 400px;"
+  >
+    {#snippet tooltip({ x, y, metadata, color_value })}
+      <div style="white-space: nowrap; padding: 0.25em; background: rgba(0,0,0,0.7); color: white;">
+        Point ({x.toFixed(1)}, {y.toFixed(1)})<br />
+        Color value: {color_value?.toFixed(1)}
+      </div>
+    {/snippet}
+  </ScatterPlot>
 </div>
 ```

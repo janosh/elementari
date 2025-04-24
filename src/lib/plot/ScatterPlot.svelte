@@ -133,6 +133,7 @@
   let current_x_range = $state<[number, number]>([0, 1])
   let current_y_range = $state<[number, number]>([0, 1])
   let series_visibility = $state<boolean[]>([])
+  let previous_series_visibility: boolean[] | null = $state(null) // State to store visibility before isolation
 
   // State to hold the calculated label positions after simulation
   let label_positions = $state<Record<string, { x: number; y: number }>>({})
@@ -947,12 +948,41 @@
     }
   }
 
+  // Function to handle double-click on legend item
+  function handle_legend_double_click(double_clicked_idx: number) {
+    const visible_count = series_visibility.filter((v) => v).length
+    const is_currently_isolated =
+      visible_count === 1 && series_visibility[double_clicked_idx]
+
+    if (is_currently_isolated && previous_series_visibility) {
+      // Restore previous visibility state
+      series_visibility = [...previous_series_visibility]
+      previous_series_visibility = null // Clear memory
+    } else {
+      // Isolate the double-clicked series
+      // Only store previous state if we are actually isolating (more than one series visible)
+      if (visible_count > 1) {
+        previous_series_visibility = [...series_visibility] // Store current state
+      }
+      const new_visibility = series_visibility.map((_, idx) => idx === double_clicked_idx)
+      series_visibility = new_visibility
+    }
+  }
+
   // Prepare data needed for the legend component
   let legend_data = $derived.by(() => {
     return series.map((data_series, series_idx) => {
-      // Extract necessary info for legend rendering
       const is_visible = series_visibility[series_idx] ?? true
-      const label = data_series?.label ?? `Series ${series_idx + 1}`
+      // Prefer top-level label, fallback to metadata label, then default
+      const label =
+        data_series?.label ??
+        (typeof data_series?.metadata === `object` &&
+        data_series.metadata !== null &&
+        `label` in data_series.metadata &&
+        typeof data_series.metadata.label === `string`
+          ? data_series.metadata.label
+          : null) ??
+        `Series ${series_idx + 1}`
 
       // Explicitly define the type for display_style matching PlotLegend expectations
       type LegendDisplayStyle = {
@@ -961,41 +991,63 @@
         line_type?: LineType
         line_color?: string
       }
-      const display_style: LegendDisplayStyle = {}
+      const display_style: LegendDisplayStyle = {
+        marker_shape: `circle`, // Default marker shape
+        marker_color: `black`, // Default marker color
+        line_type: `solid`, // Default line type
+        line_color: `black`, // Default line color
+      }
 
       const series_markers = data_series?.markers ?? markers
 
       // Check point_style (could be object or array)
       const first_point_style = Array.isArray(data_series?.point_style)
-        ? (data_series.point_style[0] as PointStyle)
-        : (data_series?.point_style as PointStyle)
+        ? (data_series.point_style[0] as PointStyle | undefined) // Handle potential undefined
+        : (data_series?.point_style as PointStyle | undefined) // Handle potential undefined
 
-      if (series_markers?.includes(`points`) && first_point_style) {
-        // Assign shape only if it's one of the allowed types, else default to circle
-        let final_shape: MarkerType = `circle` // Default shape
-        const shape_from_style = first_point_style.shape
-        if (shape_from_style && marker_types.includes(shape_from_style as MarkerType)) {
-          final_shape = shape_from_style as MarkerType // Cast validated shape
-        }
-        display_style.marker_shape = final_shape
+      if (series_markers?.includes(`points`)) {
+        if (first_point_style) {
+          // Assign shape only if it's one of the allowed types, else default to circle
+          let final_shape: MarkerType = `circle` // Default shape
+          const shape_from_style = first_point_style.shape
+          if (shape_from_style && marker_types.includes(shape_from_style as MarkerType)) {
+            final_shape = shape_from_style as MarkerType // Cast validated shape
+          }
+          display_style.marker_shape = final_shape
 
-        display_style.marker_color = first_point_style.fill ?? `black`
-        if (first_point_style.stroke) {
-          // Use stroke color if fill is none or transparent
-          if (
-            !display_style.marker_color ||
-            display_style.marker_color === `none` ||
-            display_style.marker_color.startsWith(`rgba(`, 0) // Check if transparent
-          ) {
-            display_style.marker_color = first_point_style.stroke
+          display_style.marker_color =
+            first_point_style.fill ?? display_style.marker_color // Use default if nullish
+          if (first_point_style.stroke) {
+            // Use stroke color if fill is none or transparent
+            if (
+              !display_style.marker_color ||
+              display_style.marker_color === `none` ||
+              display_style.marker_color.startsWith(`rgba(`, 0) // Check if transparent
+            ) {
+              display_style.marker_color = first_point_style.stroke
+            }
           }
         }
+        // else: keep default display_style.marker_shape/color if no point_style
+      } else {
+        // If no points marker, explicitly remove marker style for legend
+        display_style.marker_shape = undefined
+        display_style.marker_color = undefined
       }
 
       // Check line_style
       if (series_markers?.includes(`line`)) {
-        display_style.line_type = `solid` // Defaulting to solid for now
-        display_style.line_color = display_style.marker_color ?? `black` // Use marker color if available
+        // Use marker color for line if available and points are also shown, otherwise use default line color
+        display_style.line_color =
+          display_style.marker_color && series_markers.includes(`points`)
+            ? display_style.marker_color
+            : `black`
+        // TODO: Infer line type from line_style prop if added later
+        display_style.line_type = `solid`
+      } else {
+        // If no line marker, explicitly remove line style for legend
+        display_style.line_type = undefined
+        display_style.line_color = undefined
       }
 
       return {
@@ -1047,80 +1099,86 @@
 
       <!-- Lines -->
       {#if markers?.includes(`line`)}
-        {#each filtered_series ?? [] as series (series.label ?? JSON.stringify(series))}
+        {#each filtered_series ?? [] as series, series_idx (series.label ?? JSON.stringify(series))}
           {@const series_markers = series.markers ?? markers}
-          {#if series_markers?.includes(`line`)}
-            {@const first_point = series.filtered_data?.[0] as InternalPoint}
-            {@const series_color =
-              first_point?.color_value != null
-                ? color_scale_fn(first_point.color_value)
-                : typeof series?.point_style === `object` && series?.point_style?.fill
-                  ? (series.point_style.fill as string)
-                  : `rgba(255, 255, 255, 0.5)`}
+          <g data-series-idx={series_idx}>
+            {#if series_markers?.includes(`line`)}
+              {@const first_point = series.filtered_data?.[0] as InternalPoint}
+              {@const series_color =
+                first_point?.color_value != null
+                  ? color_scale_fn(first_point.color_value)
+                  : typeof series?.point_style === `object` && series?.point_style?.fill
+                    ? (series.point_style.fill as string)
+                    : `rgba(255, 255, 255, 0.5)`}
 
-            <Line
-              points={(series?.filtered_data ?? []).map((point) => [
-                x_format?.startsWith(`%`)
-                  ? x_scale_fn(new Date(point.x))
-                  : x_scale_fn(point.x),
-                y_scale_fn(point.y),
-              ])}
-              origin={[
-                x_format?.startsWith(`%`)
-                  ? x_scale_fn(new Date(x_min))
-                  : x_scale_fn(x_min),
-                y_scale_fn(y_min),
-              ]}
-              line_color={series_color}
-              line_width={1}
-              area_color="transparent"
-            />
-          {/if}
+              <Line
+                points={(series?.filtered_data ?? []).map((point) => [
+                  x_format?.startsWith(`%`)
+                    ? x_scale_fn(new Date(point.x))
+                    : x_scale_fn(point.x),
+                  y_scale_fn(point.y),
+                ])}
+                origin={[
+                  x_format?.startsWith(`%`)
+                    ? x_scale_fn(new Date(x_min))
+                    : x_scale_fn(x_min),
+                  y_scale_fn(y_min),
+                ]}
+                line_color={series_color}
+                line_width={1}
+                area_color="transparent"
+              />
+            {/if}
+          </g>
         {/each}
       {/if}
 
       <!-- Points -->
       {#if markers?.includes(`points`)}
-        {#each filtered_series ?? [] as series (series.label ?? JSON.stringify(series))}
+        {#each filtered_series ?? [] as series, series_idx (series.label ?? JSON.stringify(series))}
           {@const series_markers = series.markers ?? markers}
-          {#if series_markers?.includes(`points`)}
-            {#each series.filtered_data as point, point_idx (point_idx)}
-              {@const point_color =
-                point.color_value != null ? color_scale_fn(point.color_value) : undefined}
+          <g data-series-idx={series_idx}>
+            {#if series_markers?.includes(`points`)}
+              {#each series.filtered_data as point, point_idx (point_idx)}
+                {@const point_color =
+                  point.color_value != null
+                    ? color_scale_fn(point.color_value)
+                    : undefined}
 
-              {@const label_id = `${point.series_idx}-${point.point_idx}`}
-              {@const calculated_label_pos = label_positions[label_id]}
-              {@const label_style = point.point_label ?? {}}
-              {@const final_label = calculated_label_pos
-                ? {
-                    ...label_style,
-                    offset_x:
-                      calculated_label_pos.x -
-                      (x_format?.startsWith(`%`)
-                        ? x_scale_fn(new Date(point.x))
-                        : x_scale_fn(point.x)),
-                    offset_y: calculated_label_pos.y - y_scale_fn(point.y),
-                  }
-                : label_style}
+                {@const label_id = `${point.series_idx}-${point.point_idx}`}
+                {@const calculated_label_pos = label_positions[label_id]}
+                {@const label_style = point.point_label ?? {}}
+                {@const final_label = calculated_label_pos
+                  ? {
+                      ...label_style,
+                      offset_x:
+                        calculated_label_pos.x -
+                        (x_format?.startsWith(`%`)
+                          ? x_scale_fn(new Date(point.x))
+                          : x_scale_fn(point.x)),
+                      offset_y: calculated_label_pos.y - y_scale_fn(point.y),
+                    }
+                  : label_style}
 
-              <ScatterPoint
-                x={x_format?.startsWith(`%`)
-                  ? x_scale_fn(new Date(point.x))
-                  : x_scale_fn(point.x)}
-                y={y_scale_fn(point.y)}
-                style={{
-                  ...(point.point_style ?? {}),
-                  fill: point_color ?? (point?.point_style?.fill as string | undefined),
-                }}
-                hover={point.point_hover ?? {}}
-                label={final_label}
-                offset={point.point_offset ?? { x: 0, y: 0 }}
-                tween_duration={point.point_tween_duration ?? 600}
-                origin_x={plot_center_x}
-                origin_y={plot_center_y}
-              />
-            {/each}
-          {/if}
+                <ScatterPoint
+                  x={x_format?.startsWith(`%`)
+                    ? x_scale_fn(new Date(point.x))
+                    : x_scale_fn(point.x)}
+                  y={y_scale_fn(point.y)}
+                  style={{
+                    ...(point.point_style ?? {}),
+                    fill: point_color ?? (point?.point_style?.fill as string | undefined),
+                  }}
+                  hover={point.point_hover ?? {}}
+                  label={final_label}
+                  offset={point.point_offset ?? { x: 0, y: 0 }}
+                  tween_duration={point.point_tween_duration ?? 600}
+                  origin_x={plot_center_x}
+                  origin_y={plot_center_y}
+                />
+              {/each}
+            {/if}
+          </g>
         {/each}
       {/if}
 
@@ -1267,6 +1325,7 @@
       <PlotLegend
         series_data={legend_data}
         on_toggle={toggle_series_visibility}
+        on_double_click={handle_legend_double_click}
         {...legend}
         wrapper_style={`
           position: absolute;
