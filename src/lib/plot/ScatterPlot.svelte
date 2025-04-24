@@ -369,7 +369,7 @@
           filtered_data: filtered_data_with_extras as InternalPoint[],
         } as DataSeries & { filtered_data: InternalPoint[] }
       })
-      // Filter out series that might be completely empty after point filtering
+      // Filter series end up completely empty after point filtering
       .filter((series_data) => series_data.filtered_data.length > 0),
   )
 
@@ -383,9 +383,9 @@
     }
     if (!width || !height) return counts
 
-    for (const data_series of filtered_series) {
-      if (!data_series?.filtered_data) continue
-      for (const point of data_series.filtered_data) {
+    for (const series_data of filtered_series) {
+      if (!series_data?.filtered_data) continue
+      for (const point of series_data.filtered_data) {
         const point_x_coord = x_format?.startsWith(`%`)
           ? x_scale_fn(new Date(point.x))
           : x_scale_fn(point.x)
@@ -1090,20 +1090,21 @@
 
       <!-- Lines -->
       {#if markers?.includes(`line`)}
-        {#each filtered_series ?? [] as series, series_idx (series.label ?? JSON.stringify(series))}
-          {@const series_markers = series.markers ?? markers}
+        {#each filtered_series ?? [] as series_data, series_idx (series_data.label ?? JSON.stringify(series_data))}
+          {@const series_markers = series_data.markers ?? markers}
           <g data-series-idx={series_idx}>
             {#if series_markers?.includes(`line`)}
-              {@const first_point = series.filtered_data?.[0] as InternalPoint}
+              {@const first_point = series_data.filtered_data?.[0] as InternalPoint}
               {@const series_color =
                 first_point?.color_value != null
                   ? color_scale_fn(first_point.color_value)
-                  : typeof series?.point_style === `object` && series?.point_style?.fill
-                    ? (series.point_style.fill as string)
+                  : typeof series_data?.point_style === `object` &&
+                      series_data?.point_style?.fill
+                    ? (series_data.point_style.fill as string)
                     : `rgba(255, 255, 255, 0.5)`}
 
               <Line
-                points={(series?.filtered_data ?? []).map((point) => [
+                points={(series_data?.filtered_data ?? []).map((point) => [
                   x_format?.startsWith(`%`)
                     ? x_scale_fn(new Date(point.x))
                     : x_scale_fn(point.x),
@@ -1126,13 +1127,13 @@
 
       <!-- Points -->
       {#if markers?.includes(`points`)}
-        {#each filtered_series ?? [] as series, series_idx (series.label ?? JSON.stringify(series))}
-          {@const series_markers = series.markers ?? markers}
-          {@const { color_values } = series}
+        {#each filtered_series ?? [] as series_data, series_idx (series_idx)}
+          {@const series_markers = series_data.markers ?? markers}
+          {@const { color_values } = series_data}
           <g data-series-idx={series_idx}>
             {#if series_markers?.includes(`points`)}
-              {#each series.filtered_data as point, point_idx (point_idx)}
-                {@const label_id = `${point.series_idx}-${point.point_idx}`}
+              {#each series_data.filtered_data as point, point_idx (point_idx)}
+                {@const label_id = `${series_idx}-${point_idx}`}
                 {@const calculated_label_pos = label_positions[label_id]}
                 {@const label_style = point.point_label ?? {}}
                 {@const final_label = calculated_label_pos

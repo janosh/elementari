@@ -422,17 +422,15 @@
             </label>
           {/each}
         </div>
-        {#key color_scale_type}
-          <ScatterPlot
-            series={[color_scale_data]}
-            x_label="X Axis"
-            y_label="Y Axis"
-            markers="points"
-            color_scheme="viridis"
-            color_scale_type={color_scale_type as `linear` | `log`}
-            color_bar={{}}
-          />
-        {/key}
+        <ScatterPlot
+          series={[color_scale_data]}
+          x_label="X Axis"
+          y_label="Y Axis"
+          markers="points"
+          color_scheme="viridis"
+          color_scale_type={color_scale_type as `linear` | `log`}
+          color_bar={{}}
+        />
       </div>
     </div>
   </section>
