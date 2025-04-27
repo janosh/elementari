@@ -208,23 +208,17 @@
 
   // Store initial ranges and initialize current ranges
   $effect(() => {
-    const new_initial_x = x_range ?? auto_x_range
-    const new_initial_y = y_range ?? auto_y_range
+    const new_init_x = x_range ?? auto_x_range
+    const new_init_y = y_range ?? auto_y_range
 
     // Only update if the initial range fundamentally changes, force type
-    if (
-      new_initial_x[0] !== initial_x_range[0] ||
-      new_initial_x[1] !== initial_x_range[1]
-    ) {
-      initial_x_range = new_initial_x as [number, number]
-      current_x_range = new_initial_x as [number, number]
+    if (new_init_x[0] !== initial_x_range[0] || new_init_x[1] !== initial_x_range[1]) {
+      initial_x_range = new_init_x as [number, number]
+      current_x_range = new_init_x as [number, number]
     }
-    if (
-      new_initial_y[0] !== initial_y_range[0] ||
-      new_initial_y[1] !== initial_y_range[1]
-    ) {
-      initial_y_range = new_initial_y as [number, number]
-      current_y_range = new_initial_y as [number, number]
+    if (new_init_y[0] !== initial_y_range[0] || new_init_y[1] !== initial_y_range[1]) {
+      initial_y_range = new_init_y as [number, number]
+      current_y_range = new_init_y as [number, number]
     }
   })
 
@@ -611,7 +605,7 @@
       if (typeof x_ticks === `number`) {
         count =
           x_ticks < 0
-            ? Math.ceil((x_max - x_min) / Math.abs(x_ticks) / 86400000)
+            ? Math.ceil((x_max - x_min) / Math.abs(x_ticks) / 86_400_000)
             : x_ticks
       } else if (typeof x_ticks === `string`) {
         count = x_ticks === `day` ? 30 : x_ticks === `month` ? 12 : 10
