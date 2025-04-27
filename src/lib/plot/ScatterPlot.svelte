@@ -1049,6 +1049,20 @@
       }
     })
   })
+
+  // Helper function to convert data coordinates to potentially non-finite screen coordinates
+  function get_screen_coords(point: Point): [number, number] {
+    const screen_x = x_format?.startsWith(`%`)
+      ? x_scale_fn(new Date(point.x))
+      : x_scale_fn(point.x)
+
+    const y_val = point.y
+    const min_domain_y = y_scale_type === `log` ? y_scale_fn.domain()[0] : -Infinity
+    const safe_y_val = y_scale_type === `log` ? Math.max(y_val, min_domain_y) : y_val
+    const screen_y = y_scale_fn(safe_y_val) // This might be non-finite
+
+    return [screen_x, screen_y]
+  }
 </script>
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
@@ -1104,12 +1118,10 @@
                     : `rgba(255, 255, 255, 0.5)`}
 
               <Line
-                points={(series_data?.filtered_data ?? []).map((point) => [
-                  x_format?.startsWith(`%`)
-                    ? x_scale_fn(new Date(point.x))
-                    : x_scale_fn(point.x),
-                  y_scale_fn(point.y),
-                ])}
+                points={(series_data?.filtered_data ?? [])
+                  .map(get_screen_coords)
+                  // Filter bad data before passing to Line component
+                  .filter((pt) => isFinite(pt[0]) && isFinite(pt[1]))}
                 origin={[
                   x_format?.startsWith(`%`)
                     ? x_scale_fn(new Date(x_min))
@@ -1148,11 +1160,16 @@
                     }
                   : label_style}
                 {@const color_value = color_values?.[point_idx]}
+                {@const [raw_screen_x, raw_screen_y] = get_screen_coords(point)}
+                {@const screen_x = isFinite(raw_screen_x)
+                  ? raw_screen_x
+                  : x_scale_fn.range()[0]}
+                {@const screen_y = isFinite(raw_screen_y)
+                  ? raw_screen_y
+                  : y_scale_fn.range()[0]}
                 <ScatterPoint
-                  x={x_format?.startsWith(`%`)
-                    ? x_scale_fn(new Date(point.x))
-                    : x_scale_fn(point.x)}
-                  y={y_scale_fn(point.y)}
+                  x={screen_x}
+                  y={screen_y}
                   style={{
                     ...(point.point_style ?? {}),
                   }}
