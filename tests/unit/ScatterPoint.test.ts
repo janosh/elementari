@@ -1,6 +1,7 @@
 import { ScatterPoint } from '$lib'
 import type { PointStyle } from '$lib/plot'
 import { mount } from 'svelte'
+import { bounceIn } from 'svelte/easing'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '.'
 
@@ -358,14 +359,14 @@ describe(`ScatterPoint`, () => {
       await vi.runAllTimersAsync()
     })
 
-    test(`tween duration 0 snaps to final position`, async () => {
+    test(`tween duration 0 snaps to final position`, () => {
       const props = {
         x: 200,
         y: 250,
         origin_x: 10,
         origin_y: 20,
         offset: { x: 5, y: 5 },
-        tween_duration: 0,
+        point_tween: { duration: 0 },
       }
       mount(ScatterPoint, { target: document.querySelector(`div`)!, props })
       const g_element = doc_query(`g`)
@@ -376,11 +377,32 @@ describe(`ScatterPoint`, () => {
       )
 
       // Advance time slightly & re-check (may still be flaky).
-      vi.advanceTimersByTime(100)
-      await vi.runAllTimersAsync()
       expect(g_element.getAttribute(`transform`)).toBe(
         `translate(${props.x + props.offset.x} ${props.y + props.offset.y})`,
       )
+    })
+
+    test(`applies custom point_tween options (easing)`, async () => {
+      const props = {
+        x: 100,
+        y: 150,
+        origin_x: 0,
+        origin_y: 0,
+        offset: { x: 0, y: 0 },
+        point_tween: { duration: 800, easing: bounceIn },
+      }
+      mount(ScatterPoint, { target: document.querySelector(`div`)!, props })
+      const g_element = doc_query(`g`)
+
+      // Check initial transform
+      expect(g_element.getAttribute(`transform`)).toBe(`translate(0 0)`)
+
+      // Advance timers
+      vi.advanceTimersByTime(props.point_tween.duration)
+      await vi.runAllTimersAsync()
+
+      // Verify final position (primary check is mounting without error)
+      expect(g_element.getAttribute(`transform`)).toBe(`translate(100 150)`)
     })
   })
 })

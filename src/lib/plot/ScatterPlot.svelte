@@ -38,7 +38,7 @@
   import ScatterPoint from './ScatterPoint.svelte'
 
   interface Props {
-    series?: DataSeries[]
+    series?: readonly DataSeries[]
     style?: string
     x_lim?: [number | null, number | null]
     y_lim?: [number | null, number | null]
@@ -82,6 +82,8 @@
     label_placement_config?: Partial<LabelPlacementConfig>
     hover_config?: Partial<HoverConfig>
     legend?: LegendConfig | null // Configuration for the legend
+    point_tween?: TweenedOptions<{ x: number; y: number }>
+    line_tween?: TweenedOptions<string>
   }
   let {
     series = [],
@@ -119,6 +121,8 @@
     label_placement_config = {},
     hover_config = {},
     legend = {}, // Default legend config
+    point_tween,
+    line_tween,
   }: Props = $props()
 
   let width = $state(0)
@@ -347,7 +351,6 @@
             point_hover: process_prop(rest.point_hover, point_idx),
             point_label: process_prop(rest.point_label, point_idx),
             point_offset: process_prop(rest.point_offset, point_idx),
-            point_tween_duration: rest.point_tween_duration,
             series_idx,
             point_idx,
             series_visible: true, // Mark points from visible series
@@ -1131,6 +1134,7 @@
                 line_color={series_color}
                 line_width={1}
                 area_color="transparent"
+                {line_tween}
               />
             {/if}
           </g>
@@ -1176,9 +1180,8 @@
                   hover={point.point_hover ?? {}}
                   label={final_label}
                   offset={point.point_offset ?? { x: 0, y: 0 }}
-                  tween_duration={point.point_tween_duration ?? 600}
-                  origin_x={plot_center_x}
-                  origin_y={plot_center_y}
+                  {point_tween}
+                  origin={{ x: plot_center_x, y: plot_center_y }}
                   --point-fill-color={(color_value != null
                     ? color_scale_fn(color_value)
                     : undefined) ?? point.point_style?.fill}
