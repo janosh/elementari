@@ -975,6 +975,7 @@
     link_strength: 0.8,
     link_distance: 10,
     placement_ticks: 120,
+    link_distance_range: [5, 20], // Default min and max distance (replacing max_link_distance)
     ...label_placement_config,
   })
 
@@ -1076,9 +1077,33 @@
     // Run simulation for a fixed number of ticks
     simulation.tick(actual_label_config.placement_ticks)
 
-    // 3. Store the final positions
+    // 3. Store the final positions, applying link_distance_range constraint
     nodes_to_simulate.forEach((node) => {
-      label_positions[node.id] = { x: node.x!, y: node.y! }
+      let final_x = node.x!
+      let final_y = node.y!
+      const dist_range = actual_label_config.link_distance_range
+
+      if (dist_range) {
+        const [min_dist, max_dist] = dist_range
+        const dx = final_x - node.anchor_x
+        const dy = final_y - node.anchor_y
+        const dist_sq = dx * dx + dy * dy
+        const current_dist = Math.sqrt(dist_sq)
+
+        if (max_dist && current_dist > max_dist) {
+          // Clamp to max distance
+          const scale_factor = max_dist / current_dist
+          final_x = node.anchor_x + dx * scale_factor
+          final_y = node.anchor_y + dy * scale_factor
+        } else if (min_dist && current_dist < min_dist && current_dist > 0) {
+          // Clamp to min distance (if not directly at anchor point)
+          const scale_factor = min_dist / current_dist
+          final_x = node.anchor_x + dx * scale_factor
+          final_y = node.anchor_y + dy * scale_factor
+        }
+      }
+
+      label_positions[node.id] = { x: final_x, y: final_y }
     })
   })
 

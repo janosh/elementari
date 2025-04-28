@@ -128,6 +128,7 @@ export interface LabelPlacementConfig {
   link_strength: number // Strength of the link force (pulls label to point)
   link_distance: number // Target distance for the link force
   placement_ticks: number // Number of simulation ticks to run
+  link_distance_range?: [number | null, number | null] // Optional [min, max] range for distance between label and anchor
 }
 export type HoverConfig = {
   threshold_px: number // Max screen distance (pixels) to trigger hover
