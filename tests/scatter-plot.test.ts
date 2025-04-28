@@ -277,7 +277,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     return { ticks, range }
   }
 
-  test(`zooms correctly on drag and resets on double-click`, async ({
+  test(`zooms correctly inside and outside plot area and resets`, async ({
     page,
   }) => {
     const plot_locator = page.locator(`#basic-example .scatter`)
@@ -286,7 +286,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     const y_axis = plot_locator.locator(`g.y-axis`)
     const zoom_rect = plot_locator.locator(`rect.zoom-rect`)
 
-    // 1. Wait for axes to be ready and get initial state
+    // --- 1. Get initial state ---
     await x_axis
       .locator(`.tick text`)
       .first()
@@ -303,47 +303,84 @@ test.describe(`ScatterPlot Component Tests`, () => {
     expect(initial_x.range).toBeGreaterThan(0)
     expect(initial_y.range).toBeGreaterThan(0)
 
-    // 2. Perform zoom drag
-    const svg_box = await svg.boundingBox()
+    // --- 2. Perform zoom drag INSIDE plot area ---
+    let svg_box = await svg.boundingBox()
     expect(svg_box).toBeTruthy()
-    const start_x = svg_box!.x + svg_box!.width * 0.3
-    const start_y = svg_box!.y + svg_box!.height * 0.7
-    const end_x = svg_box!.x + svg_box!.width * 0.7
-    const end_y = svg_box!.y + svg_box!.height * 0.3
+    let start_x = svg_box!.x + svg_box!.width * 0.3
+    let start_y = svg_box!.y + svg_box!.height * 0.7
+    let end_x = svg_box!.x + svg_box!.width * 0.7
+    let end_y = svg_box!.y + svg_box!.height * 0.3
 
     await page.mouse.move(start_x, start_y)
     await page.mouse.down()
     await page.mouse.move(end_x, end_y, { steps: 5 }) // Smooth move
 
-    // Check zoom rectangle is visible and has dimensions during drag
     await expect(zoom_rect).toBeVisible()
     const rect_box = await zoom_rect.boundingBox()
-    expect(rect_box).toBeTruthy()
     expect(rect_box!.width).toBeGreaterThan(0)
     expect(rect_box!.height).toBeGreaterThan(0)
 
     await page.mouse.up()
-    await expect(zoom_rect).not.toBeVisible() // Rect disappears after mouse up
+    await expect(zoom_rect).not.toBeVisible()
 
-    // 3. Verify ticks have changed and range decreased (zoomed)
-    const zoomed_x = await get_tick_range(x_axis)
-    const zoomed_y = await get_tick_range(y_axis)
-    expect(zoomed_x.ticks).not.toEqual(initial_x.ticks)
-    expect(zoomed_y.ticks).not.toEqual(initial_y.ticks)
-    expect(zoomed_x.range).toBeLessThan(initial_x.range)
-    expect(zoomed_y.range).toBeLessThan(initial_y.range)
-    expect(zoomed_x.range).toBeGreaterThan(0) // Range still positive
-    expect(zoomed_y.range).toBeGreaterThan(0)
+    // --- 3. Verify INSIDE zoom state ---
+    const zoomed_inside_x = await get_tick_range(x_axis)
+    const zoomed_inside_y = await get_tick_range(y_axis)
+    expect(zoomed_inside_x.ticks).not.toEqual(initial_x.ticks)
+    expect(zoomed_inside_y.ticks).not.toEqual(initial_y.ticks)
+    expect(zoomed_inside_x.range).toBeLessThan(initial_x.range)
+    expect(zoomed_inside_y.range).toBeLessThan(initial_y.range)
+    expect(zoomed_inside_x.range).toBeGreaterThan(0)
+    expect(zoomed_inside_y.range).toBeGreaterThan(0)
 
-    // 4. Double-click to reset zoom
+    // --- 4. Perform zoom drag OUTSIDE plot area (from current zoomed state) ---
+    svg_box = await svg.boundingBox() // Get bounds again, might have changed slightly
+    expect(svg_box).toBeTruthy()
+    // Start inside the *current* view (e.g., bottom-right of the zoomed area)
+    start_x = svg_box!.x + svg_box!.width * 0.8
+    start_y = svg_box!.y + svg_box!.height * 0.8
+    // End significantly outside the original top-left
+    end_x = initial_x.ticks[0] - 50 // Using initial axis range info for context
+    end_y = initial_y.ticks[0] - 50
+
+    await page.mouse.move(start_x, start_y)
+    await page.mouse.down()
+
+    // Move towards edge and outside
+    await page.mouse.move(svg_box!.x + 5, svg_box!.y + 5, { steps: 5 })
+    await expect(zoom_rect).toBeVisible()
+    const rect_box_inside = await zoom_rect.boundingBox()
+    expect(rect_box_inside!.width).toBeGreaterThan(0)
+
+    await page.mouse.move(end_x, end_y, { steps: 5 })
+    await expect(zoom_rect).toBeVisible()
+    const rect_box_outside = await zoom_rect.boundingBox()
+    expect(rect_box_outside!.width).toBeGreaterThan(rect_box_inside!.width)
+    expect(rect_box_outside!.height).toBeGreaterThan(rect_box_inside!.height)
+
+    await page.mouse.up() // Release mouse outside
+    await expect(zoom_rect).not.toBeVisible()
+
+    // --- 5. Verify OUTSIDE zoom state ---
+    const zoomed_outside_x = await get_tick_range(x_axis)
+    const zoomed_outside_y = await get_tick_range(y_axis)
+
+    // Check it changed from the *previous* zoomed state
+    expect(zoomed_outside_x.ticks).not.toEqual(zoomed_inside_x.ticks)
+    expect(zoomed_outside_y.ticks).not.toEqual(zoomed_inside_y.ticks)
+
+    // Check range is valid and different from zoomed-in state
+    expect(zoomed_outside_x.range).toBeGreaterThan(0)
+    expect(zoomed_outside_y.range).toBeGreaterThan(0)
+    expect(zoomed_outside_y.range).not.toBeCloseTo(zoomed_inside_y.range)
+
+    // --- 6. Double-click to reset zoom: Verify ticks and ranges have reset to initial state ---
     await svg.dblclick()
-
-    // 5. Verify ticks and ranges have reset
     const reset_x = await get_tick_range(x_axis)
     const reset_y = await get_tick_range(y_axis)
     expect(reset_x.ticks).toEqual(initial_x.ticks)
     expect(reset_y.ticks).toEqual(initial_y.ticks)
-    expect(reset_x.range).toBeCloseTo(initial_x.range) // Use toBeCloseTo for float precision
+    expect(reset_x.range).toBeCloseTo(initial_x.range)
     expect(reset_y.range).toBeCloseTo(initial_y.range)
   })
 

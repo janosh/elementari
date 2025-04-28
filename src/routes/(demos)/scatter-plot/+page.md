@@ -1033,7 +1033,14 @@ This example demonstrates how the color bar automatically positions itself in on
   <div style="display: grid; grid-template-columns: repeat(2, max-content); gap: 1.5em; place-items: center; place-content: center;">
     {#each [['top_left', 'Top Left'], ['top_right', 'Top Right'], ['bottom_left', 'Bottom Left'], ['bottom_right', 'Bottom Right']] as [quadrant, label]}
       <label>{label}: {density[quadrant]}
-        <input type="range" min="0" max="100" bind:value={density[quadrant]} style="width: 100px; margin-left: 0.5em;" />
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={density[quadrant]}
+          onchange={(evt) => (density[quadrant] = evt.target.value)}
+          style="width: 100px; margin-left: 0.5em;"
+        />
       </label>
     {/each}
   </div>

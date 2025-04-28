@@ -127,6 +127,8 @@
 
   let width = $state(0)
   let height = $state(0)
+  let svg_element: SVGElement | null = $state(null) // Bind the SVG element
+  let svg_bounding_box: DOMRect | null = $state(null) // Store SVG bounds during drag
 
   // State for rectangle zoom selection
   let drag_start_coords = $state<{ x: number; y: number } | null>(null)
@@ -153,7 +155,7 @@
       .filter(Boolean)
       .flatMap(({ x: xs, y: ys }) => xs.map((x, idx) => ({ x, y: ys[idx] }))),
   )
-  let pad = $derived({ t: 5, b: 70, l: 50, r: 20, ...padding })
+  let pad = $derived({ t: 5, b: 50, l: 50, r: 20, ...padding })
 
   // Calculate plot area center coordinates
   let plot_center_x = $derived(pad.l + (width - pad.r - pad.l) / 2)
@@ -676,26 +678,28 @@
     return { x: evt.clientX - svg_box.left, y: evt.clientY - svg_box.top }
   }
 
-  function handle_mouse_down(evt: MouseEvent) {
-    const coords = get_relative_coords(evt)
-    if (!coords) return
-    drag_start_coords = coords
-    drag_current_coords = coords // Initialize current coords
+  // Define global handlers reference for adding/removing listeners
+  const on_window_mouse_move = (evt: MouseEvent) => {
+    if (!drag_start_coords || !svg_bounding_box) return // Exit if not dragging or no bounds
 
-    // Prevent text selection during drag
-    evt.preventDefault()
+    // Calculate mouse position relative to the stored SVG bounding box
+    const current_x = evt.clientX - svg_bounding_box.left
+    const current_y = evt.clientY - svg_bounding_box.top
+    drag_current_coords = { x: current_x, y: current_y }
+
+    // Optional: update tooltip only if inside SVG bounds
+    const is_inside_svg =
+      current_x >= 0 &&
+      current_x <= svg_bounding_box.width &&
+      current_y >= 0 &&
+      current_y <= svg_bounding_box.height
+
+    if (is_inside_svg) {
+      find_closest_point(evt) // Update tooltip based on event relative to SVG
+    } else tooltip_point = null // Clear tooltip if outside
   }
 
-  function handle_mouse_move(evt: MouseEvent) {
-    find_closest_point(evt)
-    if (!drag_start_coords) return // Exit if not dragging
-
-    const coords = get_relative_coords(evt)
-    if (!coords) return
-    drag_current_coords = coords
-  }
-
-  function handle_mouse_up(_evt: MouseEvent) {
+  const on_window_mouse_up = (_evt: MouseEvent) => {
     if (drag_start_coords && drag_current_coords) {
       // Use current scales to invert screen coords to data coords
       const start_data_x_val = x_scale_fn.invert(drag_start_coords.x)
@@ -716,7 +720,12 @@
         x2 = end_data_x_val
       } else {
         console.error(`Mismatched types for x-axis zoom calculation`)
-        return // Abort zoom if types are wrong
+        // Reset states without zooming if types are wrong
+        drag_start_coords = null
+        drag_current_coords = null
+        window.removeEventListener(`mousemove`, on_window_mouse_move)
+        window.removeEventListener(`mouseup`, on_window_mouse_up)
+        return
       }
 
       const next_x_range: [number, number] = [Math.min(x1, x2), Math.max(x1, x2)]
@@ -726,21 +735,49 @@
         Math.max(start_data_y_val, end_data_y_val),
       ]
 
-      if (next_x_range[0] !== next_x_range[1] && next_y_range[0] !== next_y_range[1]) {
+      // Check for minuscule zoom box (e.g., accidental click)
+      const min_zoom_size = 5 // Minimum pixels to trigger zoom
+      const dx = Math.abs(drag_start_coords.x - drag_current_coords.x)
+      const dy = Math.abs(drag_start_coords.y - drag_current_coords.y)
+
+      if (
+        dx > min_zoom_size &&
+        dy > min_zoom_size &&
+        next_x_range[0] !== next_x_range[1] &&
+        next_y_range[0] !== next_y_range[1]
+      ) {
         current_x_range = next_x_range
         current_y_range = next_y_range
       }
+      // If the box is too small, we just reset without zooming (effectively ignoring the drag)
     }
 
-    // Reset states
+    // Reset states and remove listeners
     drag_start_coords = null
     drag_current_coords = null
+    svg_bounding_box = null // Clear stored bounds
+    window.removeEventListener(`mousemove`, on_window_mouse_move)
+    window.removeEventListener(`mouseup`, on_window_mouse_up)
     document.body.style.cursor = `default`
+  }
+
+  function handle_mouse_down(evt: MouseEvent) {
+    const coords = get_relative_coords(evt)
+    if (!coords || !svg_element) return
+    drag_start_coords = coords
+    drag_current_coords = coords // Initialize current coords
+    svg_bounding_box = svg_element.getBoundingClientRect() // Store bounds on drag start
+
+    // Add listeners to window
+    window.addEventListener(`mousemove`, on_window_mouse_move)
+    window.addEventListener(`mouseup`, on_window_mouse_up)
+
+    // Prevent text selection during drag
+    evt.preventDefault()
   }
 
   function handle_mouse_leave() {
     // Reset drag state if mouse leaves plot area
-    if (drag_start_coords) handle_mouse_up(new MouseEvent(`mouseup`)) // Simulate mouseup to finalize zoom if needed
     hovered = false
     tooltip_point = null
   }
@@ -1066,10 +1103,13 @@
   {#if width && height}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <svg
+      bind:this={svg_element}
       onmouseenter={() => (hovered = true)}
       onmousedown={handle_mouse_down}
-      onmousemove={handle_mouse_move}
-      onmouseup={handle_mouse_up}
+      onmousemove={(evt: MouseEvent) => {
+        // Only find closest point if not actively dragging
+        if (!drag_start_coords) find_closest_point(evt)
+      }}
       onmouseleave={handle_mouse_leave}
       ondblclick={handle_double_click}
       style:cursor="crosshair"
@@ -1099,11 +1139,17 @@
         {/if}
       {/if}
 
+      <defs>
+        <clipPath id="plot-area-clip">
+          <rect x={pad.l} y={pad.t} {width} height={height + pad.b} />
+        </clipPath>
+      </defs>
+
       <!-- Lines -->
       {#if markers?.includes(`line`)}
         {#each filtered_series ?? [] as series_data, series_idx (series_data.label ?? JSON.stringify(series_data))}
           {@const series_markers = series_data.markers ?? markers}
-          <g data-series-idx={series_idx}>
+          <g data-series-idx={series_idx} clip-path="url(#plot-area-clip)">
             {#if series_markers?.includes(`line`)}
               {@const first_point = series_data.filtered_data?.[0] as InternalPoint}
               {@const series_color =
@@ -1114,11 +1160,12 @@
                     ? (series_data.point_style.fill as string)
                     : `rgba(255, 255, 255, 0.5)`}
 
+              {@const all_line_points = series_data.x.map((x, idx) => ({
+                x,
+                y: series_data.y[idx],
+              }))}
               <Line
-                points={(series_data?.filtered_data ?? [])
-                  .map(get_screen_coords)
-                  // Filter bad data before passing to Line component
-                  .filter((pt) => isFinite(pt[0]) && isFinite(pt[1]))}
+                points={all_line_points.map(get_screen_coords)}
                 origin={[
                   x_format?.startsWith(`%`)
                     ? x_scale_fn(new Date(x_min))
@@ -1137,12 +1184,12 @@
 
       <!-- Points -->
       {#if markers?.includes(`points`)}
-        {#each filtered_series ?? [] as series_data, series_idx (series_idx)}
+        {#each filtered_series ?? [] as series_data, series_idx (series_data.label ?? series_idx)}
           {@const series_markers = series_data.markers ?? markers}
           {@const { color_values } = series_data}
           <g data-series-idx={series_idx}>
             {#if series_markers?.includes(`points`)}
-              {#each series_data.filtered_data as point, point_idx (point_idx)}
+              {#each series_data.filtered_data as point, point_idx (JSON.stringify(point))}
                 {@const label_id = `${series_idx}-${point_idx}`}
                 {@const calculated_label_pos = label_positions[label_id]}
                 {@const label_style = point.point_label ?? {}}
