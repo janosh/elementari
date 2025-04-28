@@ -670,3 +670,106 @@ test.describe(`ScatterPlot Component Tests`, () => {
     expect(console_errors).toHaveLength(0)
   })
 })
+
+// --- Automatic Color Bar Placement Tests ---
+test.describe(`Automatic Color Bar Placement`, () => {
+  // Helper to set density sliders
+  async function set_density(
+    page: Page,
+    section_locator: Locator,
+    densities: { tl: number; tr: number; bl: number; br: number },
+  ): Promise<void> {
+    const set_slider = async (label_text: string, value: number) => {
+      const input_locator = section_locator.locator(
+        `label:has-text('${label_text}') input`,
+      )
+      await input_locator.evaluate((el, val) => {
+        const input = el as HTMLInputElement
+        input.value = val.toString()
+        // Dispatch events to simulate user interaction and trigger Svelte updates
+        input.dispatchEvent(new Event(`input`, { bubbles: true }))
+        input.dispatchEvent(new Event(`change`, { bubbles: true }))
+      }, value)
+    }
+
+    await set_slider(`Top Left`, densities.tl)
+    await set_slider(`Top Right`, densities.tr)
+    await set_slider(`Bottom Left`, densities.bl)
+    await set_slider(`Bottom Right`, densities.br)
+
+    // Wait a short time for Svelte reactivity and tweening
+    await page.waitForTimeout(500) // Allow time for tween
+  }
+
+  // Helper to get the transform style of the color bar wrapper
+  async function get_colorbar_transform(
+    section_locator: Locator,
+  ): Promise<string> {
+    const colorbar_wrapper = section_locator.locator(
+      `div.colorbar[style*='position: absolute']`,
+    )
+    await colorbar_wrapper.waitFor({ state: `visible`, timeout: 1000 })
+    const transform = await colorbar_wrapper.evaluate((el) => {
+      // Get computed style to resolve the final transform value
+      return window.getComputedStyle(el).transform
+    })
+    // Normalize matrix to simpler translate for easier comparison
+    if (transform.startsWith(`matrix`)) {
+      // Basic parsing for translate values from matrix(1, 0, 0, 1, tx, ty)
+      const parts = transform.match(/matrix\((.+)\)/)
+      if (parts && parts[1]) {
+        const values = parts[1].split(`,`).map((s) => parseFloat(s.trim()))
+        if (values.length === 6) {
+          const tx = values[4]
+          const ty = values[5]
+          if (Math.abs(tx) < 1 && Math.abs(ty) < 1) return `` // Effectively (0, 0)
+          if (Math.abs(tx) > 1 && Math.abs(ty) < 1)
+            return `translateX(${tx < 0 ? `-100%` : `100%`})` // Approximate
+          if (Math.abs(tx) < 1 && Math.abs(ty) > 1)
+            return `translateY(${ty < 0 ? `-100%` : `100%`})` // Approximate
+          if (Math.abs(tx) > 1 && Math.abs(ty) > 1)
+            return `translate(${tx < 0 ? `-100%` : `100%`}, ${ty < 0 ? `-100%` : `100%`})` // Approximate
+        }
+      }
+    } else if (transform === `none`) {
+      return ``
+    }
+    // Return original if not a simple matrix or none
+    return transform
+  }
+
+  test.beforeEach(async ({ page }) => {
+    // Assuming the demo is on the scatter-plot test page
+    await page.goto(`/test/scatter-plot`, { waitUntil: `load` })
+  })
+
+  test(`colorbar moves to top-left when least dense`, async ({ page }) => {
+    const section = page.locator(`#auto-colorbar-placement`)
+    await set_density(page, section, { tl: 0, tr: 50, bl: 50, br: 50 })
+    const transform = await get_colorbar_transform(section)
+    expect(transform).toBe(``) // Expect no transform for top-left
+  })
+
+  test(`colorbar moves to top-right when least dense`, async ({ page }) => {
+    const section = page.locator(`#auto-colorbar-placement`)
+    await set_density(page, section, { tl: 50, tr: 0, bl: 50, br: 50 })
+    const transform = await get_colorbar_transform(section)
+    expect(transform).toContain(`translateX(-100%)`) // Expect X transform for top-right
+    expect(transform).not.toContain(`translateY`) // Should not have Y transform
+  })
+
+  test(`colorbar moves to bottom-left when least dense`, async ({ page }) => {
+    const section = page.locator(`#auto-colorbar-placement`)
+    await set_density(page, section, { tl: 50, tr: 50, bl: 0, br: 50 })
+    const transform = await get_colorbar_transform(section)
+    expect(transform).toContain(`translateY(-100%)`) // Expect Y transform for bottom-left
+    expect(transform).not.toContain(`translateX`) // Should not have X transform
+  })
+
+  test(`colorbar moves to bottom-right when least dense`, async ({ page }) => {
+    const section = page.locator(`#auto-colorbar-placement`)
+    await set_density(page, section, { tl: 50, tr: 50, bl: 50, br: 0 })
+    const transform = await get_colorbar_transform(section)
+    expect(transform).toContain(`translate(-100%, -100%)`) // Expect X and Y transform
+  })
+})

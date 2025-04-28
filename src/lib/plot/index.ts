@@ -88,7 +88,6 @@ export interface DataSeries {
 export interface InternalPoint extends PlotPoint {
   series_idx: number // Index of the series this point belongs to
   point_idx: number // Index of the point within its series
-  // Inherits all properties from PlotPoint
 }
 
 export type TooltipProps = {
@@ -158,3 +157,26 @@ export type LegendConfig = Omit<
 
 // Define Sides locally if not exported from $lib/colors
 export type Sides = { t?: number; b?: number; l?: number; r?: number }
+
+// Define grid cell identifiers
+export const cells_3x3 = [
+  `top-left`,
+  `top-center`,
+  `top-right`,
+  `middle-left`,
+  `middle-center`,
+  `middle-right`,
+  `bottom-left`,
+  `bottom-center`,
+  `bottom-right`,
+] as const
+export const corner_cells = [
+  `top-left`,
+  `top-right`,
+  `bottom-left`,
+  `bottom-right`,
+] as const
+
+// Define the structure for GridCell and GridCellCounts for 3x3 grid
+export type Cell3x3 = (typeof cells_3x3)[number]
+export type Corner = (typeof corner_cells)[number]

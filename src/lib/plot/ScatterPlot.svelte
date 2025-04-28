@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { Point } from '$lib'
-  import { ColorBar, Line, marker_types } from '$lib'
+  import { cells_3x3, ColorBar, corner_cells, Line, marker_types } from '$lib'
   import type { D3ColorSchemeName } from '$lib/colors'
   import type {
     AnchorNode,
+    Cell3x3,
+    Corner,
     DataSeries,
     HoverConfig,
     InternalPoint,
@@ -14,7 +16,6 @@
     MarkerType,
     PlotPoint,
     PointStyle,
-    QuadrantCounts,
     ScaleType,
     Sides,
     TimeInterval,
@@ -143,6 +144,73 @@
 
   // State to hold the calculated label positions after simulation
   let label_positions = $state<Record<string, { x: number; y: number }>>({})
+
+  // State for initial (non-responsive) legend placement
+  let initial_legend_cell = $state<Cell3x3 | null>(null)
+  let is_initial_legend_placement_calculated = $state(false)
+
+  // Helper function to normalize margin prop
+  function normalize_margin(margin: number | Sides | undefined): Required<Sides> {
+    const defaults = { t: 10, l: 10, b: 10, r: 10 } // Default margin 10
+    if (typeof margin === `number`) {
+      return { t: margin, l: margin, b: margin, r: margin }
+    }
+    return { ...defaults, ...margin }
+  }
+
+  // Helper function to calculate placement styles based on grid cell
+  function get_placement_styles(
+    cell: Cell3x3 | null,
+    item_type: `legend` | `colorbar`,
+  ): {
+    left: number
+    top: number
+    transform: string
+  } {
+    if (!cell || !width || !height) return { left: 0, top: 0, transform: `` }
+
+    const effective_pad = { t: 0, b: 0, l: 0, r: 0, ...padding }
+    const plot_width = width - effective_pad.l - effective_pad.r
+    const plot_height = height - effective_pad.t - effective_pad.b
+
+    const margin = normalize_margin(
+      item_type === `legend` ? legend?.margin : color_bar?.margin,
+    )
+
+    const x_anchor_factors: Record<string, number> = { left: 0, center: 0.5, right: 1 }
+    const y_anchor_factors: Record<string, number> = { top: 0, middle: 0.5, bottom: 1 }
+    const x_transform_factors: Record<string, string> = {
+      left: `0`,
+      center: `-50%`,
+      right: `-100%`,
+    }
+    const y_transform_factors: Record<string, string> = {
+      top: `0`,
+      middle: `-50%`,
+      bottom: `-100%`,
+    }
+
+    const [y_part, x_part] = cell.split(`-`)
+
+    const base_x = effective_pad.l + plot_width * x_anchor_factors[x_part]
+    const base_y = effective_pad.t + plot_height * y_anchor_factors[y_part]
+
+    // Adjust base position by margin depending on anchor point
+    const target_x =
+      base_x + (x_part === `left` ? margin.l : x_part === `right` ? -margin.r : 0)
+    const target_y =
+      base_y + (y_part === `top` ? margin.t : y_part === `bottom` ? -margin.b : 0)
+
+    const transform_x = x_transform_factors[x_part]
+    const transform_y = y_transform_factors[y_part]
+
+    const transform =
+      transform_x !== `0` || transform_y !== `0`
+        ? `translate(${transform_x}, ${transform_y})`
+        : ``
+
+    return { left: target_x, top: target_y, transform }
+  }
 
   // Initialize series visibility state based on input prop
   $effect(() => {
@@ -349,7 +417,6 @@
             point_offset: process_prop(rest.point_offset, point_idx),
             series_idx,
             point_idx,
-            series_visible: true, // Mark points from visible series
           }
         })
 
@@ -372,15 +439,24 @@
       .filter((series_data) => series_data.filtered_data.length > 0),
   )
 
-  // Calculate point counts per quadrant for color bar placement
-  let quadrant_counts = $derived.by(() => {
-    const counts: QuadrantCounts = {
-      top_left: 0,
-      top_right: 0,
-      bottom_left: 0,
-      bottom_right: 0,
-    }
-    if (!width || !height) return counts
+  // Calculate point counts per 3x3 grid cell
+  let grid_cell_counts = $derived.by(() => {
+    const counts = cells_3x3.reduce(
+      (acc, cell) => {
+        acc[cell] = 0
+        return acc
+      },
+      {} as Record<Cell3x3, number>,
+    )
+
+    if (!width || !height || !filtered_series) return counts
+
+    const plot_width = width - pad.l - pad.r
+    const plot_height = height - pad.t - pad.b
+    const x_boundary1 = pad.l + plot_width / 3
+    const x_boundary2 = pad.l + (2 * plot_width) / 3
+    const y_boundary1 = pad.t + plot_height / 3
+    const y_boundary2 = pad.t + (2 * plot_height) / 3
 
     for (const series_data of filtered_series) {
       if (!series_data?.filtered_data) continue
@@ -390,34 +466,176 @@
           : x_scale_fn(point.x)
         const point_y_coord = y_scale_fn(point.y)
 
-        if (point_x_coord < plot_center_x) {
-          if (point_y_coord < plot_center_y) counts.top_left++
-          else counts.bottom_left++
-        } else {
-          if (point_y_coord < plot_center_y) counts.top_right++
-          else counts.bottom_right++
-        }
+        // Determine grid cell parts
+        const x_part =
+          point_x_coord < x_boundary1
+            ? `left`
+            : point_x_coord < x_boundary2
+              ? `center`
+              : `right`
+        const y_part =
+          point_y_coord < y_boundary1
+            ? `top`
+            : point_y_coord < y_boundary2
+              ? `middle`
+              : `bottom`
+        const cell: Cell3x3 = `${y_part}-${x_part}`
+
+        counts[cell]++
       }
     }
     return counts
   })
 
-  // Determine the least dense quadrant
-  let ranked_quadrants = $derived.by(() => {
-    const quadrants = Object.keys(quadrant_counts) as (keyof QuadrantCounts)[]
-    return quadrants.sort((a, b) => quadrant_counts[a] - quadrant_counts[b])
+  // Prepare data needed for the legend component
+  let legend_data = $derived.by(() => {
+    return series.map((data_series, series_idx) => {
+      const is_visible = series_visibility[series_idx] ?? true
+      // Prefer top-level label, fallback to metadata label, then default
+      const label =
+        data_series?.label ??
+        (typeof data_series?.metadata === `object` &&
+        data_series.metadata !== null &&
+        `label` in data_series.metadata &&
+        typeof data_series.metadata.label === `string`
+          ? data_series.metadata.label
+          : null) ??
+        `Series ${series_idx + 1}`
+
+      // Explicitly define the type for display_style matching PlotLegend expectations
+      type LegendDisplayStyle = {
+        marker_shape?: MarkerType
+        marker_color?: string
+        line_type?: LineType
+        line_color?: string
+      }
+      const display_style: LegendDisplayStyle = {
+        marker_shape: `circle`, // Default marker shape
+        marker_color: `black`, // Default marker color
+        line_type: `solid`, // Default line type
+        line_color: `black`, // Default line color
+      }
+
+      const series_markers = data_series?.markers ?? markers
+
+      // Check point_style (could be object or array)
+      const first_point_style = Array.isArray(data_series?.point_style)
+        ? (data_series.point_style[0] as PointStyle | undefined) // Handle potential undefined
+        : (data_series?.point_style as PointStyle | undefined) // Handle potential undefined
+
+      if (series_markers?.includes(`points`)) {
+        if (first_point_style) {
+          // Assign shape only if it's one of the allowed types, else default to circle
+          let final_shape: MarkerType = `circle` // Default shape
+          const shape_from_style = first_point_style.shape
+          if (shape_from_style && marker_types.includes(shape_from_style as MarkerType)) {
+            final_shape = shape_from_style as MarkerType // Cast validated shape
+          }
+          display_style.marker_shape = final_shape
+
+          display_style.marker_color =
+            first_point_style.fill ?? display_style.marker_color // Use default if nullish
+          if (first_point_style.stroke) {
+            // Use stroke color if fill is none or transparent
+            if (
+              !display_style.marker_color ||
+              display_style.marker_color === `none` ||
+              display_style.marker_color.startsWith(`rgba(`, 0) // Check if transparent
+            ) {
+              display_style.marker_color = first_point_style.stroke
+            }
+          }
+        }
+        // else: keep default display_style.marker_shape/color if no point_style
+      } else {
+        // If no points marker, explicitly remove marker style for legend
+        display_style.marker_shape = undefined
+        display_style.marker_color = undefined
+      }
+
+      // Check line_style
+      if (series_markers?.includes(`line`)) {
+        // Use marker color for line if available and points are also shown, otherwise use default line color
+        display_style.line_color =
+          display_style.marker_color && series_markers.includes(`points`)
+            ? display_style.marker_color
+            : `black`
+        // TODO: Infer line type from line_style prop if added later
+        display_style.line_type = `solid`
+      } else {
+        // If no line marker, explicitly remove line style for legend
+        display_style.line_type = undefined
+        display_style.line_color = undefined
+      }
+
+      return {
+        series_idx,
+        label,
+        visible: is_visible,
+        display_style,
+      }
+    })
   })
 
-  // Assign quadrants to legend and color bar
-  let legend_quadrant = $derived.by(() => {
-    if (!legend) return null // No legend, no quadrant
-    return ranked_quadrants[0] // Legend goes to the least dense
+  // Determine the least dense grid cells, prioritizing corners
+  let ranked_grid_cells = $derived.by(() => {
+    // Create a list of cell objects with their counts and corner status
+    const cell_data = cells_3x3.map((cell) => ({
+      cell,
+      count: grid_cell_counts[cell],
+      is_corner: corner_cells.includes(cell as Corner),
+    }))
+
+    // Sort primarily by count (ascending), secondarily prefer corners (is_corner true first)
+    cell_data.sort(
+      (c1, c2) => c1.count - c2.count || (c2.is_corner ? 1 : 0) - (c1.is_corner ? 1 : 0),
+    )
+
+    // Return the sorted list of cell names
+    return cell_data.map((data) => data.cell)
   })
 
-  let color_bar_quadrant = $derived.by(() => {
-    if (!color_bar || all_color_values.length === 0) return null // No color bar, no quadrant
-    // If legend exists, color bar goes to 2nd least dense, otherwise least dense
-    return legend ? ranked_quadrants[1] : ranked_quadrants[0]
+  // Determine if the legend should be considered for placement
+  let should_place_legend = $derived.by(() => {
+    if (legend == null) return false // Explicitly null means no legend
+    // Legend is placed if it's explicitly configured (not {}) OR if there's > 1 series
+    return legend_data.length > 1 || JSON.stringify(legend) !== `{}`
+  })
+
+  // Assign grid cells to legend and color bar
+  let legend_cell = $derived.by(() => {
+    if (!should_place_legend || ranked_grid_cells.length === 0) return null // No legend to place or no cells
+    // The first element in ranked_grid_cells is the best prioritized placement
+    return ranked_grid_cells[0]
+  })
+
+  let color_bar_cell = $derived.by(() => {
+    if (!color_bar || all_color_values.length === 0 || ranked_grid_cells.length === 0)
+      return null // No color bar or no cells, no placement
+
+    // Find the first available cell that is not the legend's cell
+    // If only one cell exists and legend is using it, color bar cannot be placed
+    return ranked_grid_cells.find((cell) => cell !== legend_cell) ?? null
+  })
+
+  // Determine the final placement cell for the legend based on mode
+  let legend_placement_cell = $derived.by(() => {
+    if (!legend_cell) return null // No legend cell assigned
+
+    const is_responsive = legend?.responsive ?? false
+    const style = legend?.wrapper_style ?? ``
+    // Check if position is explicitly set via top/bottom/left/right or position: absolute
+    const is_fixed_position =
+      /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
+
+    if (is_fixed_position) return null // Fixed position, no auto-placement needed
+
+    if (is_responsive) {
+      return legend_cell // Use the current dynamically best cell
+    } else {
+      // Not responsive, use initial cell if calculated, else the current best as fallback
+      return is_initial_legend_placement_calculated ? initial_legend_cell : legend_cell
+    }
   })
 
   // Initialize tweened values for color bar position
@@ -431,131 +649,49 @@
     { duration: 400, ...(legend?.tween ?? {}) },
   )
 
-  // State for initial (non-responsive) legend placement
-  let initial_legend_quadrant = $state<keyof QuadrantCounts | null>(null)
-  let is_initial_legend_quadrant_calculated = $state(false)
-
-  // Effect to calculate the initial quadrant ONCE
-  $effect(() => {
-    // Run only if we have dimensions, a calculated quadrant, and haven't calculated the initial one yet
-    if (
-      width > 0 &&
-      height > 0 &&
-      legend_quadrant &&
-      !is_initial_legend_quadrant_calculated
-    ) {
-      const is_responsive = legend?.responsive ?? false
-      const style = legend?.wrapper_style ?? ``
-      const is_fixed_position =
-        /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
-
-      // Set initial quadrant only if mode is initial and position is not fixed
-      if (!is_responsive && !is_fixed_position) {
-        initial_legend_quadrant = legend_quadrant
-        is_initial_legend_quadrant_calculated = true
-      }
-    }
-  })
-
-  // Effect to update legend position
+  // Effect to calculate the initial grid cell ONCE for non-responsive legend
+  // And update legend and color bar tweened positions
   $effect(() => {
     if (!width || !height) return // Need dimensions
 
-    // Calculate Color Bar Position
-    if (color_bar_quadrant) {
-      const margin = color_bar?.margin
-      const margin_obj =
-        typeof margin === `number`
-          ? { t: margin, l: margin, b: margin, r: margin }
-          : margin
-      const default_margin = 10 // Default margin
+    const is_responsive = legend?.responsive ?? false
+    const style = legend?.wrapper_style ?? ``
+    const is_fixed_position =
+      /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
 
-      const m_t = margin_obj?.t ?? default_margin
-      const m_l = margin_obj?.l ?? default_margin
-      const m_b = margin_obj?.b ?? default_margin
-      const m_r = margin_obj?.r ?? default_margin
-      const { t, l, b, r } = pad
+    // Calculate initial legend cell if needed
+    if (
+      legend_cell &&
+      !is_initial_legend_placement_calculated &&
+      !is_responsive &&
+      !is_fixed_position
+    ) {
+      initial_legend_cell = legend_cell
+      is_initial_legend_placement_calculated = true
+    }
 
-      let [target_x, target_y] = [0, 0]
+    // Reset initial calculation flag if mode changes TO responsive or TO fixed
+    if ((is_responsive || is_fixed_position) && is_initial_legend_placement_calculated) {
+      is_initial_legend_placement_calculated = false
+      initial_legend_cell = null // Clear stored cell
+    }
 
-      if (color_bar_quadrant === `top_left`) {
-        target_x = l + m_l
-        target_y = t + m_t
-      } else if (color_bar_quadrant === `bottom_left`) {
-        target_x = l + m_l
-        target_y = height - (b + m_b)
-      } else if (color_bar_quadrant === `bottom_right`) {
-        target_x = width - (r + m_r)
-        target_y = height - (b + m_b)
-      } else {
-        // Default to top_right if somehow quadrant is unexpected
-        target_x = width - (r + m_r)
-        target_y = t + m_t
-      }
-
+    // Update Color Bar Position
+    if (color_bar_cell) {
+      const { left: target_x, top: target_y } = get_placement_styles(
+        color_bar_cell,
+        `colorbar`,
+      )
       tweened_colorbar_coords.set({ x: target_x, y: target_y })
     }
 
-    // Calculate Legend Position based on mode (responsive, initial, fixed)
-    if (legend_quadrant) {
-      const is_responsive = legend?.responsive ?? false
-      const style = legend?.wrapper_style ?? ``
-      const is_fixed_position =
-        /(\b(top|bottom|left|right)\s*:)|(position\s*:\s*absolute)/.test(style)
-
-      let quadrant_to_use: keyof QuadrantCounts | null = null
-
-      if (!is_fixed_position) {
-        if (is_responsive) {
-          quadrant_to_use = legend_quadrant // Use current least dense
-        } else {
-          // Use the stored initial quadrant if calculated, otherwise wait or use current as fallback
-          quadrant_to_use = is_initial_legend_quadrant_calculated
-            ? initial_legend_quadrant
-            : legend_quadrant // Fallback to current if initial not ready
-        }
-      }
-
-      // Reset initial calculation flag if mode changes TO responsive or TO fixed
-      if ((is_responsive || is_fixed_position) && is_initial_legend_quadrant_calculated) {
-        is_initial_legend_quadrant_calculated = false
-        initial_legend_quadrant = null // Clear stored quadrant
-      }
-
-      // Apply position update only if auto-placing (not fixed) and a quadrant is determined
-      if (quadrant_to_use) {
-        const margin = legend?.margin
-        const margin_obj =
-          typeof margin === `number`
-            ? { t: margin, l: margin, b: margin, r: margin }
-            : margin
-        const default_margin = 10 // Default margin
-
-        const m_t = margin_obj?.t ?? default_margin
-        const m_l = margin_obj?.l ?? default_margin
-        const m_b = margin_obj?.b ?? default_margin
-        const m_r = margin_obj?.r ?? default_margin
-        const { t, l, b, r } = pad
-
-        let [target_x, target_y] = [0, 0]
-
-        if (quadrant_to_use === `top_left`) {
-          target_x = l + m_l
-          target_y = t + m_t
-        } else if (quadrant_to_use === `bottom_left`) {
-          target_x = l + m_l
-          target_y = height - (b + m_b)
-        } else if (quadrant_to_use === `bottom_right`) {
-          target_x = width - (r + m_r)
-          target_y = height - (b + m_b)
-        } else {
-          // Default top_right
-          target_x = width - (r + m_r)
-          target_y = t + m_t
-        }
-
-        tweened_legend_coords.set({ x: target_x, y: target_y })
-      }
+    // Update Legend Position using the calculated placement cell
+    if (legend_placement_cell) {
+      const { left: target_x, top: target_y } = get_placement_styles(
+        legend_placement_cell,
+        `legend`,
+      )
+      tweened_legend_coords.set({ x: target_x, y: target_y })
     }
   })
 
@@ -994,96 +1130,6 @@
     }
   }
 
-  // Prepare data needed for the legend component
-  let legend_data = $derived.by(() => {
-    return series.map((data_series, series_idx) => {
-      const is_visible = series_visibility[series_idx] ?? true
-      // Prefer top-level label, fallback to metadata label, then default
-      const label =
-        data_series?.label ??
-        (typeof data_series?.metadata === `object` &&
-        data_series.metadata !== null &&
-        `label` in data_series.metadata &&
-        typeof data_series.metadata.label === `string`
-          ? data_series.metadata.label
-          : null) ??
-        `Series ${series_idx + 1}`
-
-      // Explicitly define the type for display_style matching PlotLegend expectations
-      type LegendDisplayStyle = {
-        marker_shape?: MarkerType
-        marker_color?: string
-        line_type?: LineType
-        line_color?: string
-      }
-      const display_style: LegendDisplayStyle = {
-        marker_shape: `circle`, // Default marker shape
-        marker_color: `black`, // Default marker color
-        line_type: `solid`, // Default line type
-        line_color: `black`, // Default line color
-      }
-
-      const series_markers = data_series?.markers ?? markers
-
-      // Check point_style (could be object or array)
-      const first_point_style = Array.isArray(data_series?.point_style)
-        ? (data_series.point_style[0] as PointStyle | undefined) // Handle potential undefined
-        : (data_series?.point_style as PointStyle | undefined) // Handle potential undefined
-
-      if (series_markers?.includes(`points`)) {
-        if (first_point_style) {
-          // Assign shape only if it's one of the allowed types, else default to circle
-          let final_shape: MarkerType = `circle` // Default shape
-          const shape_from_style = first_point_style.shape
-          if (shape_from_style && marker_types.includes(shape_from_style as MarkerType)) {
-            final_shape = shape_from_style as MarkerType // Cast validated shape
-          }
-          display_style.marker_shape = final_shape
-
-          display_style.marker_color =
-            first_point_style.fill ?? display_style.marker_color // Use default if nullish
-          if (first_point_style.stroke) {
-            // Use stroke color if fill is none or transparent
-            if (
-              !display_style.marker_color ||
-              display_style.marker_color === `none` ||
-              display_style.marker_color.startsWith(`rgba(`, 0) // Check if transparent
-            ) {
-              display_style.marker_color = first_point_style.stroke
-            }
-          }
-        }
-        // else: keep default display_style.marker_shape/color if no point_style
-      } else {
-        // If no points marker, explicitly remove marker style for legend
-        display_style.marker_shape = undefined
-        display_style.marker_color = undefined
-      }
-
-      // Check line_style
-      if (series_markers?.includes(`line`)) {
-        // Use marker color for line if available and points are also shown, otherwise use default line color
-        display_style.line_color =
-          display_style.marker_color && series_markers.includes(`points`)
-            ? display_style.marker_color
-            : `black`
-        // TODO: Infer line type from line_style prop if added later
-        display_style.line_type = `solid`
-      } else {
-        // If no line marker, explicitly remove line style for legend
-        display_style.line_type = undefined
-        display_style.line_color = undefined
-      }
-
-      return {
-        series_idx,
-        label,
-        visible: is_visible,
-        display_style,
-      }
-    })
-  })
-
   // Helper function to convert data coordinates to potentially non-finite screen coordinates
   function get_screen_coords(point: Point): [number, number] {
     const screen_x = x_format?.startsWith(`%`)
@@ -1164,8 +1210,11 @@
                 x,
                 y: series_data.y[idx],
               }))}
+              {@const finite_screen_points = all_line_points
+                .map(get_screen_coords)
+                .filter(([sx, sy]) => isFinite(sx) && isFinite(sy))}
               <Line
-                points={all_line_points.map(get_screen_coords)}
+                points={finite_screen_points}
                 origin={[
                   x_format?.startsWith(`%`)
                     ? x_scale_fn(new Date(x_min))
@@ -1347,7 +1396,7 @@
     </svg>
 
     <!-- Color Bar -->
-    {#if color_bar && all_color_values.length > 0 && color_bar_quadrant}
+    {#if color_bar && all_color_values.length > 0 && color_bar_cell}
       <ColorBar
         {...{
           tick_labels: 4,
@@ -1358,9 +1407,7 @@
             position: absolute;
             left: ${tweened_colorbar_coords.current.x}px;
             top: ${tweened_colorbar_coords.current.y}px;
-            ${color_bar_quadrant === `bottom_right` || color_bar_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
-            ${color_bar_quadrant === `top_right` || color_bar_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
-            ${color_bar_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
+            transform: ${get_placement_styles(color_bar_cell, `colorbar`).transform};
             ${color_bar?.wrapper_style ?? ``} /* Add user wrapper style */
           `,
           // user-overridable inner style
@@ -1372,7 +1419,7 @@
 
     <!-- Legend -->
     <!-- Only render if multiple series or if legend prop was explicitly provided by user (even if empty object) -->
-    {#if legend != null && legend_data.length > 0 && legend_quadrant && (legend_data.length > 1 || (legend != null && JSON.stringify(legend) !== `{}`))}
+    {#if legend != null && legend_data.length > 0 && legend_cell && (legend_data.length > 1 || (legend != null && JSON.stringify(legend) !== `{}`))}
       <PlotLegend
         series_data={legend_data}
         on_toggle={toggle_series_visibility}
@@ -1382,10 +1429,10 @@
           position: absolute;
           left: ${tweened_legend_coords.current.x}px;
           top: ${tweened_legend_coords.current.y}px;
-          /* Adjust transform based on quadrant to keep legend inside plot area */
-          ${legend_quadrant === `bottom_right` || legend_quadrant === `bottom_left` ? `transform: translateY(-100%);` : ``}
-          ${legend_quadrant === `top_right` || legend_quadrant === `bottom_right` ? `transform: translateX(-100%);` : ``}
-          ${legend_quadrant === `bottom_right` ? `transform: translate(-100%, -100%);` : ``}
+          transform: ${
+            // Use the derived legend_placement_cell to get the correct transform
+            get_placement_styles(legend_placement_cell, `legend`).transform
+          };
           ${legend?.wrapper_style ?? ``}
         `}
       />
