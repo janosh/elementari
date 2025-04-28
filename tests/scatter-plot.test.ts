@@ -277,7 +277,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     return { ticks, range }
   }
 
-  test(`zooms correctly inside and outside plot area and resets`, async ({
+  test(`zooms correctly inside and outside plot area and resets, tooltip appears during drag`, async ({
     page,
   }) => {
     const plot_locator = page.locator(`#basic-example .scatter`)
@@ -285,6 +285,16 @@ test.describe(`ScatterPlot Component Tests`, () => {
     const x_axis = plot_locator.locator(`g.x-axis`)
     const y_axis = plot_locator.locator(`g.y-axis`)
     const zoom_rect = plot_locator.locator(`rect.zoom-rect`)
+    const tooltip = plot_locator.locator(`div.tooltip`)
+
+    // Capture console errors
+    const console_errors: string[] = []
+    page.on(`console`, (msg) => {
+      if (msg.type() === `error`) console_errors.push(msg.text())
+    })
+    // Capture page errors (uncaught exceptions)
+    const page_errors: Error[] = []
+    page.on(`pageerror`, (error) => page_errors.push(error))
 
     // --- 1. Get initial state ---
     await x_axis
@@ -313,7 +323,23 @@ test.describe(`ScatterPlot Component Tests`, () => {
 
     await page.mouse.move(start_x, start_y)
     await page.mouse.down()
-    await page.mouse.move(end_x, end_y, { steps: 5 }) // Smooth move
+
+    // --- 2b. Move mouse during drag, check tooltip --- //
+    // Estimate coordinates for point (x=5, y=20)
+    // x=5 is roughly 40-50% across the x-axis [1, 10]
+    // y=20 is roughly 60-70% up the y-axis [10, 28]
+    const target_point_x = svg_box!.x + svg_box!.width * 0.45
+    const target_point_y = svg_box!.y + svg_box!.height * (1 - 0.65) // Y is inverted
+
+    // Move over the target point area
+    await page.mouse.move(target_point_x, target_point_y, { steps: 10 })
+    // Tooltip should appear during drag over a point
+    await expect(tooltip).toBeVisible({ timeout: 1000 })
+    await expect(tooltip).toContainText(`x: 5`) // Check tooltip content for x=5
+    await expect(tooltip).toContainText(`y: 20`) // Check tooltip content for y=20
+
+    // Move to the final zoom corner
+    await page.mouse.move(end_x, end_y, { steps: 5 })
 
     await expect(zoom_rect).toBeVisible()
     const rect_box = await zoom_rect.boundingBox()
@@ -382,6 +408,10 @@ test.describe(`ScatterPlot Component Tests`, () => {
     expect(reset_y.ticks).toEqual(initial_y.ticks)
     expect(reset_x.range).toBeCloseTo(initial_x.range)
     expect(reset_y.range).toBeCloseTo(initial_y.range)
+
+    // --- 7. Check for errors during the test --- //
+    expect(page_errors).toHaveLength(0)
+    expect(console_errors).toHaveLength(0)
   })
 
   // --- Label Auto Placement Tests ---

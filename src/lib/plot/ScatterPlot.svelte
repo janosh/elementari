@@ -831,7 +831,8 @@
       current_y <= svg_bounding_box.height
 
     if (is_inside_svg) {
-      find_closest_point(evt) // Update tooltip based on event relative to SVG
+      // Use the already calculated relative coordinates
+      update_tooltip_point(current_x, current_y)
     } else tooltip_point = null // Clear tooltip if outside
   }
 
@@ -925,15 +926,10 @@
   }
 
   // --- Tooltip Logic (extracted to function) ---
-  function on_mouse_move(evt: MouseEvent) {
-    hovered = true
 
-    const svg_box = (evt.currentTarget as SVGElement)?.getBoundingClientRect()
-    if (!svg_box || !width || !height) return
-
-    // Get mouse position relative to SVG (screen coordinates)
-    const mouse_x_rel = evt.clientX - svg_box.left
-    const mouse_y_rel = evt.clientY - svg_box.top
+  // Helper function to find the closest point and update the tooltip state
+  function update_tooltip_point(x_rel: number, y_rel: number): void {
+    if (!width || !height) return
 
     let closest_point_internal: InternalPoint | null = null
     let closest_series: (DataSeries & { filtered_data: InternalPoint[] }) | null = null
@@ -953,8 +949,8 @@
         const point_cy = y_scale_fn(point.y)
 
         // Calculate squared screen distance between mouse and point
-        const screen_dx = mouse_x_rel - point_cx
-        const screen_dy = mouse_y_rel - point_cy
+        const screen_dx = x_rel - point_cx
+        const screen_dy = y_rel - point_cy
         const screen_distance_sq = screen_dx * screen_dx + screen_dy * screen_dy
 
         // Update if this point is closer
@@ -983,10 +979,13 @@
     }
   }
 
-  function find_closest_point(evt: MouseEvent) {
+  function on_mouse_move(evt: MouseEvent) {
+    hovered = true
+
     const coords = get_relative_coords(evt)
     if (!coords) return
-    on_mouse_move(evt) // Call tooltip/hover logic
+
+    update_tooltip_point(coords.x, coords.y)
   }
 
   // Merge user config with defaults before the effect that uses it
@@ -1154,7 +1153,7 @@
       onmousedown={handle_mouse_down}
       onmousemove={(evt: MouseEvent) => {
         // Only find closest point if not actively dragging
-        if (!drag_start_coords) find_closest_point(evt)
+        if (!drag_start_coords) on_mouse_move(evt)
       }}
       onmouseleave={handle_mouse_leave}
       ondblclick={handle_double_click}
