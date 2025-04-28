@@ -299,30 +299,9 @@
   let auto_color_range = $derived(
     // Ensure we only calculate extent on actual numbers, filtering out nulls/undefined
     all_color_values.length > 0
-      ? (extent(all_color_values.filter((val): val is number => val != null)) as [
-          number,
-          number,
-        ])
+      ? extent(all_color_values.filter((val): val is number => val != null))
       : [0, 1],
   )
-
-  let effective_color_range = $derived(color_range ?? auto_color_range)
-  let [color_min, color_max] = $derived(effective_color_range)
-
-  // Validate log scale ranges
-  $effect(() => {
-    for (const { scale_type, range, axis } of [
-      { scale_type: x_scale_type, range: current_x_range, axis: `x` },
-      { scale_type: y_scale_type, range: current_y_range, axis: `y` },
-    ]) {
-      if (scale_type === `log` && (range[0] <= 0 || range[1] <= 0)) {
-        const point = range[0] <= 0 ? `minimum: ${range[0]}` : `maximum: ${range[1]}`
-        throw new Error(
-          `Log scale ${axis}-axis cannot have values <= 0. Current ${point}`,
-        )
-      }
-    }
-  })
 
   // Create scale functions
   let x_scale_fn = $derived(
@@ -358,12 +337,14 @@
         ? d3_sc[interpolator_name]
         : d3_sc.interpolateViridis
 
+    const [min_val, max_val] = color_range ?? (auto_color_range as [number, number])
+
     return color_scale_type === `log`
       ? scaleSequentialLog(interpolator).domain([
-          Math.max(color_min, 1e-10),
-          Math.max(color_max, color_min * 1.1),
+          Math.max(min_val, 1e-10),
+          Math.max(max_val, min_val * 1.1),
         ])
-      : scaleSequential(interpolator).domain([color_min, color_max])
+      : scaleSequential(interpolator).domain([min_val, max_val])
   })
 
   // Filter series data to only include points within bounds and augment with internal data
@@ -1196,13 +1177,15 @@
           {@const series_markers = series_data.markers ?? markers}
           <g data-series-idx={series_idx} clip-path="url(#plot-area-clip)">
             {#if series_markers?.includes(`line`)}
-              {@const first_point = series_data.filtered_data?.[0] as InternalPoint}
+              {@const first_color_value = series_data.color_values?.[0]}
+              {@const first_point_style = Array.isArray(series_data.point_style)
+                ? series_data.point_style[0]
+                : series_data.point_style}
               {@const series_color =
-                first_point?.color_value != null
-                  ? color_scale_fn(first_point.color_value)
-                  : typeof series_data?.point_style === `object` &&
-                      series_data?.point_style?.fill
-                    ? (series_data.point_style.fill as string)
+                first_color_value != null
+                  ? color_scale_fn(first_color_value)
+                  : first_point_style?.fill
+                    ? first_point_style.fill
                     : `rgba(255, 255, 255, 0.5)`}
 
               {@const all_line_points = series_data.x.map((x, idx) => ({
@@ -1234,11 +1217,10 @@
       {#if markers?.includes(`points`)}
         {#each filtered_series ?? [] as series_data, series_idx (series_data.label ?? series_idx)}
           {@const series_markers = series_data.markers ?? markers}
-          {@const { color_values } = series_data}
           <g data-series-idx={series_idx}>
             {#if series_markers?.includes(`points`)}
-              {#each series_data.filtered_data as point, point_idx (JSON.stringify(point))}
-                {@const label_id = `${series_idx}-${point_idx}`}
+              {#each series_data.filtered_data as point (JSON.stringify(point))}
+                {@const label_id = `${point.series_idx}-${point.point_idx}`}
                 {@const calculated_label_pos = label_positions[label_id]}
                 {@const label_style = point.point_label ?? {}}
                 {@const final_label = calculated_label_pos
@@ -1252,7 +1234,6 @@
                       offset_y: calculated_label_pos.y - y_scale_fn(point.y),
                     }
                   : label_style}
-                {@const color_value = color_values?.[point_idx]}
                 {@const [raw_screen_x, raw_screen_y] = get_screen_coords(point)}
                 {@const screen_x = isFinite(raw_screen_x)
                   ? raw_screen_x
@@ -1271,8 +1252,8 @@
                   offset={point.point_offset ?? { x: 0, y: 0 }}
                   {point_tween}
                   origin={{ x: plot_center_x, y: plot_center_y }}
-                  --point-fill-color={(color_value != null
-                    ? color_scale_fn(color_value)
+                  --point-fill-color={(point.color_value != null
+                    ? color_scale_fn(point.color_value)
                     : undefined) ?? point.point_style?.fill}
                 />
               {/each}
@@ -1400,7 +1381,7 @@
         {...{
           tick_labels: 4,
           tick_align: `primary`,
-          range: effective_color_range as [number, number],
+          range: color_range ?? auto_color_range,
           color_scale: color_scale_fn,
           wrapper_style: `
             position: absolute;
