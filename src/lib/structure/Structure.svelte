@@ -57,7 +57,7 @@
   }
   let {
     structure = $bindable(undefined),
-    scene_props = $bindable({ atom_radius: 1, show_atoms: true }),
+    scene_props = $bindable({ atom_radius: 1, show_atoms: true, auto_rotate: 0.5 }),
     lattice_props = $bindable({}),
     controls_open = $bindable(false),
     background_color = $bindable(`#0000ff`),
