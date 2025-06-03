@@ -141,12 +141,12 @@
     autoRotateSpeed={auto_rotate}
     enableDamping={Boolean(rotation_damping)}
     dampingFactor={rotation_damping}
-  />
+  >
+    {#if gizmo}
+      <Gizmo size={100} {...typeof gizmo === `boolean` ? {} : gizmo} />
+    {/if}
+  </OrbitControls>
 </T.PerspectiveCamera>
-
-{#if gizmo}
-  <Gizmo size={100} {...typeof gizmo === `boolean` ? {} : gizmo} />
-{/if}
 
 <T.DirectionalLight position={[3, 10, 10]} intensity={directional_light} />
 <T.AmbientLight intensity={ambient_light} />

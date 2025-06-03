@@ -7,6 +7,7 @@
   let controls_open = $state(false)
   let canvas = $state({ width: 600, height: 400 })
   let background_color = $state(`#1e1e1e`)
+  let gizmo = $state(true)
 </script>
 
 <svelte:head>
@@ -41,6 +42,11 @@
     Background Color:
     <input type="color" bind:value={background_color} />
   </label>
+  <br />
+  <label>
+    Show Gizmo:
+    <input type="checkbox" bind:checked={gizmo} />
+  </label>
 </section>
 
 <hr />
@@ -56,6 +62,7 @@
     bind:height={canvas.height}
     {background_color}
     reveal_buttons={true}
+    scene_props={{ gizmo }}
   />
 </div>
 
@@ -67,6 +74,7 @@
 </div>
 <div data-testid="canvas-width-status">Canvas Width Status: {canvas.width}</div>
 <div data-testid="canvas-height-status">Canvas Height Status: {canvas.height}</div>
+<div data-testid="gizmo-status">Gizmo Status: {gizmo}</div>
 
 <style>
   section {
