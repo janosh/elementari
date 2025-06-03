@@ -76,7 +76,7 @@
     enable_tips = true,
     save_json_btn_text = `⬇ Save as JSON`,
     save_png_btn_text = `✎ Save as PNG`,
-    show_site_labels = $bindable((structure?.sites?.length ?? 0) < 20),
+    show_site_labels = $bindable(false),
     style = null,
     show_image_atoms = $bindable(true),
     show_full_controls = $bindable(false),
@@ -333,20 +333,9 @@
         </label>
 
         <label>
-          Bond color mode
-          <select bind:value={scene_props.bond_color_mode}>
-            <option value="single">Single</option>
-            <option value="split-midpoint">Split Midpoint</option>
-            <option value="gradient" disabled>Gradient (TODO)</option>
-          </select>
+          Bond color
+          <input type="color" bind:value={scene_props.bond_color} />
         </label>
-
-        {#if scene_props.bond_color_mode === `single`}
-          <label>
-            Bond color
-            <input type="color" bind:value={scene_props.bond_color} />
-          </label>
-        {/if}
         <label>
           Bond radius
           <input
@@ -508,6 +497,7 @@
           ? get_pbc_image_sites(structure)
           : structure}
         {...scene_props}
+        {show_site_labels}
         {lattice_props}
       />
     </Canvas>

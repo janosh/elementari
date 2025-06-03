@@ -42,6 +42,7 @@
     pan_speed?: number
     show_atoms?: boolean
     show_bonds?: boolean
+    show_site_labels?: boolean
     gizmo?: boolean | ComponentProps<typeof Gizmo>
     hovered_idx?: number | null
     active_idx?: number | null
@@ -79,6 +80,7 @@
     pan_speed = 1,
     show_atoms = true,
     show_bonds = true,
+    show_site_labels = false,
     gizmo = true,
     hovered_idx = $bindable(null),
     active_idx = $bindable(null),
@@ -185,15 +187,17 @@
         xyz,
         scale([Math.cos(phi), 0, Math.sin(phi)], label_radius * radius),
       )} -->
-      <HTML center position={xyz}>
-        {#if atom_label}
-          {@render atom_label(site)}
-        {:else}
-          <span class="atom-label">
-            {@html species.map((sp) => sp.element).join(`&nbsp;`)}
-          </span>
-        {/if}
-      </HTML>
+      {#if show_site_labels}
+        <HTML center position={xyz}>
+          {#if atom_label}
+            {@render atom_label(site)}
+          {:else}
+            <span class="atom-label">
+              {@html species.map((sp) => sp.element).join(`&nbsp;`)}
+            </span>
+          {/if}
+        </HTML>
+      {/if}
     {/each}
   {/each}
 {/if}

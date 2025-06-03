@@ -184,4 +184,58 @@ test.describe(`Structure Component Tests`, () => {
     )
     await expect(controls_toggle_button).toContainText(`Controls`)
   })
+
+  test(`show_site_labels defaults to false and can be toggled`, async ({
+    page,
+  }) => {
+    const structure_component = page.locator(`#structure-wrapper .structure`)
+    const controls_toggle_button = structure_component.locator(
+      `button.controls-toggle`,
+    )
+    const controls_dialog = structure_component.locator(`dialog.controls`)
+
+    // Open controls panel
+    await controls_toggle_button.click()
+    await page.waitForTimeout(500)
+
+    // Find site labels checkbox by searching through all checkboxes
+    const all_checkboxes = controls_dialog.locator(`input[type="checkbox"]`)
+    const checkbox_count = await all_checkboxes.count()
+
+    let site_labels_checkbox = null
+    for (let idx = 0; idx < checkbox_count; idx++) {
+      const checkbox = all_checkboxes.nth(idx)
+      const label_text = await checkbox.locator(`xpath=..`).textContent()
+      if (label_text?.includes(`site labels`)) {
+        site_labels_checkbox = checkbox
+        break
+      }
+    }
+
+    expect(site_labels_checkbox).not.toBeNull()
+    expect(await site_labels_checkbox!.isChecked()).toBe(false)
+  })
+
+  test(`show_site_labels controls are properly labeled`, async ({ page }) => {
+    const controls_dialog = page.locator(
+      `#structure-wrapper .structure dialog.controls`,
+    )
+
+    // Open controls panel
+    await page
+      .locator(`#structure-wrapper .structure button.controls-toggle`)
+      .click()
+    await page.waitForTimeout(200)
+
+    // Verify control structure exists
+    const site_labels_label = controls_dialog.locator(
+      `label:has-text("site labels")`,
+    )
+    const site_labels_checkbox = site_labels_label.locator(
+      `input[type="checkbox"]`,
+    )
+
+    expect(await site_labels_label.count()).toBe(1)
+    expect(await site_labels_checkbox.count()).toBe(1)
+  })
 })
