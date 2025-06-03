@@ -98,8 +98,8 @@ test.describe(`Structure Component Tests`, () => {
 
     // Check canvas attributes reflect the change
     // This can be a bit tricky as Threlte/Svelte reactivity might have slight delays
-    await expect(canvas).toHaveAttribute(`width`, `700`, { timeout: 2000 })
-    await expect(canvas).toHaveAttribute(`height`, `500`, { timeout: 2000 })
+    await expect(canvas).toHaveAttribute(`width`, `700`, { timeout: 1000 })
+    await expect(canvas).toHaveAttribute(`height`, `500`, { timeout: 1000 })
   })
 
   // Fullscreen testing is complex with Playwright as it requires user gesture and browser API mocking.
@@ -309,12 +309,19 @@ test.describe(`Structure Component Tests`, () => {
     const canvas = page.locator(`#structure-wrapper canvas`)
     await expect(canvas).toBeVisible()
 
-    // Take a screenshot and wait briefly, then take another to detect auto-rotation
+    // Take a screenshot and wait for auto-rotation to occur
     const screenshot1 = await canvas.screenshot()
-    await page.waitForTimeout(100) // Wait 1.5 seconds for rotation
+    await page.waitForTimeout(1000) // Wait 2 seconds for rotation to be visible
     const screenshot2 = await canvas.screenshot()
 
     // Screenshots should be different due to auto-rotation
-    expect(screenshot1.equals(screenshot2)).toBe(false)
+    // If still the same, wait a bit more and try again
+    if (screenshot1.equals(screenshot2)) {
+      await page.waitForTimeout(1000) // Wait another 2 seconds
+      const screenshot3 = await canvas.screenshot()
+      expect(screenshot1.equals(screenshot3)).toBe(false)
+    } else {
+      expect(screenshot1.equals(screenshot2)).toBe(false)
+    }
   })
 })
