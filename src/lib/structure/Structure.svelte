@@ -50,14 +50,14 @@
     style?: string | null
     show_image_atoms?: boolean
     show_full_controls?: boolean
-    tips_icon?: Snippet
-    fullscreen_toggle?: Snippet
+    tips_icon?: Snippet<[]>
+    fullscreen_toggle?: Snippet<[]>
     controls_toggle?: Snippet<[{ controls_open: boolean }]>
     bottom_left?: Snippet<[{ structure: Atoms }]>
   }
   let {
     structure = $bindable(undefined),
-    scene_props = $bindable({ atom_radius: 1, show_atoms: true, auto_rotate: 0.5 }),
+    scene_props = $bindable({ atom_radius: 1, show_atoms: true, auto_rotate: 0 }),
     lattice_props = $bindable({}),
     controls_open = $bindable(false),
     background_color = $bindable(`#0000ff`),
@@ -86,14 +86,17 @@
     bottom_left,
   }: Props = $props()
 
+  // Ensure scene_props always has some defaults merged in
+  $effect.pre(() => {
+    scene_props = { atom_radius: 1, show_atoms: true, auto_rotate: 0, ...scene_props }
+  })
+
   $effect.pre(() => {
     colors.element = element_color_schemes[color_scheme]
   })
 
   function on_keydown(event: KeyboardEvent) {
-    if (event.key === `Escape`) {
-      controls_open = false
-    }
+    if (event.key === `Escape`) controls_open = false
   }
 
   const on_window_click =

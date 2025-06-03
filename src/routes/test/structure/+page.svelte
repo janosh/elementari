@@ -1,8 +1,8 @@
 <script lang="ts">
   import Structure from '$lib/structure/Structure.svelte'
-  import initial_structure_data from '$site/structures/mp-1.json'
+  import initial_structure from '$site/structures/mp-1.json'
 
-  let test_structure = $state(initial_structure_data)
+  let test_structure = $state(initial_structure)
 
   let controls_open = $state(false)
   let canvas = $state({ width: 600, height: 400 })
