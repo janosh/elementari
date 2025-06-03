@@ -265,16 +265,12 @@
 
       <!-- Fractional coordinates -->
       <div class="coordinates">
-        <strong>abc:</strong> ({hovered_site.abc
-          .map((num) => format_num(num, precision))
-          .join(`, `)})
+        abc: ({hovered_site.abc.map((num) => format_num(num, precision)).join(`, `)})
       </div>
 
       <!-- Cartesian coordinates -->
       <div class="coordinates">
-        <strong>xyz:</strong> ({hovered_site.xyz
-          .map((num) => format_num(num, precision))
-          .join(`, `)}) Å
+        xyz: ({hovered_site.xyz.map((num) => format_num(num, precision)).join(`, `)}) Å
       </div>
 
       <!-- distance from hovered to active site -->
@@ -302,26 +298,27 @@
     border-radius: var(--struct-tooltip-border-radius, 5pt);
     background: var(--struct-tooltip-bg, rgba(0, 0, 0, 0.5));
     padding: var(--struct-tooltip-padding, 1pt 5pt);
-    color: var(--struct-tooltip-text-color, white);
-    font-family: var(--struct-tooltip-font-family, monospace);
-    font-size: var(--struct-tooltip-font-size, 0.9em);
-    line-height: var(--struct-tooltip-line-height, 1.3);
+    text-align: left;
+    color: var(--struct-tooltip-text-color);
+    font-family: var(--struct-tooltip-font-family);
+    font-size: var(--struct-tooltip-font-size);
+    line-height: var(--struct-tooltip-line-height);
   }
 
   div.tooltip .elements {
-    margin-bottom: var(--struct-tooltip-elements-margin, 2pt);
+    margin-bottom: var(--struct-tooltip-elements-margin);
   }
 
   div.tooltip .occupancy {
-    font-size: var(--struct-tooltip-occupancy-font-size, 0.8em);
-    opacity: var(--struct-tooltip-occupancy-opacity, 0.8);
-    margin-right: var(--struct-tooltip-occupancy-margin, 1pt);
+    font-size: var(--struct-tooltip-occu-font-size);
+    opacity: var(--struct-tooltip-occu-opacity);
+    margin-right: var(--struct-tooltip-occu-margin);
   }
 
   div.tooltip .coordinates,
   div.tooltip .distance {
-    font-size: var(--struct-tooltip-coords-font-size, 0.85em);
-    margin: var(--struct-tooltip-coords-margin, 1pt 0);
+    font-size: var(--struct-tooltip-coords-font-size);
+    margin: var(--struct-tooltip-coords-margin);
   }
 
   .atom-label {
