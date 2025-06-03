@@ -1,14 +1,7 @@
 <script lang="ts">
   import type { Atoms, BondPair, Site, Vector } from '$lib'
-  import {
-    Bond,
-    Lattice,
-    add,
-    atomic_radii,
-    euclidean_dist,
-    pretty_num,
-    scale,
-  } from '$lib'
+  import { Bond, Lattice, add, atomic_radii, euclidean_dist, scale } from '$lib'
+  import { format_num } from '$lib/labels'
   import { colors } from '$lib/state.svelte'
   import { T } from '@threlte/core'
   import {
@@ -249,13 +242,13 @@
         <strong>{element}{oxi_state ?? ``}</strong>
         {occu == 1 ? `` : `(occu=${occu})`}
       {/each}
-      ({hovered_site.xyz.map((num) => pretty_num(num, precision)).join(`, `)})
+      ({hovered_site.xyz.map((num) => format_num(num, precision)).join(`, `)})
       <!-- distance from hovered to active site -->
       <!-- TODO this doesn't handle periodic boundaries yet, so is currently grossly misleading -->
       {#if active_site && active_site != hovered_site && active_hovered_dist}
         {@const distance = euclidean_dist(hovered_site.xyz, active_site.xyz)}
         <br />
-        dist={pretty_num(distance)} Å (no PBC yet)
+        dist={format_num(distance)} Å (no PBC yet)
       {/if}
     </div>
   </HTML>

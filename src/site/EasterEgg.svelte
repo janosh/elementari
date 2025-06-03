@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pretty_num } from '$lib/labels'
+  import { format_num } from '$lib/labels'
 
   interface Props {
     x_angle?: number
@@ -18,11 +18,11 @@
 <div class:visible={show_easter_egg}>
   <p>You found the easter egg!</p>
   <label>
-    Rotate X = <span>{pretty_num(x_angle)}</span>
+    Rotate X = <span>{format_num(x_angle)}</span>
     <input type="range" bind:value={x_angle} max={360} />
   </label>
   <label>
-    Rotate Y = <span>{pretty_num(y_angle)}</span>
+    Rotate Y = <span>{format_num(y_angle)}</span>
     <input type="range" bind:value={y_angle} max={360} />
   </label>
   <section>
