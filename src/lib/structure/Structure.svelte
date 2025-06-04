@@ -528,6 +528,7 @@
     --struct-controls-transition-duration: 0.3s;
     overflow: var(--struct-overflow, hidden);
     color: var(--struct-text-color);
+    pointer-events: none;
   }
   .structure:fullscreen :global(canvas) {
     height: 100vh !important;
@@ -542,6 +543,7 @@
     left: 0;
     font-size: var(--struct-bottom-left-font-size, 1.2em);
     padding: var(--struct-bottom-left-padding, 1pt 5pt);
+    pointer-events: none;
   }
 
   section {
@@ -552,6 +554,11 @@
     right: var(--struct-buttons-right, 1ex);
     gap: var(--struct-buttons-gap, 1ex);
     z-index: 2;
+    pointer-events: none;
+  }
+
+  section button {
+    pointer-events: auto;
   }
 
   dialog.controls {
@@ -629,5 +636,9 @@
     margin: var(--struct-input-color-margin, 0 0 0 5pt);
     border: var(--struct-input-color-border, 1px solid rgba(255, 255, 255, 0.05));
     box-sizing: border-box;
+  }
+
+  .structure :global(canvas) {
+    pointer-events: auto;
   }
 </style>

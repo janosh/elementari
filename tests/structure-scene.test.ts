@@ -7,21 +7,16 @@ let cached_atom_position: { x: number; y: number } | null = null
 async function find_hoverable_atom(
   page: Page,
 ): Promise<{ x: number; y: number } | null> {
-  // Return cached position if available
-  if (cached_atom_position) return cached_atom_position
-
   const canvas = page.locator(`#structure-wrapper canvas`)
 
-  // Reduced grid for faster searching
+  // Use cached position if available
+  if (cached_atom_position) return cached_atom_position
+
   const positions = [
-    { x: 250, y: 200 },
-    { x: 350, y: 200 },
-    { x: 300, y: 250 },
-    { x: 300, y: 150 },
-    { x: 400, y: 200 },
-    { x: 200, y: 200 },
-    { x: 350, y: 150 },
-    { x: 250, y: 300 },
+    { x: 300, y: 200 },
+    { x: 250, y: 150 },
+    { x: 350, y: 250 },
+    { x: 200, y: 300 },
     { x: 400, y: 250 },
   ]
 
@@ -29,8 +24,9 @@ async function find_hoverable_atom(
     await canvas.hover({ position })
     await page.waitForTimeout(100) // Reduced from 200ms
 
-    const tooltip = page.locator(`.tooltip`)
-    if (await tooltip.isVisible()) {
+    // Look for StructureScene tooltip specifically (has coordinates)
+    const structure_tooltip = page.locator(`.tooltip:has(.coordinates)`)
+    if (await structure_tooltip.isVisible()) {
       cached_atom_position = position // Cache for future use
       return position
     }
@@ -74,10 +70,10 @@ test.describe(`StructureScene Component Tests`, () => {
     // Try to find hoverable atom for tooltip verification
     const atom_position = await find_hoverable_atom(page)
     if (atom_position) {
-      const tooltip = page.locator(`.tooltip`)
-      await expect(tooltip).toBeVisible({ timeout: 1000 })
-      await expect(tooltip.locator(`.elements`)).toBeVisible()
-      await expect(tooltip.locator(`.coordinates`)).toHaveCount(2)
+      const tooltip = page.locator(`.tooltip:has(.coordinates)`)
+      await expect(tooltip.first()).toBeVisible({ timeout: 1000 })
+      await expect(tooltip.first().locator(`.elements`)).toBeVisible()
+      await expect(tooltip.first().locator(`.coordinates`)).toHaveCount(2)
     }
 
     await page.waitForTimeout(500) // Brief wait for any async operations
@@ -94,7 +90,7 @@ test.describe(`StructureScene Component Tests`, () => {
     const canvas = page.locator(`#structure-wrapper canvas`)
     await canvas.hover({ position: atom_position! })
 
-    const tooltip = page.locator(`.tooltip`)
+    const tooltip = page.locator(`.tooltip:has(.coordinates)`)
     await expect(tooltip).toBeVisible({ timeout: 1000 })
 
     // Check all tooltip content in one test
@@ -146,7 +142,7 @@ test.describe(`StructureScene Component Tests`, () => {
     for (const position of positions) {
       await canvas.hover({ position })
       await page.waitForTimeout(100)
-      const tooltip = page.locator(`.tooltip`)
+      const tooltip = page.locator(`.tooltip:has(.coordinates)`)
       if (await tooltip.isVisible()) {
         // Check for distance measurement
         const distance_section = tooltip.locator(`.distance`)
@@ -164,7 +160,7 @@ test.describe(`StructureScene Component Tests`, () => {
 
     // Verify deselection by checking no distance shown
     await canvas.hover({ position: first_atom! })
-    const tooltip = page.locator(`.tooltip`)
+    const tooltip = page.locator(`.tooltip:has(.coordinates)`)
     if (await tooltip.isVisible()) {
       const distance_section = tooltip.locator(`.distance`)
       await expect(distance_section).not.toBeVisible()
@@ -234,7 +230,7 @@ test.describe(`StructureScene Component Tests`, () => {
       await canvas.hover({ position })
       await page.waitForTimeout(100)
 
-      const tooltip = page.locator(`.tooltip`)
+      const tooltip = page.locator(`.tooltip:has(.coordinates)`)
       if (await tooltip.isVisible()) {
         // Check for occupancy (disordered site)
         const occupancy_span = tooltip.locator(`.occupancy`)
