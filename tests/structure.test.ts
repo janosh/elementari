@@ -49,7 +49,7 @@ test.describe(`Structure Component Tests`, () => {
 
     await background_color_input.fill(`#ff0000`) // Change to red
 
-    const expected_alpha = 0.063 // Rounded from 16 / 255 (hex '10' appended to color)
+    const expected_alpha = 0.1 // Default background_opacity value
     // Wait specifically for the target element's style to change to what we expect
     await expect(structure_div).toHaveCSS(
       `background-color`,
@@ -499,7 +499,7 @@ test.describe(`Structure Component Tests`, () => {
     await page.waitForTimeout(300)
 
     // Check that CSS variable is updated
-    const expected_alpha = 0.063 // 16 / 255 for hex '10' appended
+    const expected_alpha = 0.1 // Default background_opacity value
     await expect(structure_div).toHaveCSS(
       `background-color`,
       `rgba(255, 0, 0, ${expected_alpha})`,
