@@ -549,7 +549,6 @@
     --struct-controls-transition-duration: 0.3s;
     overflow: var(--struct-overflow, hidden);
     color: var(--struct-text-color);
-    pointer-events: none;
   }
   .structure:fullscreen :global(canvas) {
     height: 100vh !important;
@@ -564,7 +563,6 @@
     left: 0;
     font-size: var(--struct-bottom-left-font-size, 1.2em);
     padding: var(--struct-bottom-left-padding, 1pt 5pt);
-    pointer-events: none;
   }
 
   section {
@@ -575,7 +573,6 @@
     right: var(--struct-buttons-right, 1ex);
     gap: var(--struct-buttons-gap, 1ex);
     z-index: 2;
-    pointer-events: none;
   }
 
   section button {

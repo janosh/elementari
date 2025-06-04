@@ -129,6 +129,36 @@
 
   // make bond thickness reactive to atom_radius unless bond_radius is set
   let bond_thickness = $derived(bond_radius ?? 0.05 * atom_radius)
+
+  // Create modest gizmo options with balanced colors
+  let gizmo_options = $derived.by(() => {
+    const axis_options = Object.fromEntries(
+      [
+        [`x`, `#d75555`, `#e66666`], // red
+        [`y`, `#55b855`, `#66c966`], // green
+        [`z`, `#5555d7`, `#6666e6`], // blue
+        [`nx`, `#b84444`, `#cc5555`], // darker red
+        [`ny`, `#44a044`, `#55b155`], // darker green
+        [`nz`, `#4444b8`, `#5555c9`], // darker blue
+      ].map(([axis, color, hover_color]) => [
+        axis,
+        {
+          color,
+          labelColor: `#555555`,
+          opacity: axis.startsWith(`n`) ? 0.7 : 0.85,
+          hover: {
+            color: hover_color,
+            labelColor: `#222222`,
+            opacity: axis.startsWith(`n`) ? 0.85 : 0.95,
+          },
+        },
+      ]),
+    )
+
+    const default_options = { size: 100, background: { enabled: false }, ...axis_options }
+
+    return { ...default_options, ...(typeof gizmo === `boolean` ? {} : gizmo) }
+  })
 </script>
 
 <T.PerspectiveCamera makeDefault position={camera_position} {fov}>
@@ -156,7 +186,7 @@
     }}
   >
     {#if gizmo}
-      <Gizmo size={100} {...typeof gizmo === `boolean` ? {} : gizmo} />
+      <Gizmo {...gizmo_options} />
     {/if}
   </OrbitControls>
 </T.PerspectiveCamera>
@@ -307,7 +337,6 @@
   div.tooltip {
     width: max-content;
     box-sizing: border-box;
-    pointer-events: none;
     border-radius: var(--struct-tooltip-border-radius, 5pt);
     background: var(--struct-tooltip-bg, rgba(0, 0, 0, 0.5));
     padding: var(--struct-tooltip-padding, 1pt 5pt);
