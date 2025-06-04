@@ -620,7 +620,8 @@
   dialog.controls[open] {
     visibility: visible;
     opacity: 1;
-    z-index: var(--struct-controls-z-index-open, 100);
+    z-index: var(--struct-controls-z-index, 1);
+    pointer-events: auto;
   }
   dialog.controls button {
     width: max-content;
