@@ -1,3 +1,4 @@
+import yaml_plugin from '@rollup/plugin-yaml'
 import { sveltekit } from '@sveltejs/kit/vite'
 import mdsvexamples from 'mdsvexamples/vite'
 import { defineConfig } from 'vite'
@@ -10,7 +11,7 @@ if (run_script) {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [sveltekit(), mdsvexamples],
+  plugins: [sveltekit(), mdsvexamples, yaml_plugin()],
 
   test: {
     environment: `happy-dom`,
