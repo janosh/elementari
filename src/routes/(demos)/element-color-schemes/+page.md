@@ -15,6 +15,8 @@
     Jmol: 'From the <a href="http://jmol.sourceforge.net/" target="_blank" rel="noopener">Jmol</a> molecular visualizer, based on <a href="https://en.wikipedia.org/wiki/CPK_coloring" target="_blank" rel="noopener">CPK coloring</a> (Corey-Pauling-Koltun)',
     Alloy: 'Custom high-contrast scheme optimized for contrast between elements commonly co-occurring in metal alloys',
     Pastel: 'Custom pastel scheme with bright, less saturated colors',
+    Muted: 'Custom desaturated scheme for reduced visual strain but still trying to maintain some contrast',
+    'Dark Mode': 'Custom bright colors optimized for dark backgrounds and dark theme interfaces',
   }
 </script>
 

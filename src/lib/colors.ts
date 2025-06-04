@@ -1,7 +1,9 @@
 import { rgb } from 'd3-color'
 import * as d3_sc from 'd3-scale-chromatic'
 import alloy_colors from './data/alloy-colors.yml'
+import dark_mode_colors from './data/dark-mode-colors.yml'
 import jmol_colors from './data/jmol-colors.yml'
+import muted_colors from './data/muted-colors.yml'
 import pastel_colors from './data/pastel-colors.yml'
 import vesta_colors from './data/vesta-colors.yml'
 import type { elem_symbols } from './labels'
@@ -52,12 +54,16 @@ export const vesta_hex = rgb_scheme_to_hex(vesta_colors)
 export const jmol_hex = rgb_scheme_to_hex(jmol_colors)
 export const alloy_hex = rgb_scheme_to_hex(alloy_colors)
 export const pastel_hex = rgb_scheme_to_hex(pastel_colors)
+export const muted_hex = rgb_scheme_to_hex(muted_colors)
+export const dark_mode_hex = rgb_scheme_to_hex(dark_mode_colors)
 
 export const element_color_schemes = {
   Vesta: vesta_hex,
   Jmol: jmol_hex,
   Alloy: alloy_hex,
   Pastel: pastel_hex,
+  Muted: muted_hex,
+  'Dark Mode': dark_mode_hex,
 } as const
 
 export const default_element_colors = { ...vesta_hex }

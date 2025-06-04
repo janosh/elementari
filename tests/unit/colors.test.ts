@@ -16,20 +16,22 @@ function is_valid_hex_color(color: string): boolean {
   return hex_regex.test(color)
 }
 
-describe('Element Color Schemes', () => {
-  test('all schemes exist and are objects', () => {
+describe(`Element Color Schemes`, () => {
+  test(`all schemes exist and are objects`, () => {
     expect(element_color_schemes).toBeDefined()
-    expect(typeof element_color_schemes).toBe('object')
+    expect(typeof element_color_schemes).toBe(`object`)
 
     const schemes = Object.keys(element_color_schemes)
-    expect(schemes.length).toBeGreaterThanOrEqual(4)
-    expect(schemes).toContain('Vesta')
-    expect(schemes).toContain('Jmol')
-    expect(schemes).toContain('Alloy')
-    expect(schemes).toContain('Pastel')
+    expect(schemes.length).toBeGreaterThanOrEqual(6)
+    expect(schemes).toContain(`Vesta`)
+    expect(schemes).toContain(`Jmol`)
+    expect(schemes).toContain(`Alloy`)
+    expect(schemes).toContain(`Pastel`)
+    expect(schemes).toContain(`Muted`)
+    expect(schemes).toContain(`Dark Mode`)
   })
 
-  test('each scheme has complete element coverage', () => {
+  test(`each scheme has complete element coverage`, () => {
     for (const [scheme_name, colors] of Object.entries(element_color_schemes)) {
       const scheme_elements = Object.keys(colors)
 
@@ -49,7 +51,7 @@ describe('Element Color Schemes', () => {
     }
   })
 
-  test('all schemes have identical element coverage', () => {
+  test(`all schemes have identical element coverage`, () => {
     const schemes = Object.entries(element_color_schemes)
     const [first_scheme_name, first_scheme] = schemes[0]
     const first_elements = new Set(Object.keys(first_scheme))
@@ -69,7 +71,7 @@ describe('Element Color Schemes', () => {
       )
       expect(
         missing_elements,
-        `${scheme_name} is missing elements from ${first_scheme_name}: ${missing_elements.join(', ')}`,
+        `${scheme_name} is missing elements from ${first_scheme_name}: ${missing_elements.join(`, `)}`,
       ).toHaveLength(0)
 
       // Check for extra elements
@@ -78,18 +80,18 @@ describe('Element Color Schemes', () => {
       )
       expect(
         extra_elements,
-        `${scheme_name} has extra elements not in ${first_scheme_name}: ${extra_elements.join(', ')}`,
+        `${scheme_name} has extra elements not in ${first_scheme_name}: ${extra_elements.join(`, `)}`,
       ).toHaveLength(0)
     }
   })
 
-  test('all color values are valid hex format', () => {
+  test(`all color values are valid hex format`, () => {
     for (const [scheme_name, colors] of Object.entries(element_color_schemes)) {
       for (const [element, color] of Object.entries(colors)) {
         expect(
           typeof color,
           `${scheme_name}.${element} should be a string`,
-        ).toBe('string')
+        ).toBe(`string`)
         expect(
           is_valid_hex_color(color),
           `${scheme_name}.${element} should be valid hex color (got: ${color})`,
@@ -98,14 +100,14 @@ describe('Element Color Schemes', () => {
     }
   })
 
-  test('color values are unique within each scheme', () => {
+  test(`color values are unique within each scheme`, () => {
     for (const [scheme_name, colors] of Object.entries(element_color_schemes)) {
       const color_values = Object.values(colors)
       const unique_colors = new Set(color_values)
 
       // Allow some duplicates but not too many (some elements might share colors intentionally)
       // Alloy scheme inherits from VESTA so may have more duplicates
-      const max_duplicates = scheme_name === 'Alloy' ? 15 : 10
+      const max_duplicates = scheme_name === `Alloy` ? 15 : 10
       const duplicate_count = color_values.length - unique_colors.size
       expect(
         duplicate_count,
@@ -114,9 +116,9 @@ describe('Element Color Schemes', () => {
     }
   })
 
-  test('specific elements have defined colors', () => {
+  test(`specific elements have defined colors`, () => {
     // Test some key elements that should definitely be present
-    const key_elements = ['H', 'C', 'N', 'O', 'Fe', 'Au', 'U']
+    const key_elements = [`H`, `C`, `N`, `O`, `Fe`, `Au`, `U`]
 
     for (const [scheme_name, colors] of Object.entries(element_color_schemes)) {
       for (const element of key_elements) {
@@ -132,11 +134,11 @@ describe('Element Color Schemes', () => {
     }
   })
 
-  test('pastel scheme has pastel characteristics', () => {
+  test(`pastel scheme has pastel characteristics`, () => {
     const pastel_colors = element_color_schemes.Pastel
 
     // Check a few elements to ensure they have pastel characteristics (high lightness)
-    const sample_elements = ['H', 'C', 'O', 'Fe', 'Au']
+    const sample_elements = [`H`, `C`, `O`, `Fe`, `Au`]
 
     for (const element of sample_elements) {
       const color = pastel_colors[element]
