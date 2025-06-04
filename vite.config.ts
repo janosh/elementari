@@ -3,13 +3,6 @@ import { sveltekit } from '@sveltejs/kit/vite'
 import mdsvexamples from 'mdsvexamples/vite'
 import { defineConfig } from 'vite'
 
-const run_script = process.argv.some((arg) =>
-  arg.startsWith(`fetch-elem-images:`),
-)
-if (run_script) {
-  await import(`./src/fetch-elem-images.ts`)
-}
-
 export default defineConfig(({ mode }) => ({
   plugins: [sveltekit(), mdsvexamples, yaml_plugin()],
 

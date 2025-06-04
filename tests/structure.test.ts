@@ -49,7 +49,7 @@ test.describe(`Structure Component Tests`, () => {
 
     await background_color_input.fill(`#ff0000`) // Change to red
 
-    const expected_alpha = 0.125 // Rounded from 32 / 255
+    const expected_alpha = 0.063 // Rounded from 16 / 255 (hex '10' appended to color)
     // Wait specifically for the target element's style to change to what we expect
     await expect(structure_div).toHaveCSS(
       `background-color`,
