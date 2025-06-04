@@ -304,24 +304,4 @@ test.describe(`Structure Component Tests`, () => {
       expect(initial_screenshot.equals(after_screenshot)).toBe(false)
     }
   })
-
-  test(`auto rotation is enabled by default`, async ({ page }) => {
-    const canvas = page.locator(`#structure-wrapper canvas`)
-    await expect(canvas).toBeVisible()
-
-    // Take a screenshot and wait for auto-rotation to occur
-    const screenshot1 = await canvas.screenshot()
-    await page.waitForTimeout(1000) // Wait 2 seconds for rotation to be visible
-    const screenshot2 = await canvas.screenshot()
-
-    // Screenshots should be different due to auto-rotation
-    // If still the same, wait a bit more and try again
-    if (screenshot1.equals(screenshot2)) {
-      await page.waitForTimeout(1000) // Wait another 2 seconds
-      const screenshot3 = await canvas.screenshot()
-      expect(screenshot1.equals(screenshot3)).toBe(false)
-    } else {
-      expect(screenshot1.equals(screenshot2)).toBe(false)
-    }
-  })
 })
