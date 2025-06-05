@@ -5,8 +5,8 @@ export function norm(vec: NdVector): number {
   return Math.sqrt(vec.reduce((acc, val) => acc + val ** 2, 0))
 }
 
-export function scale(vec: Vector, factor: number): Vector {
-  return [vec[0] * factor, vec[1] * factor, vec[2] * factor]
+export function scale(vec: NdVector, factor: number): NdVector {
+  return vec.map((component) => component * factor)
 }
 
 export function euclidean_dist(vec1: Vector, vec2: Vector): number {
@@ -53,7 +53,7 @@ function matrix_inverse_3x3(
   const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
 
   if (Math.abs(det) < 1e-10) {
-    throw new Error(`Matrix is singular and cannot be inverted`)
+    throw `Matrix is singular and cannot be inverted`
   }
 
   const inv_det = 1 / det
@@ -95,13 +95,25 @@ function matrix_vector_multiply(
   ]
 }
 
-export function add(...vecs: Vector[]): Vector {
+export function add(...vecs: NdVector[]): NdVector {
   // add up any number of same-length vectors
-  const result: Vector = [vecs[0][0], vecs[0][1], vecs[0][2]]
-  for (const vec of vecs.slice(1)) {
-    result[0] += vec[0]
-    result[1] += vec[1]
-    result[2] += vec[2]
+  if (vecs.length === 0) return []
+
+  const first_vec = vecs[0]
+  const length = first_vec.length
+
+  // Validate all vectors have the same length
+  for (const vec of vecs) {
+    if (vec.length !== length) {
+      throw `All vectors must have the same length`
+    }
+  }
+
+  const result = new Array(length).fill(0)
+  for (const vec of vecs) {
+    for (let idx = 0; idx < length; idx++) {
+      result[idx] += vec[idx]
+    }
   }
   return result
 }
@@ -117,10 +129,10 @@ export function dot(
 
   // Handle the case where one input is a scalar and the other is a vector
   if (typeof x1 === `number` && Array.isArray(x2)) {
-    throw new Error(`Scalar and vector multiplication is not supported`)
+    throw `Scalar and vector multiplication is not supported`
   }
   if (Array.isArray(x1) && typeof x2 === `number`) {
-    throw new Error(`Vector and scalar multiplication is not supported`)
+    throw `Vector and scalar multiplication is not supported`
   }
 
   // At this point, we know that both inputs are arrays
@@ -130,7 +142,7 @@ export function dot(
   // Handle the case where both inputs are vectors
   if (!Array.isArray(vec1[0]) && !Array.isArray(vec2[0])) {
     if (vec1.length !== vec2.length) {
-      throw new Error(`Vectors must be of same length`)
+      throw `Vectors must be of same length`
     }
     return vec1.reduce((sum, val, index) => sum + val * vec2[index], 0)
   }
@@ -139,9 +151,7 @@ export function dot(
   if (Array.isArray(vec1[0]) && !Array.isArray(vec2[0])) {
     const mat1 = vec1 as unknown as number[][]
     if (mat1[0].length !== vec2.length) {
-      throw new Error(
-        `Number of columns in matrix must be equal to number of elements in vector`,
-      )
+      throw `Number of columns in matrix must be equal to number of elements in vector`
     }
     return mat1.map((row) =>
       row.reduce((sum, val, index) => sum + val * vec2[index], 0),
@@ -153,9 +163,7 @@ export function dot(
     const mat1 = vec1 as unknown as number[][]
     const mat2 = vec2 as unknown as number[][]
     if (mat1[0].length !== mat2.length) {
-      throw new Error(
-        `Number of columns in first matrix must be equal to number of rows in second matrix`,
-      )
+      throw `Number of columns in first matrix must be equal to number of rows in second matrix`
     }
     return mat1.map((row, i) =>
       mat2[0].map((_, j) =>
@@ -165,7 +173,5 @@ export function dot(
   }
 
   // Handle any other cases
-  throw new Error(
-    `Unsupported input dimensions. Inputs must be scalars, vectors, or matrices.`,
-  )
+  throw `Unsupported input dimensions. Inputs must be scalars, vectors, or matrices.`
 }
