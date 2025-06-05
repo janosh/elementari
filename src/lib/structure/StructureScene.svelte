@@ -1,6 +1,14 @@
 <script lang="ts">
   import type { Atoms, BondPair, Site, Vector } from '$lib'
-  import { Bond, Lattice, add, atomic_radii, euclidean_dist, scale } from '$lib'
+  import {
+    Bond,
+    Lattice,
+    add,
+    atomic_radii,
+    element_data,
+    euclidean_dist,
+    scale,
+  } from '$lib'
   import { format_num } from '$lib/labels'
   import { colors } from '$lib/state.svelte'
   import { T } from '@threlte/core'
@@ -296,6 +304,8 @@
         {#each hovered_site.species ?? [] as { element, occu, oxidation_state: oxi_state }, idx ([element, occu, oxi_state])}
           {@const oxi_str =
             oxi_state && Math.abs(oxi_state) + (oxi_state > 0 ? `+` : `-`)}
+          {@const element_name =
+            element_data.find((elem) => elem.symbol === element)?.name ?? ``}
           {#if idx > 0}
             &thinsp;
           {/if}
@@ -303,6 +313,9 @@
             <span class="occupancy">{format_num(occu, `.3~f`)}</span>
           {/if}
           <strong>{element}{oxi_str ?? ``}</strong>
+          {#if element_name}
+            <span class="elem-name">{element_name}</span>
+          {/if}
         {/each}
       </div>
 
@@ -355,6 +368,13 @@
     font-size: var(--struct-tooltip-occu-font-size);
     opacity: var(--struct-tooltip-occu-opacity);
     margin-right: var(--struct-tooltip-occu-margin);
+  }
+
+  div.tooltip .elem-name {
+    font-size: var(--struct-tooltip-elem-name-font-size, 0.85em);
+    opacity: var(--struct-tooltip-elem-name-opacity, 0.7);
+    margin: var(--struct-tooltip-elem-name-margin, 0 0 0 0.3em);
+    font-weight: var(--struct-tooltip-elem-name-font-weight, normal);
   }
 
   div.tooltip .coordinates,

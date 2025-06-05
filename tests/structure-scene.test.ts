@@ -96,10 +96,40 @@ test.describe(`StructureScene Component Tests`, () => {
     const elements_section = tooltip.locator(`.elements`)
     await expect(elements_section).toBeVisible()
 
-    const coordinates_sections = tooltip.locator(`.coordinates`)
-    await expect(coordinates_sections).toHaveCount(2)
+    // Check for element symbol and full name together
+    const element_symbols = elements_section.locator(`strong`)
+    const element_names = elements_section.locator(`.elem-name`)
 
-    // Verify coordinate formatting
+    await expect(element_symbols.first()).toBeVisible()
+
+    // Verify element names are displayed when available
+    const symbol_count = await element_symbols.count()
+    const name_count = await element_names.count()
+
+    if (name_count > 0) {
+      expect(name_count).toBe(symbol_count) // Should match symbols
+
+      // Verify element name styling and content
+      const element_name_text = await element_names.first().textContent()
+      expect(element_name_text).toBeTruthy()
+      expect(element_name_text!.length).toBeGreaterThan(1) // Not just empty
+
+      // Verify styling (smaller, lighter font)
+      await expect(element_names.first()).toHaveCSS(`opacity`, `0.7`)
+      await expect(element_names.first()).toHaveCSS(`font-weight`, `400`) // normal weight
+    }
+
+    // Verify element symbol and name appear together when both present
+    const elements_text = await elements_section.textContent()
+    if (name_count > 0) {
+      expect(elements_text).toMatch(/[A-Z][a-z]?\s+[A-Z][a-z]+/) // Symbol followed by name pattern
+    }
+
+    // Check coordinates are back to separate lines
+    const coordinates_sections = tooltip.locator(`.coordinates`)
+    await expect(coordinates_sections).toHaveCount(2) // Back to separate abc and xyz lines
+
+    // Verify coordinate formatting (fractional and Cartesian)
     const abc_coords = coordinates_sections.filter({ hasText: `abc:` })
     const xyz_coords = coordinates_sections.filter({ hasText: `xyz:` })
 
