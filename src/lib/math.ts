@@ -5,26 +5,111 @@ export function norm(vec: NdVector): number {
   return Math.sqrt(vec.reduce((acc, val) => acc + val ** 2, 0))
 }
 
-export function scale<T extends Vector>(vec: T, factor: number): T {
-  return vec.map((val) => val * factor)
+export function scale(vec: Vector, factor: number): Vector {
+  return [vec[0] * factor, vec[1] * factor, vec[2] * factor]
 }
 
 export function euclidean_dist(vec1: Vector, vec2: Vector): number {
   return norm(add(vec1, scale(vec2, -1)))
 }
 
-export function add<T extends Vector>(...vecs: T[]): T {
+// Calculate the minimum distance between two points considering periodic boundary conditions.
+export function pbc_dist(
+  pos1: Vector, // First position vector (Cartesian coordinates)
+  pos2: Vector, // Second position vector (Cartesian coordinates)
+  lattice_matrix: [Vector, Vector, Vector], // 3x3 lattice matrix where each row is a lattice vector
+  lattice_inv?: [Vector, Vector, Vector], // Optional pre-computed inverse matrix for optimization (since lattice is usually constant and repeatedly inverting matrix is expensive)
+): number {
+  // Use provided inverse or compute it
+  const inv_matrix = lattice_inv ?? matrix_inverse_3x3(lattice_matrix)
+
+  // Convert Cartesian coordinates to fractional coordinates
+  const frac1 = matrix_vector_multiply(inv_matrix, pos1)
+  const frac2 = matrix_vector_multiply(inv_matrix, pos2)
+
+  // Calculate fractional distance vector
+  const frac_diff = add(frac1, scale(frac2, -1))
+
+  // Apply minimum image convention: wrap to [-0.5, 0.5)
+  const wrapped_frac_diff: Vector = frac_diff.map((x) => {
+    // Wrap to [0, 1) first, then shift to [-0.5, 0.5)
+    let wrapped = x - Math.floor(x)
+    if (wrapped >= 0.5) wrapped -= 1
+    return wrapped
+  }) as Vector
+
+  // Convert back to Cartesian coordinates
+  const cart_diff = matrix_vector_multiply(lattice_matrix, wrapped_frac_diff)
+
+  return norm(cart_diff)
+}
+
+function matrix_inverse_3x3(
+  matrix: [Vector, Vector, Vector],
+): [Vector, Vector, Vector] {
+  /** Calculate the inverse of a 3x3 matrix */
+  const [[a, b, c], [d, e, f], [g, h, i]] = matrix
+
+  const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
+
+  if (Math.abs(det) < 1e-10) {
+    throw new Error(`Matrix is singular and cannot be inverted`)
+  }
+
+  const inv_det = 1 / det
+
+  return [
+    [
+      (e * i - f * h) * inv_det,
+      (c * h - b * i) * inv_det,
+      (b * f - c * e) * inv_det,
+    ],
+    [
+      (f * g - d * i) * inv_det,
+      (a * i - c * g) * inv_det,
+      (c * d - a * f) * inv_det,
+    ],
+    [
+      (d * h - e * g) * inv_det,
+      (b * g - a * h) * inv_det,
+      (a * e - b * d) * inv_det,
+    ],
+  ]
+}
+
+function matrix_vector_multiply(
+  matrix: [Vector, Vector, Vector],
+  vector: Vector,
+): Vector {
+  /** Multiply a 3x3 matrix by a 3D vector */
+  return [
+    matrix[0][0] * vector[0] +
+      matrix[0][1] * vector[1] +
+      matrix[0][2] * vector[2],
+    matrix[1][0] * vector[0] +
+      matrix[1][1] * vector[1] +
+      matrix[1][2] * vector[2],
+    matrix[2][0] * vector[0] +
+      matrix[2][1] * vector[1] +
+      matrix[2][2] * vector[2],
+  ]
+}
+
+export function add(...vecs: Vector[]): Vector {
   // add up any number of same-length vectors
-  const result = vecs[0].slice()
+  const result: Vector = [vecs[0][0], vecs[0][1], vecs[0][2]]
   for (const vec of vecs.slice(1)) {
-    for (const [idx, val] of vec.entries()) {
-      result[idx] += val
-    }
+    result[0] += vec[0]
+    result[1] += vec[1]
+    result[2] += vec[2]
   }
   return result
 }
 
-export function dot(x1: NdVector, x2: NdVector): number | number[] {
+export function dot(
+  x1: NdVector,
+  x2: NdVector,
+): number | number[] | number[][] {
   // Handle the case where both inputs are scalars
   if (typeof x1 === `number` && typeof x2 === `number`) {
     return x1 * x2
@@ -52,7 +137,7 @@ export function dot(x1: NdVector, x2: NdVector): number | number[] {
 
   // Handle the case where the first input is a matrix and the second is a vector
   if (Array.isArray(vec1[0]) && !Array.isArray(vec2[0])) {
-    const mat1 = vec1 as number[][]
+    const mat1 = vec1 as unknown as number[][]
     if (mat1[0].length !== vec2.length) {
       throw new Error(
         `Number of columns in matrix must be equal to number of elements in vector`,
@@ -65,8 +150,8 @@ export function dot(x1: NdVector, x2: NdVector): number | number[] {
 
   // Handle the case where both inputs are matrices
   if (Array.isArray(vec1[0]) && Array.isArray(vec2[0])) {
-    const mat1 = vec1 as number[][]
-    const mat2 = vec2 as number[][]
+    const mat1 = vec1 as unknown as number[][]
+    const mat2 = vec2 as unknown as number[][]
     if (mat1[0].length !== mat2.length) {
       throw new Error(
         `Number of columns in first matrix must be equal to number of rows in second matrix`,

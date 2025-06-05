@@ -8,10 +8,10 @@
   interface Props {
     matrix?: [Vector, Vector, Vector] | undefined
     show_cell?: `surface` | `wireframe` | null
-    // see https://threejs.org/docs/#api/en/materials/MeshBasicMaterial.wireframe
     cell_color?: string
     // thickness of the wireframe lines that indicate the lattice's unit cell
     // due to limitations of OpenGL with WebGL renderer, on most platforms linewidth will be 1 regardless of set value
+    // see https://threejs.org/docs/#api/en/materials/MeshBasicMaterial.wireframe
     cell_line_width?: number
     // cell opacity
     cell_opacity?: number | undefined

@@ -7,6 +7,7 @@
     atomic_radii,
     element_data,
     euclidean_dist,
+    pbc_dist,
     scale,
   } from '$lib'
   import { format_num } from '$lib/labels'
@@ -330,12 +331,17 @@
       </div>
 
       <!-- distance from hovered to active site -->
-      <!-- TODO this doesn't handle periodic boundaries yet, so is currently grossly misleading -->
       {#if active_site && active_site != hovered_site && active_hovered_dist}
-        {@const distance = euclidean_dist(hovered_site.xyz, active_site.xyz)}
+        {@const direct_distance = euclidean_dist(hovered_site.xyz, active_site.xyz)}
+        {@const pbc_distance = lattice
+          ? pbc_dist(hovered_site.xyz, active_site.xyz, lattice.matrix)
+          : direct_distance}
         <div class="distance">
           <strong>dist:</strong>
-          {format_num(distance, precision)} Å (no PBC yet)
+          {format_num(pbc_distance, precision)} Å{lattice ? ` (PBC)` : ``}
+          {#if lattice && Math.abs(pbc_distance - direct_distance) > 0.1}
+            <small> | direct: {format_num(direct_distance, precision)} Å</small>
+          {/if}
         </div>
       {/if}
     </div>

@@ -547,7 +547,7 @@
     border-radius: var(--struct-border-radius, 3pt);
     background: var(--struct-bg, rgba(255, 255, 255, 0.1));
     --struct-controls-transition-duration: 0.3s;
-    overflow: var(--struct-overflow, hidden);
+    overflow: var(--struct-overflow, visible);
     color: var(--struct-text-color);
   }
   .structure:fullscreen :global(canvas) {
