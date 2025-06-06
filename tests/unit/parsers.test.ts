@@ -147,6 +147,51 @@ describe(`Auto-detection & Error Handling`, () => {
     expect(result?.sites).toHaveLength(sites)
   })
 
+  it(`should handle non-orthogonal lattices with matrix inversion`, () => {
+    // Test triclinic lattice (non-orthogonal) - this would fail with simple division method
+    const triclinic_poscar = `Triclinic test\n1.0\n5.0 0.0 0.0\n2.5 4.33 0.0\n1.0 1.0 4.0\nC N\n1 1\nCartesian\n1.0 1.0 1.0\n3.5 2.5 2.0`
+    const triclinic_xyz = `2\nLattice="5.0 0.0 0.0 2.5 4.33 0.0 1.0 1.0 4.0"\nC 1.0 1.0 1.0\nN 3.5 2.5 2.0`
+
+    const poscar_result = parse_poscar(triclinic_poscar)
+    const xyz_result = parse_xyz(triclinic_xyz)
+
+    expect(poscar_result?.sites).toHaveLength(2)
+    expect(xyz_result?.sites).toHaveLength(2)
+
+    // Both parsers should give identical results for same coordinates
+    for (let idx = 0; idx < 2; idx++) {
+      const poscar_site = poscar_result!.sites[idx]
+      const xyz_site = xyz_result!.sites[idx]
+
+      // Fractional coordinates should match between parsers
+      expect(poscar_site.abc).toEqual(
+        expect.arrayContaining([
+          expect.closeTo(xyz_site.abc[0], 10),
+          expect.closeTo(xyz_site.abc[1], 10),
+          expect.closeTo(xyz_site.abc[2], 10),
+        ]),
+      )
+
+      // Verify perfect reconstruction: fractional → cartesian should match original
+      const lattice = poscar_result!.lattice!.matrix
+      const reconstructed = [
+        poscar_site.abc[0] * lattice[0][0] +
+          poscar_site.abc[1] * lattice[1][0] +
+          poscar_site.abc[2] * lattice[2][0],
+        poscar_site.abc[0] * lattice[0][1] +
+          poscar_site.abc[1] * lattice[1][1] +
+          poscar_site.abc[2] * lattice[2][1],
+        poscar_site.abc[0] * lattice[0][2] +
+          poscar_site.abc[1] * lattice[1][2] +
+          poscar_site.abc[2] * lattice[2][2],
+      ]
+
+      expect(reconstructed[0]).toBeCloseTo(poscar_site.xyz[0], 12)
+      expect(reconstructed[1]).toBeCloseTo(poscar_site.xyz[1], 12)
+      expect(reconstructed[2]).toBeCloseTo(poscar_site.xyz[2], 12)
+    }
+  })
+
   it.each([
     // Parser-specific errors
     { parser: parse_poscar, content: `Too short` },

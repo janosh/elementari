@@ -1,5 +1,68 @@
 import { elem_symbols, type ElementSymbol, type Site, type Vector } from '$lib'
 
+// Import matrix functions for proper fractional coordinate calculation
+function matrix_inverse_3x3(
+  matrix: [Vector, Vector, Vector],
+): [Vector, Vector, Vector] {
+  /** Calculate the inverse of a 3x3 matrix */
+  const [[a, b, c], [d, e, f], [g, h, i]] = matrix
+
+  const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
+
+  if (Math.abs(det) < 1e-10) {
+    throw `Matrix is singular and cannot be inverted`
+  }
+
+  const inv_det = 1 / det
+
+  return [
+    [
+      (e * i - f * h) * inv_det,
+      (c * h - b * i) * inv_det,
+      (b * f - c * e) * inv_det,
+    ],
+    [
+      (f * g - d * i) * inv_det,
+      (a * i - c * g) * inv_det,
+      (c * d - a * f) * inv_det,
+    ],
+    [
+      (d * h - e * g) * inv_det,
+      (b * g - a * h) * inv_det,
+      (a * e - b * d) * inv_det,
+    ],
+  ]
+}
+
+function matrix_vector_multiply(
+  matrix: [Vector, Vector, Vector],
+  vector: Vector,
+): Vector {
+  /** Multiply a 3x3 matrix by a 3D vector */
+  return [
+    matrix[0][0] * vector[0] +
+      matrix[0][1] * vector[1] +
+      matrix[0][2] * vector[2],
+    matrix[1][0] * vector[0] +
+      matrix[1][1] * vector[1] +
+      matrix[1][2] * vector[2],
+    matrix[2][0] * vector[0] +
+      matrix[2][1] * vector[1] +
+      matrix[2][2] * vector[2],
+  ]
+}
+
+function transpose_matrix(
+  matrix: [Vector, Vector, Vector],
+): [Vector, Vector, Vector] {
+  /** Transpose a 3x3 matrix */
+  return [
+    [matrix[0][0], matrix[1][0], matrix[2][0]],
+    [matrix[0][1], matrix[1][1], matrix[2][1]],
+    [matrix[0][2], matrix[1][2], matrix[2][2]],
+  ]
+}
+
 export interface ParsedStructure {
   sites: Site[]
   lattice?: {
@@ -313,13 +376,21 @@ export function parse_poscar(content: string): ParsedStructure | null {
               coords[1] * scale_factor,
               coords[2] * scale_factor,
             ]
-            // Calculate fractional coordinates
-            // This is simplified - proper implementation would use matrix inversion
-            abc = [
-              xyz[0] / scaled_lattice[0][0],
-              xyz[1] / scaled_lattice[1][1],
-              xyz[2] / scaled_lattice[2][2],
-            ]
+            // Calculate fractional coordinates using proper matrix inversion
+            // Note: Our lattice matrix is stored as row vectors, but for coordinate conversion
+            // we need column vectors, so we transpose before inversion
+            try {
+              const lattice_transposed = transpose_matrix(scaled_lattice)
+              const lattice_inv = matrix_inverse_3x3(lattice_transposed)
+              abc = matrix_vector_multiply(lattice_inv, xyz)
+            } catch {
+              // Fallback to simplified method if matrix is singular
+              abc = [
+                xyz[0] / scaled_lattice[0][0],
+                xyz[1] / scaled_lattice[1][1],
+                xyz[2] / scaled_lattice[2][2],
+              ]
+            }
           }
 
           const site: Site = {
@@ -451,9 +522,17 @@ export function parse_xyz(content: string): ParsedStructure | null {
       // Calculate fractional coordinates if lattice is available
       let abc: Vector = [0, 0, 0]
       if (lattice) {
-        // Simplified fractional coordinate calculation
-        // Proper implementation would use matrix inversion
-        abc = [xyz[0] / lattice.a, xyz[1] / lattice.b, xyz[2] / lattice.c]
+        // Calculate fractional coordinates using proper matrix inversion
+        // Note: Our lattice matrix is stored as row vectors, but for coordinate conversion
+        // we need column vectors, so we transpose before inversion
+        try {
+          const lattice_transposed = transpose_matrix(lattice.matrix)
+          const lattice_inv = matrix_inverse_3x3(lattice_transposed)
+          abc = matrix_vector_multiply(lattice_inv, xyz)
+        } catch {
+          // Fallback to simplified method if matrix is singular
+          abc = [xyz[0] / lattice.a, xyz[1] / lattice.b, xyz[2] / lattice.c]
+        }
       }
 
       const site: Site = {
