@@ -145,7 +145,7 @@
       try {
         const file_info = JSON.parse(drag_data_json)
         if (file_info.name && file_info.content) {
-          on_file_drop?.(drag_data_json, file_info.name)
+          on_file_drop?.(file_info.content, file_info.name)
           return
         }
       } catch {
@@ -243,7 +243,8 @@
       > -->
       {#if enable_tips}
         <button class="info-icon" onclick={() => tips_modal?.showModal()}>
-          {#if tips_icon}{@render tips_icon()}{:else}&#9432;{/if}
+          {#if tips_icon}{@render tips_icon()}{:else}<svg><use href="#icon-info" /></svg
+            >{/if}
         </button>
       {/if}
       <button
@@ -251,9 +252,10 @@
         class="fullscreen-toggle"
         title="Toggle fullscreen"
       >
-        {#if fullscreen_toggle}{@render fullscreen_toggle()}{:else}⛶{/if}
+        {#if fullscreen_toggle}{@render fullscreen_toggle()}{:else}
+          <svg><use href="#icon-fullscreen" /></svg>
+        {/if}
       </button>
-
       <button
         onclick={() => (controls_open = !controls_open)}
         bind:this={toggle_controls_btn}
