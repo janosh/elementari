@@ -640,12 +640,13 @@ test.describe(`Structure Component Tests`, () => {
     // Wait for dialog to be visible
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
-    // Find the opacity controls in control rows
-    const edge_opacity_controls = controls_dialog.locator(
-      `.control-row:first-child`,
+    // Find the Cell section and opacity controls
+    const cell_section = controls_dialog.locator(`h4:has-text("Cell")`)
+    const edge_opacity_controls = cell_section.locator(
+      `~ .control-row:first-of-type`,
     )
-    const surface_opacity_controls = controls_dialog.locator(
-      `.control-row:nth-child(2)`,
+    const surface_opacity_controls = cell_section.locator(
+      `~ .control-row:nth-of-type(2)`,
     )
 
     await expect(edge_opacity_controls).toBeVisible()
@@ -709,12 +710,13 @@ test.describe(`Structure Component Tests`, () => {
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
-    const edge_opacity_range = controls_dialog
-      .locator(`.control-row:first-child`)
+    const cell_section = controls_dialog.locator(`h4:has-text("Cell")`)
+    const edge_opacity_range = cell_section
+      .locator(`~ .control-row:first-of-type`)
       .locator(`input[type="range"]`)
 
-    const surface_opacity_range = controls_dialog
-      .locator(`.control-row:nth-child(2)`)
+    const surface_opacity_range = cell_section
+      .locator(`~ .control-row:nth-of-type(2)`)
       .locator(`input[type="range"]`)
 
     // Test edges only (surfaces off)
@@ -763,12 +765,13 @@ test.describe(`Structure Component Tests`, () => {
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
-    const edge_opacity_number = controls_dialog
-      .locator(`.control-row:first-child`)
+    const cell_section = controls_dialog.locator(`h4:has-text("Cell")`)
+    const edge_opacity_number = cell_section
+      .locator(`~ .control-row:first-of-type`)
       .locator(`input[type="number"]`)
 
-    const surface_opacity_number = controls_dialog
-      .locator(`.control-row:nth-child(2)`)
+    const surface_opacity_number = cell_section
+      .locator(`~ .control-row:nth-of-type(2)`)
       .locator(`input[type="number"]`)
 
     // Check input attributes for proper validation

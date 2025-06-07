@@ -435,15 +435,13 @@
           style="width: 10em; border: none;"
         >
           {#snippet children({ option })}
-            <div
-              style="display: flex; align-items: center; gap: 6pt; justify-content: space-between;"
-            >
+            {@const style = `display: flex; align-items: center; gap: 6pt; justify-content: space-between;`}
+            <div {style}>
               {option}
               <div style="display: flex; gap: 3pt;">
                 {#each get_representative_colors(String(option)) as color (color)}
-                  <div
-                    style="width: 15px; height: 15px; border-radius: 2px; background: {color};"
-                  ></div>
+                  {@const style = `width: 15px; height: 15px; border-radius: 2px; background: {color};`}
+                  <div {style}></div>
                 {/each}
               </div>
             </div>

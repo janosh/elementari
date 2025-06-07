@@ -83,7 +83,7 @@
     structure = undefined,
     atom_radius = 0.5,
     // label_radius = 1,
-    same_size_atoms = true,
+    same_size_atoms = false,
     camera_position = [0, 0, 0],
     rotation_damping = 0.1,
     max_zoom = undefined,
