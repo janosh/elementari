@@ -205,10 +205,18 @@ export function parse_poscar(content: string): ParsedStructure | null {
     }
 
     // Parse lattice vectors (lines 3-5)
+    const parse_vector = (line: string, line_num: number): Vector => {
+      const coords = line.trim().split(/\s+/).map(parse_coordinate)
+      if (coords.length !== 3) {
+        throw `Invalid lattice vector on line ${line_num}: expected 3 coordinates, got ${coords.length}`
+      }
+      return coords as Vector
+    }
+
     const lattice_vecs: [Vector, Vector, Vector] = [
-      lines[2].trim().split(/\s+/).map(parse_coordinate) as Vector,
-      lines[3].trim().split(/\s+/).map(parse_coordinate) as Vector,
-      lines[4].trim().split(/\s+/).map(parse_coordinate) as Vector,
+      parse_vector(lines[2], 3),
+      parse_vector(lines[3], 4),
+      parse_vector(lines[4], 5),
     ]
 
     // Handle negative scale factor (volume-based scaling)

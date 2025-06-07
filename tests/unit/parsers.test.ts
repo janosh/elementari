@@ -13,7 +13,7 @@ import scientific_notation_poscar from '$site/structures/scientific-notation.pos
 import scientific_notation_xyz from '$site/structures/scientific-notation.xyz?raw'
 import selective_dynamics from '$site/structures/selective-dynamics.poscar?raw'
 import vasp4_format from '$site/structures/vasp4-format.poscar?raw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe(`POSCAR Parser`, () => {
   it.each([
@@ -79,6 +79,35 @@ describe(`POSCAR Parser`, () => {
       expect(result!.sites[1].species[0].element).toBe(expected.elements[1])
     }
   })
+
+  it.each([
+    {
+      name: `too few coordinates`,
+      content: `Test\n1.0\n3.0 0.0\n0.0 3.0 0.0\n0.0 0.0 3.0\nH\n1\nDirect\n0.0 0.0 0.0`,
+      expected_error: `Invalid lattice vector on line 3: expected 3 coordinates, got 2`,
+    },
+    {
+      name: `too many coordinates`,
+      content: `Test\n1.0\n3.0 0.0 0.0\n0.0 3.0 0.0 5.0\n0.0 0.0 3.0\nH\n1\nDirect\n0.0 0.0 0.0`,
+      expected_error: `Invalid lattice vector on line 4: expected 3 coordinates, got 4`,
+    },
+  ])(
+    `should reject lattice vectors with $name`,
+    ({ content, expected_error }) => {
+      const console_error_spy = vi
+        .spyOn(console, `error`)
+        .mockImplementation(() => {})
+
+      const result = parse_poscar(content)
+      expect(result).toBeNull()
+      expect(console_error_spy).toHaveBeenCalledWith(
+        `Error parsing POSCAR file:`,
+        expected_error,
+      )
+
+      console_error_spy.mockRestore()
+    },
+  )
 })
 
 describe(`XYZ Parser`, () => {
