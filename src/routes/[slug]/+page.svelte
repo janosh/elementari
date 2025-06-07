@@ -53,10 +53,8 @@
         // if value has a unit, append it
         if (unit) value = `${value} &thinsp;${unit}`
 
-        const icon = icon_property_map[label as keyof typeof icon_property_map]
-        if (label && !(label in icon_property_map)) {
-          console.error(`No icon for ${label}`)
-        }
+        const icon =
+          label && label in icon_property_map ? icon_property_map[label] : `#icon-info`
         return [label, value, icon] as const
       }),
   )
