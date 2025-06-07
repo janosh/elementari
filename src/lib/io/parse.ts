@@ -661,6 +661,7 @@ export function parse_cif(content: string): ParsedStructure | null {
     const sites: Site[] = []
     let in_atom_site_loop = false
     let atom_site_headers: string[] = []
+    let header_indices: Record<string, number> = {}
 
     for (let line_idx = 0; line_idx < lines.length; line_idx++) {
       const line = lines[line_idx].trim()
@@ -684,6 +685,30 @@ export function parse_cif(content: string): ParsedStructure | null {
         if (potential_headers.length > 0) {
           in_atom_site_loop = true
           atom_site_headers = potential_headers
+
+          // Build header-to-index mapping once
+          header_indices = {}
+          for (
+            let header_idx = 0;
+            header_idx < atom_site_headers.length;
+            header_idx++
+          ) {
+            const header = atom_site_headers[header_idx]
+            if (header.includes(`_atom_site_label`)) {
+              header_indices.label = header_idx
+            } else if (header.includes(`_atom_site_type_symbol`)) {
+              header_indices.symbol = header_idx
+            } else if (header.includes(`_atom_site_fract_x`)) {
+              header_indices.x = header_idx
+            } else if (header.includes(`_atom_site_fract_y`)) {
+              header_indices.y = header_idx
+            } else if (header.includes(`_atom_site_fract_z`)) {
+              header_indices.z = header_idx
+            } else if (header.includes(`_atom_site_occupancy`)) {
+              header_indices.occupancy = header_idx
+            }
+          }
+
           line_idx = next_line_idx - 1 // Skip to data section
           continue
         }
@@ -699,25 +724,16 @@ export function parse_cif(content: string): ParsedStructure | null {
         const tokens = line.split(/\s+/)
 
         if (tokens.length >= atom_site_headers.length) {
-          // Map headers to indices
-          const label_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_label`),
-          )
-          const symbol_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_type_symbol`),
-          )
-          const x_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_fract_x`),
-          )
-          const y_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_fract_y`),
-          )
-          const z_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_fract_z`),
-          )
-          const occ_idx = atom_site_headers.findIndex((h) =>
-            h.includes(`_atom_site_occupancy`),
-          )
+          // Use precomputed header indices
+          const label_idx =
+            header_indices.label >= 0 ? header_indices.label : -1
+          const symbol_idx =
+            header_indices.symbol >= 0 ? header_indices.symbol : -1
+          const x_idx = header_indices.x >= 0 ? header_indices.x : -1
+          const y_idx = header_indices.y >= 0 ? header_indices.y : -1
+          const z_idx = header_indices.z >= 0 ? header_indices.z : -1
+          const occ_idx =
+            header_indices.occupancy >= 0 ? header_indices.occupancy : -1
 
           if (symbol_idx >= 0 && x_idx >= 0 && y_idx >= 0 && z_idx >= 0) {
             try {

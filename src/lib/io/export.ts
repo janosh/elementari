@@ -46,7 +46,7 @@ export function generate_structure_filename(
 // - Line 1: Number of atoms
 // - Line 2: Comment line (structure ID, formula, etc.)
 // - Remaining lines: Element symbol followed by x, y, z coordinates (in Angstroms)
-export function export_xyz(structure: AnyStructure): void {
+export function export_xyz(structure?: AnyStructure): void {
   if (!structure?.sites) {
     alert(`No structure or sites to download`)
     return
@@ -132,7 +132,7 @@ export function export_xyz(structure: AnyStructure): void {
 }
 
 // Export structure in pymatgen JSON format
-export function export_json(structure: AnyStructure): void {
+export function export_json(structure?: AnyStructure): void {
   if (!structure) {
     alert(`No structure to download`)
     return
