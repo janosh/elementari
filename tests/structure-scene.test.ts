@@ -494,7 +494,8 @@ test.describe(`StructureScene Component Tests`, () => {
         // If no test ID exists, we'll set the properties through controls
         const event = new CustomEvent(`setLatticeProps`, {
           detail: {
-            cell_color: `#ff0000`,
+            cell_edge_color: `#ff0000`,
+            cell_surface_color: `#ff0000`,
             cell_edge_opacity: 0.8,
             cell_surface_opacity: 0.1,
             cell_line_width: 2,
@@ -517,7 +518,10 @@ test.describe(`StructureScene Component Tests`, () => {
     for (const color of test_colors) {
       await page.evaluate((test_color) => {
         const event = new CustomEvent(`setLatticeProps`, {
-          detail: { cell_color: test_color },
+          detail: {
+            cell_edge_color: test_color,
+            cell_surface_color: test_color,
+          },
         })
         window.dispatchEvent(event)
       }, color)
@@ -563,7 +567,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.8,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -576,7 +581,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0,
           cell_surface_opacity: 0.4,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -589,7 +595,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.6,
           cell_surface_opacity: 0.3,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -602,7 +609,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -635,7 +643,8 @@ test.describe(`StructureScene Component Tests`, () => {
     await page.evaluate(() => {
       const event = new CustomEvent(`setLatticeProps`, {
         detail: {
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
           cell_edge_opacity: 1.0,
           cell_surface_opacity: 0,
           cell_line_width: 3,
@@ -679,7 +688,8 @@ test.describe(`StructureScene Component Tests`, () => {
       await page.evaluate((test_width) => {
         const event = new CustomEvent(`setLatticeProps`, {
           detail: {
-            cell_color: `#ffffff`,
+            cell_edge_color: `#ffffff`,
+            cell_surface_color: `#ffffff`,
             cell_edge_opacity: 1.0,
             cell_surface_opacity: 0,
             cell_line_width: test_width,
@@ -709,7 +719,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.8,
           cell_surface_opacity: 0.3,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -722,7 +733,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.8,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -735,7 +747,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0,
           cell_surface_opacity: 0.3,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -748,7 +761,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -784,7 +798,8 @@ test.describe(`StructureScene Component Tests`, () => {
           detail: {
             cell_edge_opacity: test_opacity,
             cell_surface_opacity: test_opacity,
-            cell_color: `#ffffff`,
+            cell_edge_color: `#ffffff`,
+            cell_surface_color: `#ffffff`,
           },
         })
         window.dispatchEvent(event)
@@ -810,7 +825,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.2,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -823,7 +839,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0.9,
           cell_surface_opacity: 0,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)
@@ -836,7 +853,8 @@ test.describe(`StructureScene Component Tests`, () => {
         detail: {
           cell_edge_opacity: 0,
           cell_surface_opacity: 0.2,
-          cell_color: `#ffffff`,
+          cell_edge_color: `#ffffff`,
+          cell_surface_color: `#ffffff`,
         },
       })
       window.dispatchEvent(event)

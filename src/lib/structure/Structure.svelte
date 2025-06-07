@@ -8,6 +8,7 @@
   import { colors } from '$lib/state.svelte'
   import { Canvas } from '@threlte/core'
   import type { ComponentProps, Snippet } from 'svelte'
+  import Select from 'svelte-multiselect'
   import { Tooltip } from 'svelte-zoo'
   import { Vector2, WebGLRenderer } from 'three'
   import { CELL_DEFAULTS, StructureLegend, StructureScene } from '.'
@@ -73,7 +74,8 @@
     lattice_props = $bindable({
       cell_edge_opacity: CELL_DEFAULTS.edge_opacity,
       cell_surface_opacity: CELL_DEFAULTS.surface_opacity,
-      cell_color: CELL_DEFAULTS.color,
+      cell_edge_color: CELL_DEFAULTS.color,
+      cell_surface_color: CELL_DEFAULTS.color,
       cell_line_width: CELL_DEFAULTS.line_width,
       show_vectors: true,
     }),
@@ -117,6 +119,28 @@
   $effect.pre(() => {
     colors.element = element_color_schemes[color_scheme]
   })
+
+  // Color scheme selection state
+  let color_scheme_selected = $state([color_scheme])
+  $effect(() => {
+    if (color_scheme_selected.length > 0) {
+      color_scheme = color_scheme_selected[0] as `Jmol` | `Vesta`
+    }
+  })
+
+  // Helper function to get example set of colors from an element color scheme
+  function get_representative_colors(scheme_name: string): string[] {
+    const scheme =
+      element_color_schemes[scheme_name as keyof typeof element_color_schemes]
+    if (!scheme) return []
+
+    // Get colors for common elements: H, C, N, O, Fe, Ca, Si, Al
+    const sample_elements = [`H`, `C`, `N`, `O`, `Fe`, `Ca`, `Si`, `Al`]
+    return sample_elements
+      .slice(0, 4) // Take first 4
+      .map((el) => scheme[el] || scheme.H || `#cccccc`)
+      .filter(Boolean)
+  }
 
   function on_keydown(event: KeyboardEvent) {
     if (event.key === `Escape`) controls_open = false
@@ -400,6 +424,34 @@
           <small> (if false, all atoms same size)</small>
         </span>
       </label>
+      <label style="align-items: flex-start;">
+        Color scheme
+        <Select
+          options={Object.keys(element_color_schemes)}
+          maxSelect={1}
+          minSelect={1}
+          bind:selected={color_scheme_selected}
+          liOptionStyle="padding: 3pt 6pt;"
+          style="width: 10em; border: none;"
+        >
+          {#snippet children({ option })}
+            <div
+              style="display: flex; align-items: center; gap: 6pt; justify-content: space-between;"
+            >
+              {option}
+              <div style="display: flex; gap: 3pt;">
+                {#each get_representative_colors(String(option)) as color (color)}
+                  <div
+                    style="width: 15px; height: 15px; border-radius: 2px; background: {color};"
+                  ></div>
+                {/each}
+              </div>
+            </div>
+          {/snippet}
+        </Select>
+      </label>
+
+      <hr />
 
       <!-- Cell Controls -->
       <h4 class="section-heading">Cell</h4>
@@ -407,46 +459,33 @@
         <input type="checkbox" bind:checked={lattice_props.show_vectors} />
         lattice vectors
       </label>
-      <div class="control-row">
-        <label class="compact">
-          Color
-          <input type="color" bind:value={lattice_props.cell_color} />
-        </label>
-        <label class="slider-control">
-          Edge opacity
-          <input
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            bind:value={lattice_props.cell_edge_opacity}
-          />
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            bind:value={lattice_props.cell_edge_opacity}
-          />
-        </label>
-      </div>
-      <label class="slider-control">
-        Surface opacity
-        <input
-          type="number"
-          min={0}
-          max={1}
-          step={0.01}
-          bind:value={lattice_props.cell_surface_opacity}
-        />
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          bind:value={lattice_props.cell_surface_opacity}
-        />
-      </label>
+      {#each [{ label: `Edge color`, color_prop: `cell_edge_color` as const, opacity_prop: `cell_edge_opacity` as const, step: 0.05 }, { label: `Surface color`, color_prop: `cell_surface_color` as const, opacity_prop: `cell_surface_opacity` as const, step: 0.01 }] as { label, color_prop, opacity_prop, step } (label)}
+        <div class="control-row">
+          <label class="compact">
+            {label}
+            <input type="color" bind:value={lattice_props[color_prop]} />
+          </label>
+          <label class="slider-control">
+            opacity
+            <input
+              type="number"
+              min={0}
+              max={1}
+              {step}
+              bind:value={lattice_props[opacity_prop]}
+            />
+            <input
+              type="range"
+              min={0}
+              max={1}
+              {step}
+              bind:value={lattice_props[opacity_prop]}
+            />
+          </label>
+        </div>
+      {/each}
+
+      <hr />
 
       <!-- Background Controls -->
       <h4 class="section-heading">Background</h4>
@@ -475,6 +514,8 @@
       </div>
 
       {#if show_full_controls}
+        <!-- Camera Controls -->
+        <h4 class="section-heading">Camera</h4>
         <label>
           Auto rotate speed
           <input
@@ -528,7 +569,28 @@
             bind:value={scene_props.pan_speed}
           />
         </label>
-        <!-- directional light intensity -->
+        <label>
+          <Tooltip text="damping factor for rotation">Rotation damping</Tooltip>
+          <input
+            type="number"
+            min={0}
+            max={0.3}
+            step={0.01}
+            bind:value={scene_props.rotation_damping}
+          />
+          <input
+            type="range"
+            min={0}
+            max={0.3}
+            step={0.01}
+            bind:value={scene_props.rotation_damping}
+          />
+        </label>
+
+        <hr />
+
+        <!-- Lighting Controls -->
+        <h4 class="section-heading">Lighting</h4>
         <label>
           <Tooltip text="intensity of the directional light">Directional light</Tooltip>
           <input
@@ -546,7 +608,6 @@
             bind:value={scene_props.directional_light}
           />
         </label>
-        <!-- ambient light intensity -->
         <label>
           <Tooltip text="intensity of the ambient light">Ambient light</Tooltip>
           <input
@@ -562,24 +623,6 @@
             max={3}
             step={0.05}
             bind:value={scene_props.ambient_light}
-          />
-        </label>
-        <!-- rotation damping -->
-        <label>
-          <Tooltip text="damping factor for rotation">Rotation damping</Tooltip>
-          <input
-            type="number"
-            min={0}
-            max={0.3}
-            step={0.01}
-            bind:value={scene_props.rotation_damping}
-          />
-          <input
-            type="range"
-            min={0}
-            max={0.3}
-            step={0.01}
-            bind:value={scene_props.rotation_damping}
           />
         </label>
       {/if}
@@ -618,15 +661,6 @@
         </label>
       {/if}
 
-      <!-- color scheme -->
-      <label>
-        Color scheme
-        <select bind:value={color_scheme}>
-          {#each Object.keys(element_color_schemes) as key (key)}
-            <option value={key}>{key}</option>
-          {/each}
-        </select>
-      </label>
       <span
         style="display: flex; gap: 4pt; margin: 3pt 0 0; align-items: center; flex-wrap: wrap;"
       >
@@ -769,7 +803,7 @@
     max-width: var(--struct-controls-max-width, 90cqw);
     color: var(--struct-controls-text-color);
     overflow: auto;
-    max-height: var(--struct-controls-max-height, calc(100cqh - 3em));
+    max-height: var(--struct-controls-max-height, calc(100vh - 3em));
   }
   dialog.controls hr {
     border: none;
@@ -798,6 +832,7 @@
     border: var(--struct-controls-input-num-border, none);
     background: var(--struct-controls-input-num-bg, rgba(255, 255, 255, 0.15));
     margin-right: 3pt;
+    margin-left: var(--struct-controls-input-num-margin-left, 6pt);
     flex-shrink: 0;
   }
   input::-webkit-inner-spin-button {

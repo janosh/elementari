@@ -640,21 +640,22 @@ test.describe(`Structure Component Tests`, () => {
     // Wait for dialog to be visible
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
-    // Find the new opacity controls
-    const edge_opacity_label = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Edge opacity/ })
-    const surface_opacity_label = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Surface opacity/ })
+    // Find the opacity controls in control rows
+    const edge_opacity_controls = controls_dialog.locator(
+      `.control-row:first-child`,
+    )
+    const surface_opacity_controls = controls_dialog.locator(
+      `.control-row:nth-child(2)`,
+    )
 
-    await expect(edge_opacity_label).toBeVisible()
-    await expect(surface_opacity_label).toBeVisible()
+    await expect(edge_opacity_controls).toBeVisible()
+    await expect(surface_opacity_controls).toBeVisible()
 
     // Test edge opacity slider
-    const edge_opacity_range = edge_opacity_label.locator(`input[type="range"]`)
+    const edge_opacity_range =
+      edge_opacity_controls.locator(`input[type="range"]`)
     const edge_opacity_number =
-      edge_opacity_label.locator(`input[type="number"]`)
+      edge_opacity_controls.locator(`input[type="number"]`)
 
     await expect(edge_opacity_range).toBeVisible()
     await expect(edge_opacity_number).toBeVisible()
@@ -669,9 +670,9 @@ test.describe(`Structure Component Tests`, () => {
 
     // Test surface opacity slider
     const surface_opacity_range =
-      surface_opacity_label.locator(`input[type="range"]`)
+      surface_opacity_controls.locator(`input[type="range"]`)
     const surface_opacity_number =
-      surface_opacity_label.locator(`input[type="number"]`)
+      surface_opacity_controls.locator(`input[type="number"]`)
 
     await expect(surface_opacity_range).toBeVisible()
     await expect(surface_opacity_number).toBeVisible()
@@ -709,13 +710,11 @@ test.describe(`Structure Component Tests`, () => {
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
     const edge_opacity_range = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Edge opacity/ })
+      .locator(`.control-row:first-child`)
       .locator(`input[type="range"]`)
 
     const surface_opacity_range = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Surface opacity/ })
+      .locator(`.control-row:nth-child(2)`)
       .locator(`input[type="range"]`)
 
     // Test edges only (surfaces off)
@@ -765,13 +764,11 @@ test.describe(`Structure Component Tests`, () => {
     await expect(controls_dialog).toHaveAttribute(`open`, ``, { timeout: 2000 })
 
     const edge_opacity_number = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Edge opacity/ })
+      .locator(`.control-row:first-child`)
       .locator(`input[type="number"]`)
 
     const surface_opacity_number = controls_dialog
-      .locator(`label`)
-      .filter({ hasText: /Surface opacity/ })
+      .locator(`.control-row:nth-child(2)`)
       .locator(`input[type="number"]`)
 
     // Check input attributes for proper validation
