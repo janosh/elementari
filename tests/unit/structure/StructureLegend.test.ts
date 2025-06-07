@@ -4,7 +4,7 @@ import { colors } from '$lib/state.svelte'
 import StructureLegend from '$lib/structure/StructureLegend.svelte'
 import { mount, tick } from 'svelte'
 import { beforeEach, describe, expect, test } from 'vitest'
-import { doc_query } from '.'
+import { doc_query } from '..'
 
 describe(`StructureLegend Component`, () => {
   const mock_elements: Composition = { Fe: 2, O: 3, H: 1.5, C: 12.123456789 }
