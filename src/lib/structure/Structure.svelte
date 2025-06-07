@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import type { Atoms, Lattice } from '$lib'
+  import type { AnyStructure, Lattice } from '$lib'
   import { electro_neg_formula, get_elem_amounts, get_pbc_image_sites } from '$lib'
   import { download } from '$lib/api'
   import { element_color_schemes } from '$lib/colors'
@@ -12,7 +12,7 @@
 
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
-    structure?: Atoms | undefined
+    structure?: AnyStructure | undefined
     // need to set a default atom_radius so it doesn't initialize to 0
     scene_props?: ComponentProps<typeof StructureScene> // passed to StructureScene
     lattice_props?: ComponentProps<typeof Lattice> // passed to Lattice
@@ -36,7 +36,7 @@
     width?: number
     // bindable height of the canvas
     height?: number
-    // export let reset_text: string = `Reset view`
+    reset_text?: string
     color_scheme?: `Jmol` | `Vesta`
     hovered?: boolean
     dragover?: boolean
@@ -54,7 +54,7 @@
     tips_icon?: Snippet<[]>
     fullscreen_toggle?: Snippet<[]>
     controls_toggle?: Snippet<[{ controls_open: boolean }]>
-    bottom_left?: Snippet<[{ structure: Atoms }]>
+    bottom_left?: Snippet<[{ structure: AnyStructure }]>
     // Generic callback for when files are dropped - receives raw content and filename
     on_file_drop?: (content: string, filename: string) => void
   }
@@ -78,6 +78,7 @@
     toggle_controls_btn = $bindable(undefined),
     width = $bindable(0),
     height = $bindable(0),
+    reset_text = `Reset camera`,
     color_scheme = $bindable(`Vesta`),
     hovered = $bindable(false),
     dragover = $bindable(false),
@@ -122,6 +123,23 @@
     reveal_buttons == true ||
       (typeof reveal_buttons == `number` && reveal_buttons < width),
   )
+
+  // Track if camera has ever been moved from initial position
+  let camera_has_moved = $state(false)
+  let camera_is_moving = $state(false)
+  // Reset tracking when structure changes
+  $effect(() => {
+    if (structure) camera_has_moved = false
+  })
+  // Set camera_has_moved to true when camera starts moving
+  $effect(() => {
+    if (camera_is_moving) camera_has_moved = true
+  })
+  function reset_camera() {
+    // Reset camera position to trigger automatic positioning
+    scene_props.camera_position = [0, 0, 0]
+    camera_has_moved = false
+  }
 
   function download_json() {
     if (!structure) {
@@ -181,6 +199,7 @@
       document.exitFullscreen()
     }
   }
+
   // set --struct-bg to background_color
   $effect(() => {
     if (browser && wrapper && background_color) {
@@ -226,21 +245,23 @@
     ondrop={handle_file_drop}
     ondragover={(event) => {
       event.preventDefault()
-      if (allow_file_drop) dragover = true
+      if (!allow_file_drop) return
+      dragover = true
     }}
     ondragleave={(event) => {
       event.preventDefault()
-      if (allow_file_drop) dragover = false
+      if (allow_file_drop) {
+        dragover = false
+      }
     }}
   >
     <section class:visible={visible_buttons}>
-      <!-- TODO show only when camera was moved -->
-      <!-- <button
-        class="reset-camera"
-        onclick={() => {
-          // TODO implement reset view and controls
-        }}>{reset_text}</button
-      > -->
+      {#if camera_has_moved}
+        <button class="reset-camera" onclick={reset_camera} title={reset_text}>
+          <!-- Target/Focus icon for reset camera -->
+          <svg><use href="#icon-reset" /></svg>
+        </button>
+      {/if}
       {#if enable_tips}
         <button class="info-icon" onclick={() => tips_modal?.showModal()}>
           {#if tips_icon}{@render tips_icon()}{:else}<svg><use href="#icon-info" /></svg
@@ -253,16 +274,21 @@
         title="Toggle fullscreen"
       >
         {#if fullscreen_toggle}{@render fullscreen_toggle()}{:else}
-          <svg><use href="#icon-fullscreen" /></svg>
+          <svg style="transform: scale(0.9);"><use href="#icon-fullscreen" /></svg>
         {/if}
       </button>
       <button
         onclick={() => (controls_open = !controls_open)}
         bind:this={toggle_controls_btn}
         class="controls-toggle"
+        title={controls_open ? `Close controls` : `Open controls`}
       >
-        {#if controls_toggle}{@render controls_toggle({ controls_open })}{:else}
-          {controls_open ? `Close` : `Controls`}
+        {#if controls_toggle}{@render controls_toggle({
+            controls_open,
+          })}{:else if controls_open}
+          <svg><use href="#icon-x" /></svg>
+        {:else}
+          <svg><use href="#icon-settings" /></svg>
         {/if}
       </button>
     </section>
@@ -302,15 +328,15 @@
         Radius <small>(Å)</small>
         <input
           type="number"
-          min="0.1"
-          max={1}
+          min="0.2"
+          max={2}
           step={0.05}
           bind:value={scene_props.atom_radius}
         />
         <input
           type="range"
-          min="0.1"
-          max={1}
+          min="0.2"
+          max={2}
           step={0.05}
           bind:value={scene_props.atom_radius}
         />
@@ -358,14 +384,14 @@
           type="number"
           min={0}
           max={1}
-          step={0.05}
+          step={0.01}
           bind:value={lattice_props.cell_surface_opacity}
         />
         <input
           type="range"
           min={0}
           max={1}
-          step={0.05}
+          step={0.01}
           bind:value={lattice_props.cell_surface_opacity}
         />
       </label>
@@ -383,14 +409,14 @@
             type="number"
             min={0}
             max={1}
-            step={0.05}
+            step={0.02}
             bind:value={background_opacity}
           />
           <input
             type="range"
             min={0}
             max={1}
-            step={0.05}
+            step={0.02}
             bind:value={background_opacity}
           />
         </label>
@@ -418,16 +444,16 @@
           Zoom speed
           <input
             type="number"
-            min={0}
-            max={2}
-            step={0.01}
+            min={0.1}
+            max={0.8}
+            step={0.02}
             bind:value={scene_props.zoom_speed}
           />
           <input
             type="range"
-            min={0}
-            max={2}
-            step={0.01}
+            min={0.1}
+            max={0.8}
+            step={0.02}
             bind:value={scene_props.zoom_speed}
           />
         </label>
@@ -473,16 +499,16 @@
           <Tooltip text="intensity of the ambient light">Ambient light</Tooltip>
           <input
             type="number"
-            min={0}
-            max={2}
-            step={0.01}
+            min={0.5}
+            max={3}
+            step={0.05}
             bind:value={scene_props.ambient_light}
           />
           <input
             type="range"
-            min={0}
-            max={2}
-            step={0.01}
+            min={0.5}
+            max={3}
+            step={0.05}
             bind:value={scene_props.ambient_light}
           />
         </label>
@@ -525,16 +551,16 @@
           Bond radius
           <input
             type="number"
-            min={0.001}
-            max={0.1}
-            step={0.001}
+            min={0.01}
+            max={0.12}
+            step={0.005}
             bind:value={scene_props.bond_radius}
           />
           <input
             type="range"
-            min="0.001"
-            max="0.1"
-            step={0.001}
+            min="0.01"
+            max="0.12"
+            step={0.005}
             bind:value={scene_props.bond_radius}
           />
         </label>
@@ -567,6 +593,7 @@
         {...scene_props}
         {show_site_labels}
         {lattice_props}
+        bind:camera_is_moving
       />
     </Canvas>
 
@@ -615,12 +642,17 @@
     justify-content: end;
     top: var(--struct-buttons-top, 1ex);
     right: var(--struct-buttons-right, 1ex);
-    gap: var(--struct-buttons-gap, 1ex);
+    gap: var(--struct-buttons-gap, 3pt);
     z-index: 2;
   }
 
   section button {
     pointer-events: auto;
+  }
+  section button svg {
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
   }
 
   dialog.controls {

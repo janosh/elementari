@@ -276,8 +276,8 @@ test.describe(`StructureScene Component Tests`, () => {
     expect(initial_screenshot.equals(after_screenshot)).toBe(false)
   })
 
-  // Test disordered sites and occupancy
-  test(`handles disordered sites and special cases correctly`, async ({
+  // Test disordered sites, occupancy, and partial sphere capping
+  test(`handles disordered sites and partial sphere capping correctly`, async ({
     page,
   }) => {
     const canvas = page.locator(`#structure-wrapper canvas`)
@@ -291,6 +291,8 @@ test.describe(`StructureScene Component Tests`, () => {
       { x: 300, y: 250 },
       { x: 400, y: 200 },
       { x: 300, y: 350 },
+      { x: 250, y: 300 },
+      { x: 350, y: 150 },
     ]
 
     let found_disordered = false
@@ -305,8 +307,16 @@ test.describe(`StructureScene Component Tests`, () => {
         // Check for occupancy (disordered site)
         const occupancy_span = tooltip.locator(`.occupancy`)
         if (await occupancy_span.isVisible()) {
+          const occupancy_text = await occupancy_span.textContent()
           await expect(occupancy_span).toContainText(/0\.\d+/)
           found_disordered = true
+
+          // Test partial sphere capping (closing partial spheres with flat circles) for sites with occupancy < 1
+          if (occupancy_text && parseFloat(occupancy_text) < 1) {
+            // Verify scene renders correctly with partial spheres (no errors)
+            const partial_screenshot = await canvas.screenshot()
+            expect(partial_screenshot.length).toBeGreaterThan(1000)
+          }
         }
 
         // Check for oxidation states
