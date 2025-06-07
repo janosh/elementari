@@ -1,9 +1,10 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import type { AnyStructure, Lattice } from '$lib'
-  import { electro_neg_formula, get_elem_amounts, get_pbc_image_sites } from '$lib'
+  import { get_elem_amounts, get_pbc_image_sites } from '$lib'
   import { download } from '$lib/api'
   import { element_color_schemes } from '$lib/colors'
+  import * as exports from '$lib/io/export'
   import { colors } from '$lib/state.svelte'
   import { Canvas } from '@threlte/core'
   import type { ComponentProps, Snippet } from 'svelte'
@@ -51,6 +52,7 @@
     enable_tips?: boolean
     save_json_btn_text?: string
     save_png_btn_text?: string
+    save_xyz_btn_text?: string
     png_dpi?: number // PNG export DPI (dots per inch) - 72 is standard web resolution, 150+ is print quality
     // boolean or map from element symbols to labels
     // use atom_label snippet to include HTML and event handlers
@@ -94,6 +96,7 @@
     enable_tips = true,
     save_json_btn_text = `⬇ Save as JSON`,
     save_png_btn_text = `✎ Save as PNG`,
+    save_xyz_btn_text = `📄 Save as XYZ`,
     png_dpi = $bindable(150),
     show_site_labels = $bindable(false),
     show_image_atoms = $bindable(true),
@@ -149,52 +152,6 @@
     camera_has_moved = false
   }
 
-  function generate_structure_filename(extension: string): string {
-    if (!structure) return `structure.${extension}`
-
-    const parts: string[] = []
-
-    if (structure.id) parts.push(structure.id) // Add ID if available
-
-    // Add formula
-    const formula = electro_neg_formula(structure)
-    if (formula && formula !== `Unknown`) parts.push(formula)
-
-    // Add space group if available
-    if (
-      `symmetry` in structure &&
-      structure.symmetry &&
-      typeof structure.symmetry === `object` &&
-      `space_group_symbol` in structure.symmetry
-    )
-      parts.push(String(structure.symmetry.space_group_symbol))
-
-    // Add lattice system if available
-    if (
-      `lattice` in structure &&
-      structure.lattice &&
-      typeof structure.lattice === `object` &&
-      `lattice_system` in structure.lattice
-    )
-      parts.push(String(structure.lattice.lattice_system))
-
-    // Add number of sites
-    if (structure.sites?.length) parts.push(`${structure.sites.length}sites`)
-
-    const base_name = parts.length > 0 ? parts.join(`_`) : `structure`
-    return `${base_name}.${extension}`
-  }
-
-  function download_json() {
-    if (!structure) {
-      alert(`No structure to download`)
-      return
-    }
-    const data = JSON.stringify(structure, null, 2)
-    const filename = generate_structure_filename(`json`)
-    download(data, filename, `application/json`)
-  }
-
   function handle_file_drop(event: DragEvent) {
     event.preventDefault()
     dragover = false
@@ -240,7 +197,7 @@
       // Direct capture at current resolution (if DPI is close to 72 or renderer not available)
       canvas.toBlob((blob) => {
         if (blob) {
-          const filename = generate_structure_filename(`png`)
+          const filename = exports.generate_structure_filename(structure, `png`)
           download(blob, filename, `image/png`)
         } else {
           alert(`Failed to generate PNG - canvas may be empty`)
@@ -270,7 +227,7 @@
             renderer.setSize(original_size.width, original_size.height, false)
 
             if (blob) {
-              const filename = generate_structure_filename(`png`)
+              const filename = exports.generate_structure_filename(structure, `png`)
               download(blob, filename, `image/png`)
             } else {
               alert(`Failed to generate high-resolution PNG`)
@@ -346,9 +303,7 @@
     }}
     ondragleave={(event) => {
       event.preventDefault()
-      if (allow_file_drop) {
-        dragover = false
-      }
+      dragover = false
     }}
     {...rest}
   >
@@ -672,9 +627,22 @@
           {/each}
         </select>
       </label>
-      <span style="display: flex; gap: 4pt; margin: 3pt 0 0; align-items: center;">
-        <button type="button" onclick={download_json} title={save_json_btn_text}>
+      <span
+        style="display: flex; gap: 4pt; margin: 3pt 0 0; align-items: center; flex-wrap: wrap;"
+      >
+        <button
+          type="button"
+          onclick={() => exports.export_json(structure)}
+          title={save_json_btn_text}
+        >
           {save_json_btn_text}
+        </button>
+        <button
+          type="button"
+          onclick={() => exports.export_xyz(structure)}
+          title={save_xyz_btn_text}
+        >
+          {save_xyz_btn_text}
         </button>
         <button
           type="button"

@@ -3,7 +3,7 @@ import {
   parse_poscar,
   parse_structure_file,
   parse_xyz,
-} from '$lib/parsers'
+} from '$lib/io/parse'
 import ba_ti_o3_tetragonal from '$site/structures/BaTiO3-tetragonal.poscar?raw'
 import na_cl_cubic from '$site/structures/NaCl-cubic.poscar?raw'
 import cyclohexane from '$site/structures/cyclohexane.xyz?raw'

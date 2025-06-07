@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Structure } from '$lib'
-  import { parse_structure_file } from '$lib/parsers'
+  import { parse_structure_file } from '$lib/io/parse'
   import type { AnyStructure, PymatgenStructure } from '$lib/structure'
   import { structures } from '$site'
   import TableDemo from './(demos)/periodic-table/+page.svelte'
