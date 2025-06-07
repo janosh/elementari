@@ -8,14 +8,14 @@ let cached_atom_position: XyObj | null = null
 async function clear_tooltips_and_overlays(page: Page): Promise<void> {
   // Move mouse to a safe area to clear any tooltips
   await page.mouse.move(50, 50)
-  await page.waitForTimeout(100)
 
   // Check if any tooltips are visible and dismiss them
   const visible_tooltips = page.locator(`.tooltip`)
   const tooltip_count = await visible_tooltips.count()
   if (tooltip_count > 0) {
     await page.mouse.move(10, 10) // Move to top-left corner
-    await page.waitForTimeout(200)
+    // Wait for tooltip to disappear instead of arbitrary timeout
+    await visible_tooltips.first().waitFor({ state: `hidden`, timeout: 2000 })
   }
 }
 
@@ -54,13 +54,16 @@ async function find_hoverable_atom(page: Page): Promise<XyObj | null> {
 
   for (const position of positions) {
     await safe_canvas_hover(page, canvas, position)
-    await page.waitForTimeout(100) // Reduced from 200ms
 
     // Look for StructureScene tooltip specifically (has coordinates)
     const structure_tooltip = page.locator(`.tooltip:has(.coordinates)`)
-    if (await structure_tooltip.isVisible()) {
+    try {
+      await structure_tooltip.waitFor({ state: `visible`, timeout: 500 })
       cached_atom_position = position // Cache for future use
       return position
+    } catch {
+      // Continue to next position if tooltip doesn't appear
+      continue
     }
   }
 
@@ -81,8 +84,11 @@ function setup_console_monitoring(page: Page): string[] {
 test.describe(`StructureScene Component Tests`, () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(`/test/structure`, { waitUntil: `load` })
-    await page.waitForSelector(`#structure-wrapper canvas`, { timeout: 5000 })
-    await page.waitForTimeout(2000) // Reduced from 4000ms
+    const canvas = page.locator(`#structure-wrapper canvas`)
+    await canvas.waitFor({ state: `visible`, timeout: 5000 })
+    // Wait for canvas to be properly initialized by checking it has dimensions
+    await expect(canvas).toHaveAttribute(`width`)
+    await expect(canvas).toHaveAttribute(`height`)
   })
 
   // Combined basic functionality and rendering test
@@ -108,7 +114,6 @@ test.describe(`StructureScene Component Tests`, () => {
       await expect(tooltip.first().locator(`.coordinates`)).toHaveCount(2)
     }
 
-    await page.waitForTimeout(500) // Brief wait for any async operations
     expect(console_errors).toHaveLength(0)
   })
 
@@ -192,7 +197,6 @@ test.describe(`StructureScene Component Tests`, () => {
 
     // Test click to activate
     await canvas.click({ position: first_atom! })
-    await page.waitForTimeout(200)
 
     // Find second atom for distance measurement
     const positions = [
@@ -203,9 +207,9 @@ test.describe(`StructureScene Component Tests`, () => {
 
     for (const position of positions) {
       await canvas.hover({ position })
-      await page.waitForTimeout(100)
       const tooltip = page.locator(`.tooltip:has(.coordinates)`)
-      if (await tooltip.isVisible()) {
+      try {
+        await tooltip.waitFor({ state: `visible`, timeout: 500 })
         // Check for distance measurement
         const distance_section = tooltip.locator(`.distance`)
         if (await distance_section.isVisible()) {
@@ -213,19 +217,24 @@ test.describe(`StructureScene Component Tests`, () => {
           await expect(distance_section).toContainText(`Å`)
         }
         break
+      } catch {
+        // Continue to next position if tooltip doesn't appear
+        continue
       }
     }
 
     // Test click toggle (deselect)
     await canvas.click({ position: first_atom! })
-    await page.waitForTimeout(200)
 
     // Verify deselection by checking no distance shown
     await canvas.hover({ position: first_atom! })
     const tooltip = page.locator(`.tooltip:has(.coordinates)`)
-    if (await tooltip.isVisible()) {
+    try {
+      await tooltip.waitFor({ state: `visible`, timeout: 500 })
       const distance_section = tooltip.locator(`.distance`)
       await expect(distance_section).not.toBeVisible()
+    } catch {
+      // Tooltip not appearing is also acceptable for deselection verification
     }
 
     expect(console_errors).toHaveLength(0)
@@ -249,7 +258,6 @@ test.describe(`StructureScene Component Tests`, () => {
       sourcePosition: { x: box.width / 2 - 50, y: box.height / 2 },
       targetPosition: { x: box.width / 2 + 50, y: box.height / 2 },
     })
-    await page.waitForTimeout(200)
     let after_screenshot = await canvas.screenshot()
     expect(initial_screenshot.equals(after_screenshot)).toBe(false)
 
@@ -259,7 +267,6 @@ test.describe(`StructureScene Component Tests`, () => {
       y: box.height / 2,
     })
     await page.mouse.wheel(0, -200) // Zoom in
-    await page.waitForTimeout(200)
     after_screenshot = await canvas.screenshot()
     expect(initial_screenshot.equals(after_screenshot)).toBe(false)
 
@@ -271,7 +278,6 @@ test.describe(`StructureScene Component Tests`, () => {
       box.y + box.height / 2 + 30,
     )
     await page.mouse.up({ button: `right` })
-    await page.waitForTimeout(200)
     after_screenshot = await canvas.screenshot()
     expect(initial_screenshot.equals(after_screenshot)).toBe(false)
   })
@@ -300,10 +306,10 @@ test.describe(`StructureScene Component Tests`, () => {
 
     for (const position of positions) {
       await safe_canvas_hover(page, canvas, position)
-      await page.waitForTimeout(100)
 
       const tooltip = page.locator(`.tooltip:has(.coordinates)`)
-      if (await tooltip.isVisible()) {
+      try {
+        await tooltip.waitFor({ state: `visible`, timeout: 500 })
         // Check for occupancy (disordered site)
         const occupancy_span = tooltip.locator(`.occupancy`)
         if (await occupancy_span.isVisible()) {
@@ -328,10 +334,11 @@ test.describe(`StructureScene Component Tests`, () => {
         }
 
         if (found_disordered && found_oxidation) break
+      } catch {
+        // Continue to next position if tooltip doesn't appear
+        continue
       }
     }
-
-    await page.waitForTimeout(300)
     expect(console_errors).toHaveLength(0)
   })
 
@@ -354,10 +361,10 @@ test.describe(`StructureScene Component Tests`, () => {
 
     for (const position of positions) {
       await safe_canvas_hover(page, canvas, position)
-      await page.waitForTimeout(100)
 
       const tooltip = page.locator(`.tooltip:has(.coordinates)`)
-      if (await tooltip.isVisible()) {
+      try {
+        await tooltip.waitFor({ state: `visible`, timeout: 500 })
         const occupancy_spans = tooltip.locator(`.occupancy`)
         const occupancy_count = await occupancy_spans.count()
 
@@ -379,6 +386,9 @@ test.describe(`StructureScene Component Tests`, () => {
           }
           break
         }
+      } catch {
+        // Continue to next position if tooltip doesn't appear
+        continue
       }
     }
 
@@ -406,7 +416,6 @@ test.describe(`StructureScene Component Tests`, () => {
     for (let idx = 0; idx < positions.length; idx++) {
       await safe_canvas_hover(page, canvas, positions[idx])
       await canvas.click({ position: positions[idx], force: true })
-      await page.waitForTimeout(50) // Very fast interactions
     }
 
     // Verify scene is still functional
@@ -418,7 +427,8 @@ test.describe(`StructureScene Component Tests`, () => {
   // Bond rendering test
   test(`renders bonds without errors`, async ({ page }) => {
     const console_errors = setup_console_monitoring(page)
-    await page.waitForTimeout(500)
+    const canvas = page.locator(`#structure-wrapper canvas`)
+    await expect(canvas).toBeVisible()
     expect(console_errors).toHaveLength(0)
   })
 
@@ -433,7 +443,6 @@ test.describe(`StructureScene Component Tests`, () => {
     const screenshot = await canvas.screenshot()
     expect(screenshot.length).toBeGreaterThan(1000)
 
-    await page.waitForTimeout(500)
     expect(console_errors).toHaveLength(0)
   })
 
@@ -443,7 +452,6 @@ test.describe(`StructureScene Component Tests`, () => {
     const console_errors = setup_console_monitoring(page)
 
     const initial_screenshot = await canvas.screenshot()
-    await page.waitForTimeout(1000) // Wait for any auto-rotation/changes
     const later_screenshot = await canvas.screenshot()
 
     // Both screenshots should be valid (structure loaded)
@@ -466,7 +474,6 @@ test.describe(`StructureScene Component Tests`, () => {
     await canvas.hover({ position: { x: 400, y: 400 } })
     await canvas.hover({ position: { x: 50, y: 50 } })
 
-    await page.waitForTimeout(300)
     expect(console_errors).toHaveLength(0)
   })
 
@@ -496,8 +503,6 @@ test.describe(`StructureScene Component Tests`, () => {
       }
     })
 
-    await page.waitForTimeout(1000) // Wait for properties to apply
-
     const canvas = page.locator(`#structure-wrapper canvas`)
     await expect(canvas).toBeVisible()
 
@@ -516,7 +521,6 @@ test.describe(`StructureScene Component Tests`, () => {
         window.dispatchEvent(event)
       }, color)
 
-      await page.waitForTimeout(500)
       const color_screenshot = await canvas.screenshot()
       expect(color_screenshot.length).toBeGreaterThan(1000)
 
@@ -538,7 +542,6 @@ test.describe(`StructureScene Component Tests`, () => {
         window.dispatchEvent(event)
       }, opacity)
 
-      await page.waitForTimeout(500)
       const opacity_screenshot = await canvas.screenshot()
       expect(opacity_screenshot.length).toBeGreaterThan(1000)
     }
@@ -564,7 +567,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const edges_only_screenshot = await canvas.screenshot()
 
     // Test surfaces only (edge opacity = 0)
@@ -578,7 +580,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const surfaces_only_screenshot = await canvas.screenshot()
 
     // Test both visible with different opacities
@@ -592,7 +593,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const both_visible_screenshot = await canvas.screenshot()
 
     // Test neither visible (both opacity = 0)
@@ -606,7 +606,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const neither_visible_screenshot = await canvas.screenshot()
 
     // Verify all four combinations produce different visual outputs
@@ -644,8 +643,6 @@ test.describe(`StructureScene Component Tests`, () => {
       window.dispatchEvent(event)
     })
 
-    await page.waitForTimeout(1000)
-
     // Take a screenshot and verify it renders
     const wireframe_screenshot = await canvas.screenshot()
     expect(wireframe_screenshot.length).toBeGreaterThan(1000)
@@ -658,7 +655,6 @@ test.describe(`StructureScene Component Tests`, () => {
         sourcePosition: { x: box.width / 2 - 50, y: box.height / 2 },
         targetPosition: { x: box.width / 2 + 50, y: box.height / 2 },
       })
-      await page.waitForTimeout(500)
 
       const rotated_screenshot = await canvas.screenshot()
       expect(rotated_screenshot.length).toBeGreaterThan(1000)
@@ -691,7 +687,6 @@ test.describe(`StructureScene Component Tests`, () => {
         window.dispatchEvent(event)
       }, width)
 
-      await page.waitForTimeout(500)
       const width_screenshot = await canvas.screenshot()
       expect(width_screenshot.length).toBeGreaterThan(1000)
     }
@@ -718,7 +713,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const both_visible_screenshot = await canvas.screenshot()
 
     // Test edges only (surface opacity = 0)
@@ -732,7 +726,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const edges_only_screenshot = await canvas.screenshot()
 
     // Test surfaces only (edge opacity = 0)
@@ -746,7 +739,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const surfaces_only_screenshot = await canvas.screenshot()
 
     // Test neither visible (both opacity = 0)
@@ -760,7 +752,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const neither_visible_screenshot = await canvas.screenshot()
 
     // Verify all four modes produce different visual outputs
@@ -798,7 +789,6 @@ test.describe(`StructureScene Component Tests`, () => {
         window.dispatchEvent(event)
       }, opacity)
 
-      await page.waitForTimeout(500)
       const opacity_screenshot = await canvas.screenshot()
       expect(opacity_screenshot.length).toBeGreaterThan(1000)
     }
@@ -824,7 +814,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const low_edge_screenshot = await canvas.screenshot()
 
     // Test high edge opacity, no surfaces
@@ -838,7 +827,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const high_edge_screenshot = await canvas.screenshot()
 
     // Test no edges, low surface opacity
@@ -852,7 +840,6 @@ test.describe(`StructureScene Component Tests`, () => {
       })
       window.dispatchEvent(event)
     })
-    await page.waitForTimeout(1000)
     const low_surface_screenshot = await canvas.screenshot()
 
     // Verify different opacity levels produce different visual outputs

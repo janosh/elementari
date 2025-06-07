@@ -8,7 +8,13 @@
   import { Canvas } from '@threlte/core'
   import type { ComponentProps, Snippet } from 'svelte'
   import { Tooltip } from 'svelte-zoo'
+  import { Vector2, WebGLRenderer } from 'three'
   import { CELL_DEFAULTS, StructureLegend, StructureScene } from '.'
+
+  // Type for canvas with custom renderer property
+  interface CanvasWithRenderer extends HTMLCanvasElement {
+    __customRenderer?: WebGLRenderer
+  }
 
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
@@ -45,10 +51,10 @@
     enable_tips?: boolean
     save_json_btn_text?: string
     save_png_btn_text?: string
+    png_dpi?: number // PNG export DPI (dots per inch) - 72 is standard web resolution, 150+ is print quality
     // boolean or map from element symbols to labels
     // use atom_label snippet to include HTML and event handlers
     show_site_labels?: boolean
-    style?: string | null
     show_image_atoms?: boolean
     show_full_controls?: boolean
     tips_icon?: Snippet<[]>
@@ -57,6 +63,7 @@
     bottom_left?: Snippet<[{ structure: AnyStructure }]>
     // Generic callback for when files are dropped - receives raw content and filename
     on_file_drop?: (content: string, filename: string) => void
+    [key: string]: unknown
   }
   let {
     structure = $bindable(undefined),
@@ -87,8 +94,8 @@
     enable_tips = true,
     save_json_btn_text = `⬇ Save as JSON`,
     save_png_btn_text = `✎ Save as PNG`,
+    png_dpi = $bindable(150),
     show_site_labels = $bindable(false),
-    style = null,
     show_image_atoms = $bindable(true),
     show_full_controls = $bindable(false),
     tips_icon,
@@ -96,6 +103,7 @@
     controls_toggle,
     bottom_left,
     on_file_drop,
+    ...rest
   }: Props = $props()
 
   // Ensure scene_props always has some defaults merged in
@@ -141,15 +149,49 @@
     camera_has_moved = false
   }
 
+  function generate_structure_filename(extension: string): string {
+    if (!structure) return `structure.${extension}`
+
+    const parts: string[] = []
+
+    if (structure.id) parts.push(structure.id) // Add ID if available
+
+    // Add formula
+    const formula = electro_neg_formula(structure)
+    if (formula && formula !== `Unknown`) parts.push(formula)
+
+    // Add space group if available
+    if (
+      `symmetry` in structure &&
+      structure.symmetry &&
+      typeof structure.symmetry === `object` &&
+      `space_group_symbol` in structure.symmetry
+    )
+      parts.push(String(structure.symmetry.space_group_symbol))
+
+    // Add lattice system if available
+    if (
+      `lattice` in structure &&
+      structure.lattice &&
+      typeof structure.lattice === `object` &&
+      `lattice_system` in structure.lattice
+    )
+      parts.push(String(structure.lattice.lattice_system))
+
+    // Add number of sites
+    if (structure.sites?.length) parts.push(`${structure.sites.length}sites`)
+
+    const base_name = parts.length > 0 ? parts.join(`_`) : `structure`
+    return `${base_name}.${extension}`
+  }
+
   function download_json() {
     if (!structure) {
       alert(`No structure to download`)
       return
     }
     const data = JSON.stringify(structure, null, 2)
-    const filename = structure?.id
-      ? `${structure?.id} (${electro_neg_formula(structure)}).json`
-      : `${electro_neg_formula(structure)}.json`
+    const filename = generate_structure_filename(`json`)
     download(data, filename, `application/json`)
   }
 
@@ -184,12 +226,67 @@
   }
 
   function download_png() {
-    const canvas = wrapper?.querySelector(`canvas`)
-    canvas?.toBlob((blob) => {
-      if (blob) {
-        download(blob, `scene.png`, `image/png`)
-      }
-    })
+    const canvas = wrapper?.querySelector(`canvas`) as CanvasWithRenderer
+    if (!canvas) {
+      alert(`Canvas not found`)
+      return
+    }
+
+    // Convert DPI to multiplier (72 DPI is baseline web resolution)
+    const resolution_multiplier = png_dpi / 72
+    const renderer = canvas.__customRenderer
+
+    if (resolution_multiplier <= 1.1 || !renderer) {
+      // Direct capture at current resolution (if DPI is close to 72 or renderer not available)
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const filename = generate_structure_filename(`png`)
+          download(blob, filename, `image/png`)
+        } else {
+          alert(`Failed to generate PNG - canvas may be empty`)
+        }
+      }, `image/png`)
+      return
+    }
+
+    // Temporarily modify the renderer's pixel ratio for high-res capture
+    const original_pixel_ratio = renderer.getPixelRatio()
+    const original_size = renderer.getSize(new Vector2())
+
+    try {
+      // Set higher pixel ratio to increase rendering resolution
+      renderer.setPixelRatio(resolution_multiplier)
+
+      // Force the canvas to update its resolution
+      renderer.setSize(original_size.width, original_size.height, false)
+
+      // Wait for the next render cycle to complete at higher resolution
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          // Capture the high-resolution render
+          canvas.toBlob((blob) => {
+            // Restore original settings immediately
+            renderer.setPixelRatio(original_pixel_ratio)
+            renderer.setSize(original_size.width, original_size.height, false)
+
+            if (blob) {
+              const filename = generate_structure_filename(`png`)
+              download(blob, filename, `image/png`)
+            } else {
+              alert(`Failed to generate high-resolution PNG`)
+            }
+          }, `image/png`)
+        }, 150) // Allow time for re-render at new resolution
+      })
+    } catch (error) {
+      console.error(`Error during high-res rendering:`, error)
+      // Restore original settings
+      renderer.setPixelRatio(original_pixel_ratio)
+      renderer.setSize(original_size.width, original_size.height, false)
+      alert(
+        `Failed to render at high resolution: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   export function toggle_fullscreen() {
@@ -235,7 +332,6 @@
   <div
     class="structure"
     class:dragover
-    {style}
     role="region"
     bind:this={wrapper}
     bind:clientWidth={width}
@@ -254,6 +350,7 @@
         dragover = false
       }
     }}
+    {...rest}
   >
     <section class:visible={visible_buttons}>
       {#if camera_has_moved}
@@ -575,17 +672,43 @@
           {/each}
         </select>
       </label>
-      <span style="display: flex; gap: 4pt; margin: 3pt 0 0;">
+      <span style="display: flex; gap: 4pt; margin: 3pt 0 0; align-items: center;">
         <button type="button" onclick={download_json} title={save_json_btn_text}>
           {save_json_btn_text}
         </button>
-        <button type="button" onclick={download_png} title={save_png_btn_text}>
+        <button
+          type="button"
+          onclick={download_png}
+          title="{save_png_btn_text} (${png_dpi} DPI)"
+        >
           {save_png_btn_text}
         </button>
+        <small style="margin-left: 4pt;">DPI:</small>
+        <input
+          type="number"
+          min={72}
+          max={300}
+          step={25}
+          bind:value={png_dpi}
+          style="width: 3.5em;"
+          title="Export resolution in dots per inch"
+        />
       </span>
     </dialog>
 
-    <Canvas>
+    <Canvas
+      createRenderer={(canvas) => {
+        const renderer = new WebGLRenderer({
+          canvas,
+          preserveDrawingBuffer: true,
+          antialias: true,
+          alpha: true,
+        })
+        // Store renderer reference for high-res export
+        ;(canvas as CanvasWithRenderer).__customRenderer = renderer
+        return renderer
+      }}
+    >
       <StructureScene
         structure={show_image_atoms && structure && `lattice` in structure
           ? get_pbc_image_sites(structure)
