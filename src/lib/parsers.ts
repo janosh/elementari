@@ -91,7 +91,7 @@ function parse_coordinate(str: string): number {
   const normalized = normalize_scientific_notation(str.trim())
   const value = parseFloat(normalized)
   if (isNaN(value)) {
-    throw new Error(`Invalid coordinate value: ${str}`)
+    throw `Invalid coordinate value: ${str}`
   }
   return value
 }
@@ -110,8 +110,8 @@ function parse_coordinate_line(line: string): number[] {
         .filter((part) => part.length > 0)
       if (parts.length > 1) {
         new_tokens.push(parts[0])
-        for (let i = 1; i < parts.length; i++) {
-          new_tokens.push(`-` + parts[i])
+        for (let part_idx = 1; part_idx < parts.length; part_idx++) {
+          new_tokens.push(`-` + parts[part_idx])
         }
       } else {
         new_tokens.push(token)
@@ -121,7 +121,7 @@ function parse_coordinate_line(line: string): number[] {
   }
 
   if (tokens.length < 3) {
-    throw new Error(`Insufficient coordinates in line: ${line}`)
+    throw `Insufficient coordinates in line: ${line}`
   }
 
   return tokens.slice(0, 3).map(parse_coordinate)
@@ -258,29 +258,39 @@ export function parse_poscar(content: string): ParsedStructure | null {
       let symbol_lines = 1
 
       // Look ahead to find where numbers start (atom counts)
-      for (let i = 1; i < 10; i++) {
-        if (line_index + i >= lines.length) break
-        const next_line_first_token = lines[line_index + i]
+      for (let lookahead_idx = 1; lookahead_idx < 10; lookahead_idx++) {
+        if (line_index + lookahead_idx >= lines.length) break
+        const next_line_first_token = lines[line_index + lookahead_idx]
           .trim()
           .split(/\s+/)[0]
         const next_token_as_number = parseInt(next_line_first_token)
         if (!isNaN(next_token_as_number)) {
-          symbol_lines = i
+          symbol_lines = lookahead_idx
           break
         }
       }
 
       // Collect all element symbols from the symbol lines
-      for (let i = 0; i < symbol_lines; i++) {
-        if (line_index + i < lines.length) {
-          element_symbols.push(...lines[line_index + i].trim().split(/\s+/))
+      for (
+        let symbol_line_idx = 0;
+        symbol_line_idx < symbol_lines;
+        symbol_line_idx++
+      ) {
+        if (line_index + symbol_line_idx < lines.length) {
+          element_symbols.push(
+            ...lines[line_index + symbol_line_idx].trim().split(/\s+/),
+          )
         }
       }
 
       // Parse atom counts (may span multiple lines)
-      for (let i = 0; i < symbol_lines; i++) {
-        if (line_index + symbol_lines + i < lines.length) {
-          const counts = lines[line_index + symbol_lines + i]
+      for (
+        let count_line_idx = 0;
+        count_line_idx < symbol_lines;
+        count_line_idx++
+      ) {
+        if (line_index + symbol_lines + count_line_idx < lines.length) {
+          const counts = lines[line_index + symbol_lines + count_line_idx]
             .trim()
             .split(/\s+/)
             .map(Number)
@@ -333,12 +343,15 @@ export function parse_poscar(content: string): ParsedStructure | null {
       const sites: Site[] = []
       let atom_index = 0
 
-      for (let i = 0; i < element_symbols.length; i++) {
-        const element = validate_element_symbol(element_symbols[i], i)
-        const count = atom_counts[i]
+      for (let elem_idx = 0; elem_idx < element_symbols.length; elem_idx++) {
+        const element = validate_element_symbol(
+          element_symbols[elem_idx],
+          elem_idx,
+        )
+        const count = atom_counts[elem_idx]
 
-        for (let j = 0; j < count; j++) {
-          const coord_line_idx = line_index + 1 + atom_index + j
+        for (let atom_count_idx = 0; atom_count_idx < count; atom_count_idx++) {
+          const coord_line_idx = line_index + 1 + atom_index + atom_count_idx
           if (coord_line_idx >= lines.length) {
             console.error(`Not enough coordinate lines in POSCAR`)
             return null
@@ -405,7 +418,7 @@ export function parse_poscar(content: string): ParsedStructure | null {
             species: [{ element, occu: 1, oxidation_state: 0 }],
             abc,
             xyz,
-            label: `${element}${atom_index + j + 1}`,
+            label: `${element}${atom_index + atom_count_idx + 1}`,
             properties: selective_dynamics
               ? { selective_dynamics: selective_dynamics }
               : {},
@@ -447,14 +460,24 @@ export function parse_xyz(content: string): ParsedStructure | null {
       return null
     }
 
-    // Split into frames using regex pattern similar to pymatgen
-    const frame_pattern =
-      /^\s*\d+\s*\n[^\n]*\n((?:\s*\w+\s+[0-9\-\+\.*^eEdD]+\s+[0-9\-\+\.*^eEdD]+\s+[0-9\-\+\.*^eEdD]+.*\n?)+)/gm
-    const frames = []
-    let match
+    // Split into frames by reading the atom count and slicing lines
+    const all_lines = normalized_content.split(/\r?\n/)
+    const frames: string[] = []
+    let line_idx = 0
 
-    while ((match = frame_pattern.exec(normalized_content)) !== null) {
-      frames.push(match[0])
+    while (line_idx < all_lines.length) {
+      const numAtoms = parseInt(all_lines[line_idx].trim(), 10)
+      if (
+        !isNaN(numAtoms) &&
+        numAtoms > 0 &&
+        line_idx + numAtoms + 1 < all_lines.length
+      ) {
+        const frameLines = all_lines.slice(line_idx, line_idx + numAtoms + 2)
+        frames.push(frameLines.join(`\n`))
+        line_idx += numAtoms + 2
+      } else {
+        line_idx++
+      }
     }
 
     // If no frames found, try simple parsing
@@ -504,8 +527,8 @@ export function parse_xyz(content: string): ParsedStructure | null {
     // Parse atomic coordinates (starting from line 3)
     const sites: Site[] = []
 
-    for (let i = 0; i < num_atoms; i++) {
-      const line_idx = i + 2
+    for (let atom_idx = 0; atom_idx < num_atoms; atom_idx++) {
+      const line_idx = atom_idx + 2
       if (line_idx >= lines.length) {
         console.error(`Not enough coordinate lines in XYZ file`)
         return null
@@ -517,7 +540,7 @@ export function parse_xyz(content: string): ParsedStructure | null {
         return null
       }
 
-      const element = validate_element_symbol(parts[0], i)
+      const element = validate_element_symbol(parts[0], atom_idx)
       const coords = [
         parse_coordinate(parts[1]),
         parse_coordinate(parts[2]),
@@ -547,7 +570,7 @@ export function parse_xyz(content: string): ParsedStructure | null {
         species: [{ element, occu: 1, oxidation_state: 0 }],
         abc,
         xyz,
-        label: `${element}${i + 1}`,
+        label: `${element}${atom_idx + 1}`,
         properties: {},
       }
 
@@ -577,9 +600,9 @@ export function parse_cif(content: string): ParsedStructure | null {
     }
 
     // Parse unit cell parameters
-    let a = 1,
-      b = 1,
-      c = 1
+    let cell_a = 1,
+      cell_b = 1,
+      cell_c = 1
     let alpha = 90,
       beta = 90,
       gamma = 90
@@ -588,11 +611,11 @@ export function parse_cif(content: string): ParsedStructure | null {
     for (const line of lines) {
       const trimmed = line.trim()
       if (trimmed.startsWith(`_cell_length_a`)) {
-        a = parseFloat(trimmed.split(/\s+/)[1])
+        cell_a = parseFloat(trimmed.split(/\s+/)[1])
       } else if (trimmed.startsWith(`_cell_length_b`)) {
-        b = parseFloat(trimmed.split(/\s+/)[1])
+        cell_b = parseFloat(trimmed.split(/\s+/)[1])
       } else if (trimmed.startsWith(`_cell_length_c`)) {
-        c = parseFloat(trimmed.split(/\s+/)[1])
+        cell_c = parseFloat(trimmed.split(/\s+/)[1])
       } else if (trimmed.startsWith(`_cell_angle_alpha`)) {
         alpha = parseFloat(trimmed.split(/\s+/)[1])
       } else if (trimmed.startsWith(`_cell_angle_beta`)) {
@@ -623,29 +646,29 @@ export function parse_cif(content: string): ParsedStructure | null {
     )
 
     const lattice_matrix: [Vector, Vector, Vector] = [
-      [a, 0, 0],
-      [b * cos_gamma, b * sin_gamma, 0],
+      [cell_a, 0, 0],
+      [cell_b * cos_gamma, cell_b * sin_gamma, 0],
       [
-        c * cos_beta,
-        (c * (cos_alpha - cos_beta * cos_gamma)) / sin_gamma,
-        (c * vol_factor) / sin_gamma,
+        cell_c * cos_beta,
+        (cell_c * (cos_alpha - cos_beta * cos_gamma)) / sin_gamma,
+        (cell_c * vol_factor) / sin_gamma,
       ],
     ]
 
-    const volume = a * b * c * vol_factor
+    const volume = cell_a * cell_b * cell_c * vol_factor
 
     // Find atom site data
     const sites: Site[] = []
     let in_atom_site_loop = false
     let atom_site_headers: string[] = []
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim()
+    for (let line_idx = 0; line_idx < lines.length; line_idx++) {
+      const line = lines[line_idx].trim()
 
       // Look for atom site loop
       if (line === `loop_`) {
         // Check if next few lines contain atom site labels
-        let next_line_idx = i + 1
+        let next_line_idx = line_idx + 1
         const potential_headers: string[] = []
 
         while (next_line_idx < lines.length) {
@@ -661,7 +684,7 @@ export function parse_cif(content: string): ParsedStructure | null {
         if (potential_headers.length > 0) {
           in_atom_site_loop = true
           atom_site_headers = potential_headers
-          i = next_line_idx - 1 // Skip to data section
+          line_idx = next_line_idx - 1 // Skip to data section
           continue
         }
       }
@@ -759,9 +782,9 @@ export function parse_cif(content: string): ParsedStructure | null {
     }
 
     const lattice_params = {
-      a,
-      b,
-      c,
+      a: cell_a,
+      b: cell_b,
+      c: cell_c,
       alpha,
       beta,
       gamma,
