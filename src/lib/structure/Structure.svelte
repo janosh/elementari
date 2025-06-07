@@ -226,11 +226,14 @@
     ondrop={handle_file_drop}
     ondragover={(event) => {
       event.preventDefault()
-      if (allow_file_drop) dragover = true
+      if (!allow_file_drop) return
+      dragover = true
     }}
     ondragleave={(event) => {
       event.preventDefault()
-      if (allow_file_drop) dragover = false
+      if (allow_file_drop) {
+        dragover = false
+      }
     }}
   >
     <section class:visible={visible_buttons}>

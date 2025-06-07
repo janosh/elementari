@@ -558,6 +558,223 @@ export function parse_xyz(content: string): ParsedStructure | null {
   }
 }
 
+// Parse CIF (Crystallographic Information File) format
+export function parse_cif(content: string): ParsedStructure | null {
+  try {
+    const lines = content.trim().split(/\r?\n/)
+
+    if (lines.length < 2) {
+      console.error(`CIF file too short`)
+      return null
+    }
+
+    // Parse unit cell parameters
+    let a = 1,
+      b = 1,
+      c = 1
+    let alpha = 90,
+      beta = 90,
+      gamma = 90
+
+    // Find unit cell parameters
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith(`_cell_length_a`)) {
+        a = parseFloat(trimmed.split(/\s+/)[1])
+      } else if (trimmed.startsWith(`_cell_length_b`)) {
+        b = parseFloat(trimmed.split(/\s+/)[1])
+      } else if (trimmed.startsWith(`_cell_length_c`)) {
+        c = parseFloat(trimmed.split(/\s+/)[1])
+      } else if (trimmed.startsWith(`_cell_angle_alpha`)) {
+        alpha = parseFloat(trimmed.split(/\s+/)[1])
+      } else if (trimmed.startsWith(`_cell_angle_beta`)) {
+        beta = parseFloat(trimmed.split(/\s+/)[1])
+      } else if (trimmed.startsWith(`_cell_angle_gamma`)) {
+        gamma = parseFloat(trimmed.split(/\s+/)[1])
+      }
+    }
+
+    // Convert angles to radians for calculation
+    const alpha_rad = (alpha * Math.PI) / 180
+    const beta_rad = (beta * Math.PI) / 180
+    const gamma_rad = (gamma * Math.PI) / 180
+
+    // Calculate lattice vectors from unit cell parameters
+    // Standard crystallographic convention
+    const cos_alpha = Math.cos(alpha_rad)
+    const cos_beta = Math.cos(beta_rad)
+    const cos_gamma = Math.cos(gamma_rad)
+    const sin_gamma = Math.sin(gamma_rad)
+
+    const vol_factor = Math.sqrt(
+      1 -
+        cos_alpha ** 2 -
+        cos_beta ** 2 -
+        cos_gamma ** 2 +
+        2 * cos_alpha * cos_beta * cos_gamma,
+    )
+
+    const lattice_matrix: [Vector, Vector, Vector] = [
+      [a, 0, 0],
+      [b * cos_gamma, b * sin_gamma, 0],
+      [
+        c * cos_beta,
+        (c * (cos_alpha - cos_beta * cos_gamma)) / sin_gamma,
+        (c * vol_factor) / sin_gamma,
+      ],
+    ]
+
+    const volume = a * b * c * vol_factor
+
+    // Find atom site data
+    const sites: Site[] = []
+    let in_atom_site_loop = false
+    let atom_site_headers: string[] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+
+      // Look for atom site loop
+      if (line === `loop_`) {
+        // Check if next few lines contain atom site labels
+        let next_line_idx = i + 1
+        const potential_headers: string[] = []
+
+        while (next_line_idx < lines.length) {
+          const next_line = lines[next_line_idx].trim()
+          if (next_line.startsWith(`_atom_site_`)) {
+            potential_headers.push(next_line)
+            next_line_idx++
+          } else {
+            break
+          }
+        }
+
+        if (potential_headers.length > 0) {
+          in_atom_site_loop = true
+          atom_site_headers = potential_headers
+          i = next_line_idx - 1 // Skip to data section
+          continue
+        }
+      }
+
+      // Parse atom site data
+      if (
+        in_atom_site_loop &&
+        line &&
+        !line.startsWith(`_`) &&
+        !line.startsWith(`#`)
+      ) {
+        const tokens = line.split(/\s+/)
+
+        if (tokens.length >= atom_site_headers.length) {
+          // Map headers to indices
+          const label_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_label`),
+          )
+          const symbol_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_type_symbol`),
+          )
+          const x_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_fract_x`),
+          )
+          const y_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_fract_y`),
+          )
+          const z_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_fract_z`),
+          )
+          const occ_idx = atom_site_headers.findIndex((h) =>
+            h.includes(`_atom_site_occupancy`),
+          )
+
+          if (symbol_idx >= 0 && x_idx >= 0 && y_idx >= 0 && z_idx >= 0) {
+            try {
+              const element_symbol = tokens[symbol_idx]
+              const fract_x = parseFloat(tokens[x_idx])
+              const fract_y = parseFloat(tokens[y_idx])
+              const fract_z = parseFloat(tokens[z_idx])
+              const occupancy = occ_idx >= 0 ? parseFloat(tokens[occ_idx]) : 1.0
+              const label = label_idx >= 0 ? tokens[label_idx] : element_symbol
+
+              if (isNaN(fract_x) || isNaN(fract_y) || isNaN(fract_z)) {
+                continue
+              }
+
+              const element = validate_element_symbol(
+                element_symbol,
+                sites.length,
+              )
+              const abc: Vector = [fract_x, fract_y, fract_z]
+
+              // Convert fractional to Cartesian coordinates
+              const xyz: Vector = [
+                fract_x * lattice_matrix[0][0] +
+                  fract_y * lattice_matrix[1][0] +
+                  fract_z * lattice_matrix[2][0],
+                fract_x * lattice_matrix[0][1] +
+                  fract_y * lattice_matrix[1][1] +
+                  fract_z * lattice_matrix[2][1],
+                fract_x * lattice_matrix[0][2] +
+                  fract_y * lattice_matrix[1][2] +
+                  fract_z * lattice_matrix[2][2],
+              ]
+
+              const site: Site = {
+                species: [{ element, occu: occupancy, oxidation_state: 0 }],
+                abc,
+                xyz,
+                label,
+                properties: {},
+              }
+
+              sites.push(site)
+            } catch (error) {
+              console.warn(`Error parsing CIF atom site line: ${line}`, error)
+            }
+          }
+        }
+      }
+
+      // End of loop or start of new section
+      if (
+        in_atom_site_loop &&
+        (line.startsWith(`loop_`) || line.startsWith(`data_`) || line === ``)
+      ) {
+        in_atom_site_loop = false
+      }
+    }
+
+    if (sites.length === 0) {
+      console.error(`No atom sites found in CIF file`)
+      return null
+    }
+
+    const lattice_params = {
+      a,
+      b,
+      c,
+      alpha,
+      beta,
+      gamma,
+      volume,
+    }
+
+    const structure: ParsedStructure = {
+      sites,
+      lattice: {
+        matrix: lattice_matrix,
+        ...lattice_params,
+      },
+    }
+
+    return structure
+  } catch (error) {
+    console.error(`Error parsing CIF file:`, error)
+    return null
+  }
+}
+
 // Auto-detect file format and parse accordingly
 export function parse_structure_file(
   content: string,
@@ -570,6 +787,11 @@ export function parse_structure_file(
     // Try to detect format by file extension
     if (ext === `xyz`) {
       return parse_xyz(content)
+    }
+
+    // CIF files
+    if (ext === `cif`) {
+      return parse_cif(content)
     }
 
     // POSCAR files may not have extensions or have various names
@@ -624,6 +846,18 @@ export function parse_structure_file(
       // Second line is a number (scale factor), likely POSCAR
       return parse_poscar(content)
     }
+  }
+
+  // CIF format detection: look for CIF-specific keywords
+  const has_cif_keywords = lines.some(
+    (line) =>
+      line.startsWith(`data_`) ||
+      line.includes(`_cell_length_`) ||
+      line.includes(`_atom_site_`) ||
+      line.trim() === `loop_`,
+  )
+  if (has_cif_keywords) {
+    return parse_cif(content)
   }
 
   console.error(`Unable to determine file format`)
