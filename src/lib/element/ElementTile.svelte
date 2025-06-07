@@ -22,7 +22,6 @@
     label?: string | null
     [key: string]: unknown
   }
-
   let {
     element,
     bg_color = null,
@@ -102,7 +101,7 @@
     border-radius: var(--elem-tile-border-radius, 1pt);
     width: 100%;
     box-sizing: border-box;
-    color: var(--elem-tile-text-color, white);
+    color: var(--elem-tile-text-color);
     /* add persistent invisible border so content doesn't move on hover */
     border: 1px solid transparent;
     container-type: inline-size;
