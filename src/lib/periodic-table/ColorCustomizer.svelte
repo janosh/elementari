@@ -50,7 +50,7 @@
           id="{category}-color"
           bind:value={colors.category[category]}
         />
-        {category.replaceAll(`-`, ` `)}
+        &nbsp;{category.replaceAll(`-`, ` `)}
         {#if colors.category[category] !== default_category_colors[category]}
           <button
             onclick={(event) => {
@@ -71,13 +71,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
     place-content: center;
-    gap: var(--color-grid-gap, 7pt);
-    max-width: var(--color-grid-width, 70em);
+    gap: var(--color-grid-gap, 6pt 3pt);
+    max-width: var(--color-grid-width, 50em);
     margin: var(--color-grid-margin, 2em auto);
     justify-self: center;
   }
   div.grid > label {
-    padding: var(--color-label-pad, 1pt 6pt);
+    padding: var(--color-label-pad, 3pt 5pt);
     display: flex;
     align-items: center;
     gap: var(--color-label-gap, 4pt);
@@ -90,10 +90,11 @@
     background-color: var(--color-label-hover-bg, rgba(255, 255, 255, 0.1));
   }
   div.grid > label > input {
-    height: var(--color-input-size, 3em);
-    width: var(--color-input-size, 3em);
-    min-height: var(--color-input-min-size, 3em);
-    min-width: var(--color-input-min-size, 3em);
+    height: var(--color-input-size, 2em);
+    width: var(--color-input-size, 2em);
+    min-height: var(--color-input-min-size, 2em);
+    min-width: var(--color-input-min-size, 2em);
+    border-radius: 50%;
     border: none;
     background-color: transparent;
     cursor: pointer;

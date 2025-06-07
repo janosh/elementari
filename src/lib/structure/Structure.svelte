@@ -2,7 +2,6 @@
   import { browser } from '$app/environment'
   import type { AnyStructure, Lattice } from '$lib'
   import { get_elem_amounts, get_pbc_image_sites } from '$lib'
-  import { download } from '$lib/api'
   import { element_color_schemes } from '$lib/colors'
   import * as exports from '$lib/io/export'
   import { colors } from '$lib/state.svelte'
@@ -10,13 +9,8 @@
   import type { ComponentProps, Snippet } from 'svelte'
   import Select from 'svelte-multiselect'
   import { Tooltip } from 'svelte-zoo'
-  import { Vector2, WebGLRenderer } from 'three'
-  import { CELL_DEFAULTS, StructureLegend, StructureScene } from '.'
-
-  // Type for canvas with custom renderer property
-  interface CanvasWithRenderer extends HTMLCanvasElement {
-    __customRenderer?: WebGLRenderer
-  }
+  import { WebGLRenderer } from 'three'
+  import { BOND_DEFAULTS, CELL_DEFAULTS, StructureLegend, StructureScene } from '.'
 
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
@@ -113,7 +107,13 @@
 
   // Ensure scene_props always has some defaults merged in
   $effect.pre(() => {
-    scene_props = { atom_radius: 1, show_atoms: true, auto_rotate: 0, ...scene_props }
+    scene_props = {
+      atom_radius: 1,
+      show_atoms: true,
+      auto_rotate: 0,
+      bond_thickness: BOND_DEFAULTS.thickness,
+      ...scene_props,
+    }
   })
 
   $effect.pre(() => {
@@ -204,70 +204,6 @@
       if (content) on_file_drop?.(content, file.name)
     }
     reader.readAsText(file)
-  }
-
-  function download_png() {
-    const canvas = wrapper?.querySelector(`canvas`) as CanvasWithRenderer
-    if (!canvas) {
-      alert(`Canvas not found`)
-      return
-    }
-
-    // Convert DPI to multiplier (72 DPI is baseline web resolution)
-    const resolution_multiplier = png_dpi / 72
-    const renderer = canvas.__customRenderer
-
-    if (resolution_multiplier <= 1.1 || !renderer) {
-      // Direct capture at current resolution (if DPI is close to 72 or renderer not available)
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const filename = exports.generate_structure_filename(structure, `png`)
-          download(blob, filename, `image/png`)
-        } else {
-          alert(`Failed to generate PNG - canvas may be empty`)
-        }
-      }, `image/png`)
-      return
-    }
-
-    // Temporarily modify the renderer's pixel ratio for high-res capture
-    const original_pixel_ratio = renderer.getPixelRatio()
-    const original_size = renderer.getSize(new Vector2())
-
-    try {
-      // Set higher pixel ratio to increase rendering resolution
-      renderer.setPixelRatio(resolution_multiplier)
-
-      // Force the canvas to update its resolution
-      renderer.setSize(original_size.width, original_size.height, false)
-
-      // Wait for the next render cycle to complete at higher resolution
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Capture the high-resolution render
-          canvas.toBlob((blob) => {
-            // Restore original settings immediately
-            renderer.setPixelRatio(original_pixel_ratio)
-            renderer.setSize(original_size.width, original_size.height, false)
-
-            if (blob) {
-              const filename = exports.generate_structure_filename(structure, `png`)
-              download(blob, filename, `image/png`)
-            } else {
-              alert(`Failed to generate high-resolution PNG`)
-            }
-          }, `image/png`)
-        }, 150) // Allow time for re-render at new resolution
-      })
-    } catch (error) {
-      console.error(`Error during high-res rendering:`, error)
-      // Restore original settings
-      renderer.setPixelRatio(original_pixel_ratio)
-      renderer.setSize(original_size.width, original_size.height, false)
-      alert(
-        `Failed to render at high resolution: ${error instanceof Error ? error.message : String(error)}`,
-      )
-    }
   }
 
   export function toggle_fullscreen() {
@@ -633,6 +569,7 @@
           <select bind:value={scene_props.bonding_strategy}>
             <option value="max_dist">Max Distance</option>
             <option value="nearest_neighbor">Nearest Neighbor</option>
+            <option value="vdw_radius_based">Van der Waals Radii</option>
           </select>
         </label>
 
@@ -641,20 +578,20 @@
           <input type="color" bind:value={scene_props.bond_color} />
         </label>
         <label>
-          Bond radius
+          Bond thickness
           <input
             type="number"
             min={0.01}
             max={0.12}
             step={0.005}
-            bind:value={scene_props.bond_radius}
+            bind:value={scene_props.bond_thickness}
           />
           <input
             type="range"
             min="0.01"
             max="0.12"
             step={0.005}
-            bind:value={scene_props.bond_radius}
+            bind:value={scene_props.bond_thickness}
           />
         </label>
       {/if}
@@ -678,7 +615,10 @@
         </button>
         <button
           type="button"
-          onclick={download_png}
+          onclick={() => {
+            const canvas = wrapper?.querySelector(`canvas`) as HTMLCanvasElement
+            exports.export_png(canvas, structure, png_dpi)
+          }}
           title="{save_png_btn_text} (${png_dpi} DPI)"
         >
           {save_png_btn_text}
@@ -705,7 +645,7 @@
           alpha: true,
         })
         // Store renderer reference for high-res export
-        ;(canvas as CanvasWithRenderer).__customRenderer = renderer
+        ;(canvas as exports.CanvasWithRenderer).__customRenderer = renderer
         return renderer
       }}
     >
@@ -757,6 +697,12 @@
     left: 0;
     font-size: var(--struct-bottom-left-font-size, 1.2em);
     padding: var(--struct-bottom-left-padding, 1pt 5pt);
+  }
+  button {
+    background-color: transparent;
+  }
+  button:hover {
+    background-color: transparent !important;
   }
 
   section {
@@ -845,7 +791,7 @@
   }
   dialog.controls button {
     width: max-content;
-    background: var(--struct-controls-btn-bg, rgba(255, 255, 255, 0.4));
+    background-color: var(--struct-controls-btn-bg, rgba(255, 255, 255, 0.2));
   }
   select {
     margin: var(--struct-controls-select-margin, 0 0 0 5pt);
