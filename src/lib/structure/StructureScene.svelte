@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Atoms, BondPair, Site, Vector } from '$lib'
+  import type { AnyStructure, BondPair, Site, Vector } from '$lib'
   import {
     Bond,
     Lattice,
@@ -29,7 +29,7 @@
 
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
-    structure?: Atoms | undefined
+    structure?: AnyStructure | undefined
     // scale factor for atomic radii
     atom_radius?: number
     // multiple of atom_radius (actually atom_radius * the element's atomic radius)

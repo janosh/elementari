@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Structure } from '$lib'
   import { parse_structure_file, type ParsedStructure } from '$lib/parsers'
-  import type { Atoms, PymatgenStructure } from '$lib/structure'
+  import type { AnyStructure, PymatgenStructure } from '$lib/structure'
   import { structures } from '$site'
   import TableDemo from './(demos)/periodic-table/+page.svelte'
 
@@ -20,7 +20,7 @@
   }) as Record<string, string>
 
   let mp_id: string = `mp-756175`
-  let structure: Atoms | undefined = $derived(
+  let structure: AnyStructure | undefined = $derived(
     structures.find((struct) => struct.id === mp_id),
   )
 
@@ -151,7 +151,7 @@
 
       // Try to parse as JSON first
       try {
-        const parsed_json: Atoms = JSON.parse(content)
+        const parsed_json: AnyStructure = JSON.parse(content)
         structure = parsed_json
         last_loaded_file_content = content
         last_loaded_filename = filename
@@ -164,7 +164,7 @@
       const parsed_struct = parse_structure_file(content, filename)
       if (parsed_struct) {
         // Convert ParsedStructure to the expected format
-        const converted_structure: Atoms = {
+        const converted_structure: AnyStructure = {
           sites: parsed_struct.sites,
           charge: 0,
           ...(parsed_struct.lattice && {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import type { Atoms, Lattice } from '$lib'
+  import type { AnyStructure, Lattice } from '$lib'
   import { electro_neg_formula, get_elem_amounts, get_pbc_image_sites } from '$lib'
   import { download } from '$lib/api'
   import { element_color_schemes } from '$lib/colors'
@@ -12,7 +12,7 @@
 
   interface Props {
     // output of pymatgen.core.Structure.as_dict()
-    structure?: Atoms | undefined
+    structure?: AnyStructure | undefined
     // need to set a default atom_radius so it doesn't initialize to 0
     scene_props?: ComponentProps<typeof StructureScene> // passed to StructureScene
     lattice_props?: ComponentProps<typeof Lattice> // passed to Lattice
@@ -54,7 +54,7 @@
     tips_icon?: Snippet<[]>
     fullscreen_toggle?: Snippet<[]>
     controls_toggle?: Snippet<[{ controls_open: boolean }]>
-    bottom_left?: Snippet<[{ structure: Atoms }]>
+    bottom_left?: Snippet<[{ structure: AnyStructure }]>
     // Generic callback for when files are dropped - receives raw content and filename
     on_file_drop?: (content: string, filename: string) => void
   }
