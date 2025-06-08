@@ -46,12 +46,6 @@
 
   let category = $derived(element.category.replaceAll(` `, `-`))
   // background color defaults to category color (initialized in colors.ts, user editable in ColorCustomizer.ts)
-
-  $effect(() => {
-    if (text_color_threshold != null && node) {
-      text_color = choose_bw_for_contrast(node, bg_color, text_color_threshold)
-    }
-  })
 </script>
 
 <svelte:element
@@ -63,7 +57,7 @@
   class:active
   class:last-active={selected.last_element === element}
   style:background-color={bg_color ?? `var(--${category}-bg-color)`}
-  style:color={text_color}
+  style:color={text_color ?? choose_bw_for_contrast(node, bg_color, text_color_threshold)}
   {style}
   role="link"
   tabindex="0"
