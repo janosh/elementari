@@ -12,7 +12,7 @@
   } from '$lib'
   import type { D3InterpolateName } from '$lib/colors'
   import { property_labels } from '$lib/labels'
-  import type { ScaleContext } from '$lib/periodic-table/PeriodicTable.svelte'
+  import type { ScaleContext } from '$lib/periodic-table'
   import { selected } from '$lib/state.svelte'
   import { PeriodicTableControls } from '$site'
   import type { Snapshot } from './$types'

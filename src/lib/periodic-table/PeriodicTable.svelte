@@ -5,13 +5,8 @@
   import element_data from '$lib/element/data'
   import * as d3_sc from 'd3-scale-chromatic'
   import type { ComponentProps, Snippet } from 'svelte'
+  import type { ScaleContext } from '.'
   import type { D3InterpolateName } from '../colors'
-
-  export type ScaleContext = {
-    min: number
-    max: number
-    color_scale: D3InterpolateName | ((num: number) => string)
-  }
 
   const default_lanth_act_tiles = [
     {
