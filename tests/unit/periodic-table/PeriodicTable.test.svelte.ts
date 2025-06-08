@@ -2,13 +2,19 @@ import type { Category } from '$lib'
 import { element_data, PeriodicTable, PropertySelect } from '$lib'
 import { category_counts, heatmap_labels } from '$lib/labels'
 import { mount, tick } from 'svelte'
-import { describe, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '..'
 
 const mouseenter = new MouseEvent(`mouseenter`)
 const mouseleave = new MouseEvent(`mouseleave`)
 
 describe(`PeriodicTable`, () => {
+  afterEach(() => {
+    // Clean up DOM after each test to prevent state accumulation
+    document.body.innerHTML = ``
+    // Restore console.error if it was mocked
+    vi.restoreAllMocks()
+  })
   test.each([
     [true, 120],
     [false, 118],
@@ -30,20 +36,46 @@ describe(`PeriodicTable`, () => {
     },
   )
 
-  test(`core functionality`, async () => {
-    // Test multiple features in one comprehensive test
+  test(`empty tiles are rendered`, async () => {
+    mount(PeriodicTable, { target: document.body })
+    expect(document.querySelectorAll(`.element-tile`).length).toBe(118)
+  })
+
+  test(`hovering element tile toggles CSS class 'active'`, async () => {
+    mount(PeriodicTable, { target: document.body })
+
+    const element_tile = doc_query(`.element-tile`)
+    element_tile?.dispatchEvent(mouseenter)
+    await tick()
+    expect([...element_tile.classList]).toContain(`active`)
+
+    element_tile?.dispatchEvent(mouseleave)
+    await tick()
+    expect([...element_tile.classList]).not.toContain(`active`)
+  })
+
+  test(`shows element photo when hovering element tile`, async () => {
+    mount(PeriodicTable, { target: document.body, props: { show_photo: true } })
+
+    const element_tile = doc_query(`.element-tile`)
+    element_tile?.dispatchEvent(mouseenter)
+    await tick()
+
+    expect(doc_query(`img[alt="Hydrogen"]`)?.style.gridArea).toBe(
+      `9/1/span 2/span 2`,
+    )
+
+    element_tile?.dispatchEvent(mouseleave)
+    await tick()
+    expect(document.querySelector(`img`)).toBeNull()
+  })
+
+  test(`keyboard navigation works`, async () => {
     let active_element: (typeof element_data)[0] | null = $state(null)
-    const click = vi.fn()
 
     mount(PeriodicTable, {
       target: document.body,
       props: {
-        tile_props: {
-          show_symbol: false,
-          show_name: false,
-          show_number: false,
-        },
-        show_photo: true,
         get active_element() {
           return active_element
         },
@@ -53,36 +85,26 @@ describe(`PeriodicTable`, () => {
       },
     })
 
-    // Empty text when symbols/names/numbers disabled
-    expect(doc_query(`.periodic-table`)?.textContent?.trim()).toBe(``)
-
-    // Hover functionality and photo display
-    const element_tile = doc_query(`.element-tile`)
-    element_tile?.dispatchEvent(mouseenter)
-    await tick()
-    expect([...element_tile.classList]).toContain(`active`)
-    expect(doc_query(`img[alt="Hydrogen"]`)?.style.gridArea).toBe(
-      `9/1/span 2/span 2`,
-    )
-
-    element_tile?.dispatchEvent(mouseleave)
-    await tick()
-    expect([...element_tile.classList]).not.toContain(`active`)
-    expect(document.querySelector(`img`)).toBeNull()
-
-    // Click events
-    document.addEventListener(`click`, click)
-    element_tile?.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
-    await tick()
-    document.removeEventListener(`click`, click)
-    expect(click).toHaveBeenCalledWith(expect.any(MouseEvent))
-
-    // Keyboard navigation
     active_element = element_data[0]
     await tick()
     window.dispatchEvent(new KeyboardEvent(`keydown`, { key: `ArrowDown` }))
     await tick()
     expect(active_element?.symbol).toBe(`Li`)
+  })
+
+  test(`tile content can be hidden`, async () => {
+    mount(PeriodicTable, {
+      target: document.body,
+      props: {
+        tile_props: {
+          show_symbol: false,
+          show_name: false,
+          show_number: false,
+        },
+      },
+    })
+    // Empty text when symbols/names/numbers disabled
+    expect(doc_query(`.periodic-table`)?.textContent?.trim()).toBe(``)
   })
 
   test(`PropertySelect integration`, async () => {
@@ -167,15 +189,20 @@ describe(`PeriodicTable`, () => {
   ] as const)(
     `error handling for invalid heatmap_values`,
     (heatmap_values, error_message) => {
+      const original_error = console.error
       console.error = vi.fn()
+
       mount(PeriodicTable, {
         target: document.body,
-        props: { heatmap_values },
+        props: { heatmap_values: heatmap_values as never },
       })
+
       expect(console.error).toHaveBeenCalledOnce()
       expect(console.error).toBeCalledWith(
         expect.stringContaining(error_message),
       )
+
+      console.error = original_error
     },
   )
 

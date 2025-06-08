@@ -194,6 +194,7 @@
 
   let bg_color = $derived(
     (value: number | false, element?: ChemicalElement): string | null => {
+      // Return missing color for zero/invalid values or when no heatmap data
       if (
         !value ||
         value === 0 ||
@@ -209,8 +210,11 @@
       }
 
       // map value to [0, 1] range
-      if (log) value = Math.log(value - cs_min + 1) / Math.log(cs_max - cs_min + 1)
-      else value = (value - cs_min) / (cs_max - cs_min)
+      const span = cs_max - cs_min
+      if (span === 0) return color_scale_fn?.(0.5) // midpoint when all values equal
+
+      if (log) value = Math.log(value - cs_min + 1) / Math.log(span + 1)
+      else value = (value - cs_min) / span
       return color_scale_fn?.(value)
     },
   )
