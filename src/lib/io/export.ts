@@ -202,10 +202,10 @@ export function export_png(
       // Force the canvas to update its resolution
       renderer.setSize(original_size.width, original_size.height, false)
 
-      // Wait for the next render cycle to complete at higher resolution
+      // Wait for the browser to complete painting at the new resolution
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Capture the high-resolution render
+        requestAnimationFrame(() => {
+          // Capture the high-resolution render after paint completion
           canvas.toBlob((blob) => {
             // Restore original settings immediately
             renderer.setPixelRatio(original_pixel_ratio)
@@ -220,7 +220,7 @@ export function export_png(
               }
             }
           }, `image/png`)
-        }, 150) // Allow time for re-render at new resolution
+        })
       })
     } catch (error) {
       console.error(`Error during high-res rendering:`, error)

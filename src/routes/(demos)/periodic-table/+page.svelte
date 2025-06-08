@@ -129,25 +129,4 @@
     place-content: center;
     gap: 1em;
   }
-
-  /* Enhanced tooltip styles */
-  :global(.tooltip .active-indicator) {
-    color: gold;
-    margin-left: 0.25em;
-  }
-
-  :global(.tooltip .position) {
-    opacity: 0.7;
-    font-style: italic;
-  }
-
-  :global(.tooltip .scale-info) {
-    opacity: 0.8;
-    color: #ccc;
-  }
-
-  :global(.tooltip div.active) {
-    border-left: 3px solid gold;
-    padding-left: 0.5em;
-  }
 </style>
