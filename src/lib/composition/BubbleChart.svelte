@@ -49,7 +49,7 @@
   }
   let {
     composition,
-    size = 300,
+    size = 200,
     padding = 0,
     show_labels = true,
     show_amounts = true,

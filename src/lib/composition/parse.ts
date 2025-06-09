@@ -6,9 +6,19 @@ import element_data from '$lib/element/data'
 const atomic_number_to_symbol: Partial<Record<number, ElementSymbol>> = {}
 const symbol_to_atomic_number: Partial<Record<ElementSymbol, number>> = {}
 
+// Create mass/electronegativity maps for O(1) lookups in loops below
+const element_atomic_mass_map = new Map<ElementSymbol, number>()
+const element_electronegativity_map = new Map<ElementSymbol, number>()
+
+// Populate maps at module load time
 for (const element of element_data) {
-  atomic_number_to_symbol[element.number] = element.symbol as ElementSymbol
-  symbol_to_atomic_number[element.symbol as ElementSymbol] = element.number
+  atomic_number_to_symbol[element.number] = element.symbol
+  symbol_to_atomic_number[element.symbol] = element.number
+  element_atomic_mass_map.set(element.symbol, element.atomic_mass)
+  element_electronegativity_map.set(
+    element.symbol,
+    element.electronegativity ?? 0,
+  )
 }
 
 // Convert atomic number to element symbol
@@ -195,11 +205,13 @@ export function composition_to_percentages(
     // Calculate weight for each element
     for (const [element, amount] of Object.entries(composition)) {
       if (typeof amount === `number` && amount > 0) {
-        const element_info = element_data.find((el) => el.symbol === element)
-        if (!element_info) {
+        const atomic_mass = element_atomic_mass_map.get(
+          element as ElementSymbol,
+        )
+        if (atomic_mass === undefined) {
           throw new Error(`Unknown element: ${element}`)
         }
-        const weight = amount * element_info.atomic_mass
+        const weight = amount * atomic_mass
         element_weights[element as ElementSymbol] = weight
         total_weight += weight
       }
@@ -333,10 +345,8 @@ export function get_electro_neg_formula(
 ): string {
   const sort_by_electronegativity = (symbols: ElementSymbol[]) => {
     return symbols.sort((el1, el2) => {
-      const elec_neg1 =
-        element_data.find((el) => el.symbol === el1)?.electronegativity ?? 0
-      const elec_neg2 =
-        element_data.find((el) => el.symbol === el2)?.electronegativity ?? 0
+      const elec_neg1 = element_electronegativity_map.get(el1) ?? 0
+      const elec_neg2 = element_electronegativity_map.get(el2) ?? 0
 
       // Sort by electronegativity (ascending), then alphabetically for ties
       if (elec_neg1 !== elec_neg2) return elec_neg1 - elec_neg2

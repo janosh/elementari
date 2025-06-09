@@ -41,7 +41,7 @@
   }
   let {
     composition,
-    width = 300,
+    width = 200,
     height = 60,
     segment_gap = 0,
     border_radius = 8,
@@ -160,7 +160,7 @@
             flex: {segment.width_percent};
           "
         >
-          {@render label_content(segment, segment.color)}
+          {@render label_content(segment)}
         </div>
       {:else}
         <div style="flex: {segment.width_percent};"></div>
@@ -191,7 +191,7 @@
             class="bar-label"
             style="color: {segment.text_color}; font-size: {7 * segment.font_scale}px;"
           >
-            {@render label_content(segment, segment.text_color)}
+            {@render label_content(segment)}
           </div>
         {/if}
 
@@ -215,7 +215,7 @@
             flex: {segment.width_percent};
           "
         >
-          {@render label_content(segment, segment.color)}
+          {@render label_content(segment)}
         </div>
       {:else}
         <div style="flex: {segment.width_percent};"></div>

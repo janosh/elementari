@@ -74,16 +74,11 @@
     {#each [`pie`, `bubble`, `bar`] as const as mode (mode)}
       <h3 style="margin: 1em 0 -1ex;">As {mode} chart</h3>
       <div class="compositions-grid">
-        {#each compositions as comp, idx (comp.name)}
+        {#each compositions as comp (comp.name)}
           <div class="composition-card">
-            <h4>
-              {comp.name}<br /><small>{@html get_formula_display(comp.input)}</small>
-            </h4>
-            <Composition
-              input={comp.input}
-              {mode}
-              orientation={idx % 2 === 0 ? `horizontal` : `vertical`}
-            />
+            <h4 class="card-title">{comp.name}</h4>
+            <div class="card-formula">{@html get_formula_display(comp.input)}</div>
+            <Composition input={comp.input} {mode} />
           </div>
         {/each}
       </div>
@@ -170,28 +165,32 @@
   }
   .compositions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-rows: auto auto 1fr;
     gap: 0.75rem;
     margin-top: 1rem;
   }
   .composition-card {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
     align-items: center;
-    gap: 0.25rem;
+    gap: 1pt;
     padding: 0.75rem;
     background: var(--card-bg, rgba(255, 255, 255, 0.05));
     border-radius: 8px;
     border: 1px solid var(--card-border, rgba(255, 255, 255, 0.1));
   }
-  :is(h3, h4) {
+  .card-title {
     text-align: center;
     margin: 0;
+    word-wrap: break-word;
   }
-  h4 small {
+  .card-formula {
     font-size: 0.75rem;
-    color: var(--text-muted, #666);
+    color: var(--text-muted, #aaa);
     font-weight: lighter;
+    text-align: center;
   }
   .comparison-section {
     margin: 2em 0;

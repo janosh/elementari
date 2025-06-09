@@ -43,7 +43,7 @@
   }
   let {
     composition,
-    size = 300,
+    size = 200,
     stroke_width = 0.5,
     inner_radius = 0,
     show_labels = true,
