@@ -231,6 +231,16 @@ export function parse_composition_input(
     | Record<string | number, number>,
 ): Composition {
   if (typeof input === `string`) {
+    // First try to parse as JSON (for composition objects like {"Fe": 70, "Cr": 18})
+    if (input.trim().startsWith(`{`) && input.trim().endsWith(`}`)) {
+      try {
+        const parsed_json = JSON.parse(input)
+        return normalize_composition(parsed_json)
+      } catch {
+        // If JSON parsing fails, fall through to formula parsing
+      }
+    }
+    // If not JSON or JSON parsing failed, treat as chemical formula
     return normalize_composition(parse_formula(input))
   } else {
     return normalize_composition(input)

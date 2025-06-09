@@ -30,6 +30,14 @@
     { name: `Lithium Phosphate`, input: JSON.stringify({ Li: 1, P: 1, O: 4 }) },
     { name: `Aluminum Oxide`, input: `Al2O3` },
     { name: `Silicon Carbide`, input: `SiC` },
+    {
+      name: `Cantor Alloy`,
+      input: JSON.stringify({ Co: 20, Cr: 20, Fe: 20, Mn: 20, Ni: 20 }),
+    },
+    {
+      name: `Refractory HEA`,
+      input: JSON.stringify({ Ti: 20, Zr: 20, Nb: 20, Mo: 20, V: 20 }),
+    },
   ]
 
   let parsed_composition: CompositionType = $state({})

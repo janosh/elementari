@@ -240,6 +240,22 @@ describe(`parse_composition_input`, () => {
     expect(parse_composition_input(`Fe2O3`)).toEqual({ Fe: 2, O: 3 })
   })
 
+  test.each([
+    [
+      `{"Fe":70,"Cr":18,"Ni":8,"Mn":2,"Si":1,"C":1}`,
+      { Fe: 70, Cr: 18, Ni: 8, Mn: 2, Si: 1, C: 1 },
+      `stainless steel`,
+    ],
+    [`{"Cu":88,"Sn":12}`, { Cu: 88, Sn: 12 }, `bronze`],
+    [`{"Li":1,"P":1,"O":4}`, { Li: 1, P: 1, O: 4 }, `lithium phosphate`],
+    [`{"H":2,"O":1}`, { H: 2, O: 1 }, `water as JSON`],
+  ])(
+    `should parse JSON string %s (%s)`,
+    (json_string, expected, _description) => {
+      expect(parse_composition_input(json_string)).toEqual(expected)
+    },
+  )
+
   test(`should normalize symbol compositions`, () => {
     expect(parse_composition_input({ H: 2, O: 1 })).toEqual({ H: 2, O: 1 })
     expect(parse_composition_input({ Fe: 2, O: 3, N: 0 })).toEqual({
@@ -271,6 +287,14 @@ describe(`parse_composition_input`, () => {
     // Mixed compositions with invalid atomic numbers should be normalized without error
     // The invalid atomic number is simply preserved as-is in the key
     expect(parse_composition_input({ 999: 1 })).toEqual({ '999': 1 })
+  })
+
+  test(`should handle malformed JSON gracefully`, () => {
+    // If JSON parsing fails, should fall back to formula parsing
+    // This malformed JSON will fail both JSON parsing and formula parsing
+    expect(() => parse_composition_input(`{Xx: 70, Yy: 18}`)).toThrow(
+      `Invalid element symbol: X`,
+    )
   })
 })
 
