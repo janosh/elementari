@@ -10,6 +10,21 @@
   const MAX_FONT_SCALE = 1.2
   const MIN_SEGMENT_SIZE_FOR_LABEL = 15 // pixels
 
+  // Type for bar chart segment data
+  type SegmentData = {
+    element: ElementSymbol
+    amount: number
+    percentage: number
+    color: string
+    width_percent: number
+    font_scale: number
+    text_color: string
+    can_show_label: boolean
+    is_thin: boolean
+    needs_external_label: boolean
+    external_label_position: `above` | `below` | null
+  }
+
   interface Props {
     composition: Composition
     width?: number
@@ -77,7 +92,8 @@
     const THIN_SEGMENT_THRESHOLD = 20 // Percentage below which segment is considered thin
     const EXTERNAL_LABEL_SIZE_THRESHOLD = 5 // Lower threshold for external labels
 
-    let thin_segment_count = 0 // Counter for alternating external label positions
+    let above_labels = 0
+    let below_labels = 0
 
     return element_entries.map(([element, amount]) => {
       const percentage = percentages[element as ElementSymbol] || 0
@@ -97,11 +113,13 @@
       const can_show_external_label = segment_size >= EXTERNAL_LABEL_SIZE_THRESHOLD
       const needs_external_label = is_thin && can_show_external_label
 
-      // Simple alternating logic for external labels
-      let external_label_position = null
+      // Balance labels above and below for better visual distribution
+      let external_label_position: `above` | `below` | null = null
       if (needs_external_label) {
-        external_label_position = thin_segment_count % 2 === 0 ? `above` : `below`
-        thin_segment_count++
+        external_label_position =
+          above_labels <= below_labels ? (`above` as const) : (`below` as const)
+        if (external_label_position === `above`) above_labels++
+        else below_labels++
       }
 
       return {
@@ -123,7 +141,7 @@
   let hovered_element: ElementSymbol | null = $state(null)
 </script>
 
-{#snippet label_content(segment)}
+{#snippet label_content(segment: SegmentData)}
   <span class="element-symbol" style="font-size: {10 * segment.font_scale}px"
     >{segment.element}</span
   >{#if show_amounts}<sub class="amount" style="font-size: {8 * segment.font_scale}px"

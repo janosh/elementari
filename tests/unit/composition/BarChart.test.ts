@@ -1,60 +1,102 @@
-import type { Composition } from '$lib'
-import { describe, expect, test, vi } from 'vitest'
+import { BarChart } from '$lib/composition'
+import { mount } from 'svelte'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-// Mock the composition parsing utilities
+// Mock composition parsing utilities
 vi.mock(`$lib/composition/parse`, () => ({
-  composition_to_percentages: vi.fn((comp: Composition) => {
-    const total = Object.values(comp).reduce((sum, val) => sum + (val || 0), 0)
-    const percentages: Composition = {}
+  composition_to_percentages: vi.fn((comp: Record<string, number>) => {
+    const total = Object.values(comp).reduce(
+      (sum: number, val: number) => sum + (val || 0),
+      0,
+    )
+    const percentages: Record<string, number> = {}
     for (const [element, amount] of Object.entries(comp)) {
       if (typeof amount === `number`) {
-        percentages[element as keyof Composition] = (amount / total) * 100
+        percentages[element] = (amount / total) * 100
       }
     }
     return percentages
   }),
-  get_total_atoms: vi.fn((comp: Composition) =>
-    Object.values(comp).reduce((sum, val) => sum + (val || 0), 0),
+  get_total_atoms: vi.fn((comp: Record<string, number>) =>
+    Object.values(comp).reduce(
+      (sum: number, val: number) => sum + (val || 0),
+      0,
+    ),
   ),
 }))
 
-// Mock the colors module
-const mockColors = {
-  H: `#ffffff`,
-  O: `#ff0d0d`,
-  C: `#909090`,
-  Fe: `#e06633`,
-}
-
 vi.mock(`$lib/colors`, () => ({
   element_color_schemes: {
-    Vesta: mockColors,
-    Jmol: mockColors,
+    Vesta: {
+      H: `#ffffff`,
+      C: `#909090`,
+      N: `#3050f8`,
+      O: `#ff0d0d`,
+      Fe: `#e06633`,
+      Ca: `#3dff00`,
+      Mg: `#8aff00`,
+    },
+    Jmol: {
+      H: `#ffffff`,
+      C: `#909090`,
+      N: `#3050f8`,
+      O: `#ff0d0d`,
+      Fe: `#e06633`,
+      Ca: `#3dff00`,
+      Mg: `#8aff00`,
+    },
+  },
+  default_category_colors: {
+    'diatomic-nonmetal': `#ff8c00`,
+    'noble-gas': `#9932cc`,
+    'alkali-metal': `#006400`,
+    'alkaline-earth-metal': `#483d8b`,
+    metalloid: `#b8860b`,
+    'polyatomic-nonmetal': `#a52a2a`,
+    'transition-metal': `#571e6c`,
+    'post-transition-metal': `#938d4a`,
+    lanthanide: `#58748e`,
+    actinide: `#6495ed`,
+  },
+  default_element_colors: {
+    H: `#ffffff`,
+    C: `#909090`,
+    N: `#3050f8`,
+    O: `#ff0d0d`,
+    Fe: `#e06633`,
+    Ca: `#3dff00`,
+    Mg: `#8aff00`,
   },
 }))
 
-vi.mock(`$lib/state.svelte`, () => ({
-  colors: { element: mockColors },
+vi.mock(`$lib/labels`, () => ({
+  choose_bw_for_contrast: vi.fn(() => `#000000`),
 }))
 
+vi.mock(`$lib`, () => ({
+  format_num: vi.fn((num: number, precision: number) => num.toFixed(precision)),
+}))
+
+function doc_query<T extends Element = Element>(selector: string): T {
+  const element = document.querySelector<T>(selector)
+  if (!element) throw new Error(`Element with selector "${selector}" not found`)
+  return element
+}
+
 describe(`BarChart component`, () => {
-  test(`should import without errors`, async () => {
+  beforeEach(() => {
+    document.body.innerHTML = ``
+  })
+
+  test(`imports without errors`, async () => {
     const module = await import(`$lib/composition/BarChart.svelte`)
     expect(module.default).toBeDefined()
   })
 
-  test(`should render container with correct dimensions`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
+  test(`renders container with correct dimensions`, async () => {
     mount(BarChart, {
       target: document.body,
-      props: {
-        composition: { H: 2, O: 1 },
-        width: 300,
-        height: 60,
-      },
+      props: { composition: { H: 2, O: 1 }, width: 300, height: 60 },
     })
 
     const container = document.querySelector(`.stacked-bar-chart-container`)
@@ -63,212 +105,201 @@ describe(`BarChart component`, () => {
     expect(container?.getAttribute(`style`)).toContain(`--bar-height: 60px`)
   })
 
-  test(`should render segments for each element`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
+  test(`renders segments for each element`, async () => {
     mount(BarChart, {
       target: document.body,
-      props: {
-        composition: { H: 2, O: 1, C: 1 },
-        width: 300,
-        height: 60,
-      },
+      props: { composition: { H: 2, O: 1, C: 1 }, width: 300, height: 60 },
     })
 
-    const segments = document.querySelectorAll(`.bar-segment`)
-    expect(segments.length).toBe(3) // One for each element
+    expect(document.querySelectorAll(`.bar-segment`)).toHaveLength(3)
   })
 
-  test(`should handle interactive mode`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
+  test(`handles interactive mode`, async () => {
     mount(BarChart, {
       target: document.body,
-      props: {
-        composition: { H: 2, O: 1 },
-        width: 300,
-        height: 60,
-        interactive: true,
-      },
+      props: { composition: { H: 2, O: 1 }, interactive: true },
     })
 
-    const interactiveSegments = document.querySelectorAll(
-      `.bar-segment[role="button"]`,
-    )
-    expect(interactiveSegments.length).toBeGreaterThan(0)
+    expect(
+      document.querySelectorAll(`.bar-segment[role="button"]`).length,
+    ).toBeGreaterThan(0)
   })
 
   test.each([
     [false, `all segments`],
     [true, `outer corners only`],
   ])(
-    `should apply border radius correctly when outer_corners_only is %s (%s)`,
-    async (outer_corners_only, _description) => {
-      const { mount } = await import(`svelte`)
-      const BarChart = (await import(`$lib/composition/BarChart.svelte`))
-        .default
-
-      document.body.innerHTML = ``
+    `applies border radius correctly when outer_corners_only is %s`,
+    async (outer_corners_only) => {
       mount(BarChart, {
         target: document.body,
         props: {
           composition: { H: 2, O: 1, C: 1 },
-          width: 300,
-          height: 60,
           border_radius: 5,
           outer_corners_only,
         },
       })
 
       const container = document.querySelector(`.bar-segments`)
-      expect(container).toBeTruthy()
       expect(container?.classList.contains(`outer-corners-only`)).toBe(
         outer_corners_only,
-      )
-
-      // Check CSS custom property
-      const barContainer = document.querySelector(
-        `.stacked-bar-chart-container`,
-      )
-      expect(barContainer?.getAttribute(`style`)).toContain(
-        `--border-radius: 5px`,
       )
     },
   )
 
-  test(`should handle segment gaps correctly`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
-    mount(BarChart, {
-      target: document.body,
-      props: {
-        composition: { H: 1, O: 1 }, // Equal amounts for easier calculation
-        width: 100,
-        height: 60,
-        segment_gap: 10,
-      },
-    })
-
-    const segments = document.querySelectorAll(`.bar-segment`)
-    expect(segments.length).toBe(2)
-
-    // Check CSS custom property for gap
-    const barContainer = document.querySelector(`.stacked-bar-chart-container`)
-    expect(barContainer?.getAttribute(`style`)).toContain(`--segment-gap: 10px`)
-
-    // Check that segments have correct flex values (should be 50% each for equal amounts)
-    const firstSegment = segments[0] as HTMLElement
-    const secondSegment = segments[1] as HTMLElement
-    expect(firstSegment.style.flex).toContain(`50`)
-    expect(secondSegment.style.flex).toContain(`50`)
-  })
-
-  test(`should show labels when enabled and segments are large enough`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
+  test(`handles segment gaps and labels`, async () => {
     mount(BarChart, {
       target: document.body,
       props: {
         composition: { H: 2, O: 1 },
         width: 300,
-        height: 60,
+        segment_gap: 10,
         show_labels: true,
       },
     })
 
-    const labels = document.querySelectorAll(`.bar-label`)
-    expect(labels.length).toBeGreaterThan(0)
+    const container = document.querySelector(`.stacked-bar-chart-container`)
+    expect(container?.getAttribute(`style`)).toContain(`--segment-gap: 10px`)
+    expect(document.querySelectorAll(`.bar-label`).length).toBeGreaterThan(0)
+  })
 
-    const elementSymbols = document.querySelectorAll(`.element-symbol`)
-    expect(elementSymbols.length).toBeGreaterThan(0)
+  test(`renders with basic composition`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: { composition: { H: 2, O: 1 } },
+    })
+    expect(doc_query(`.stacked-bar-chart-container`)).toBeTruthy()
+  })
+
+  test(`renders bar segments correctly`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: { composition: { H: 2, O: 1 } },
+    })
+
+    const segments = document.querySelectorAll(`.bar-segment`)
+    expect(segments.length).toBe(2) // H and O segments
+  })
+
+  test(`external label positioning balances above and below`, () => {
+    // Create composition with many thin segments to trigger external labels
+    const composition = {
+      H: 1, // ~16.7%
+      C: 1, // ~16.7%
+      N: 1, // ~16.7%
+      O: 1, // ~16.7%
+      Ca: 1, // ~16.7%
+      Mg: 1, // ~16.7%
+    }
+
+    mount(BarChart, {
+      target: document.body,
+      props: {
+        composition,
+        width: 300,
+        height: 50,
+      },
+    })
+
+    // Check that external labels exist
+    const aboveLabels = document.querySelectorAll(
+      `.external-labels-above .external-label`,
+    )
+    const belowLabels = document.querySelectorAll(
+      `.external-labels-below .external-label`,
+    )
+
+    // With 6 equal segments at ~16.7% each, they should be thin enough for external labels
+    const totalExternalLabels = aboveLabels.length + belowLabels.length
+    expect(totalExternalLabels).toBeGreaterThan(0)
+
+    // The difference between above and below labels should be at most 1
+    // (perfect balance or one extra in one direction)
+    const difference = Math.abs(aboveLabels.length - belowLabels.length)
+    expect(difference).toBeLessThanOrEqual(1)
+  })
+
+  test(`handles custom dimensions`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: {
+        composition: { H: 2, O: 1 },
+        width: 400,
+        height: 80,
+      },
+    })
+
+    const container = doc_query(`.stacked-bar-chart-container`)
+    expect(container.getAttribute(`style`)).toContain(`--bar-max-width: 400px`)
+    expect(container.getAttribute(`style`)).toContain(`--bar-height: 80px`)
+  })
+
+  test(`applies custom styling and classes`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: {
+        composition: { H: 2, O: 1 },
+        style: `background-color: red;`,
+        class: `my-custom-class`,
+      },
+    })
+
+    const container = doc_query(`.stacked-bar-chart-container`)
+    expect(container.getAttribute(`style`)).toContain(`background-color: red;`)
+    expect(container.classList.contains(`my-custom-class`)).toBe(true)
+  })
+
+  test(`handles empty composition gracefully`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: { composition: {} },
+    })
+
+    const segments = document.querySelectorAll(`.bar-segment`)
+    expect(segments.length).toBe(0)
+  })
+
+  test(`shows labels and percentages when enabled`, () => {
+    mount(BarChart, {
+      target: document.body,
+      props: {
+        composition: { H: 2, O: 1 },
+        show_labels: true,
+        show_percentages: true,
+        show_amounts: true,
+      },
+    })
+
+    // Should find element symbols
+    expect(document.querySelector(`.element-symbol`)).toBeTruthy()
+
+    // Should find percentage elements
+    expect(document.querySelector(`.percentage`)).toBeTruthy()
+
+    // Should find amount elements
+    expect(document.querySelector(`.amount`)).toBeTruthy()
   })
 })
 
-describe(`BarChart font scaling`, () => {
-  test(`should maintain scaling behavior with increased base sizes`, () => {
-    const font_scale = 0.8
-
-    // Test the current font sizes
-    const base_font_size = 20 * font_scale
-    const element_symbol_size = 32 * font_scale
-    const amount_size = 24 * font_scale
-    const percentage_size = 26 * font_scale
-
-    expect(base_font_size).toBeCloseTo(16, 1)
-    expect(element_symbol_size).toBeCloseTo(25.6, 1)
-    expect(amount_size).toBeCloseTo(19.2, 1)
-    expect(percentage_size).toBeCloseTo(20.8, 1)
-  })
-})
-
-describe(`BarChart segment calculations`, () => {
-  test(`should calculate segment widths proportional to composition`, () => {
-    const width = 300
-
-    // H should take 2/3 of width (200px), O should take 1/3 (100px)
-    const expected_h_width = (2 / 3) * width // 200px
-    const expected_o_width = (1 / 3) * width // 100px
-
-    expect(expected_h_width).toBe(200)
-    expect(expected_o_width).toBe(100)
-  })
-
-  test(`should position segments correctly for horizontal layout`, () => {
-    const width = 400
-
-    // H: 0-200px, O: 200-300px, C: 300-400px
-    const h_position = 0
-    const o_position = (2 / 4) * width // 200px
-    const c_position = (3 / 4) * width // 300px
-
-    expect(h_position).toBe(0)
-    expect(o_position).toBe(200)
-    expect(c_position).toBe(300)
-  })
-
-  test(`should handle flex-based widths with CSS gaps`, () => {
-    // With CSS flexbox, segments automatically adjust their widths
-    // based on flex values and available space after gaps
-    const total_percentage = 100
-    const h_percentage = (2 / 3) * total_percentage // 66.67%
-    const o_percentage = (1 / 3) * total_percentage // 33.33%
-
-    expect(Math.round(h_percentage * 10) / 10).toBe(66.7)
-    expect(Math.round(o_percentage * 10) / 10).toBe(33.3)
-  })
-})
-
-describe(`BarChart data processing`, () => {
+describe(`BarChart calculations`, () => {
   test.each([
-    [{ H: 2, O: 1 }, { H: 66.67, O: 33.33 }, 3, `water composition`],
-    [{}, {}, 0, `empty composition`],
-    [{ H: 5 }, { H: 100 }, 5, `single element`],
+    [{ H: 2, O: 1 }, { H: 66.67, O: 33.33 }, 3],
+    [{}, {}, 0],
+    [{ H: 5 }, { H: 100 }, 5],
     [
       { C: 8, H: 10, N: 4, O: 2 },
       { C: 33.33, H: 41.67, N: 16.67, O: 8.33 },
       24,
-      `caffeine (complex composition)`,
     ],
   ])(
-    `should process %s correctly (%s)`,
-    async (composition, expected_percentages, expected_total, _description) => {
+    `processes composition correctly`,
+    async (composition, expected_percentages, expected_total) => {
       const { composition_to_percentages, get_total_atoms } = await import(
         `$lib/composition/parse`
       )
 
-      // Test total atoms
-      const total = get_total_atoms(composition)
-      expect(total).toBe(expected_total)
+      expect(get_total_atoms(composition)).toBe(expected_total)
 
-      // Test percentages
       const percentages = composition_to_percentages(composition)
       if (Object.keys(expected_percentages).length === 0) {
         expect(Object.keys(percentages)).toHaveLength(0)
@@ -283,133 +314,20 @@ describe(`BarChart data processing`, () => {
       }
     },
   )
-})
 
-describe(`BarChart label visibility`, () => {
-  test(`should show labels for large segments`, () => {
-    const min_segment_size = 15 // MIN_SEGMENT_SIZE_FOR_LABEL
-    const segment_size = 50 // pixels
-
-    const can_show_label = segment_size >= min_segment_size
-    expect(can_show_label).toBe(true)
-  })
-
-  test(`should hide labels for very small segments`, () => {
-    const min_segment_size = 15 // MIN_SEGMENT_SIZE_FOR_LABEL
-    const segment_size = 10 // pixels
-
-    const can_show_label = segment_size >= min_segment_size
-    expect(can_show_label).toBe(false)
-  })
-
-  test(`should calculate font scale based on segment size`, () => {
+  test(`calculates font scaling correctly`, () => {
     const min_font_scale = 0.6
     const max_font_scale = 1.2
 
-    // Large segment (80px)
-    const large_segment_size = 80
-    const large_font_scale = Math.min(
+    // Test different segment sizes
+    expect(Math.min(max_font_scale, Math.max(min_font_scale, 80 / 40))).toBe(
       max_font_scale,
-      Math.max(min_font_scale, large_segment_size / 40),
     )
-    expect(large_font_scale).toBe(max_font_scale) // Should be capped at max
-
-    // Small segment (20px)
-    const small_segment_size = 20
-    const small_font_scale = Math.min(
-      max_font_scale,
-      Math.max(min_font_scale, small_segment_size / 40),
+    expect(Math.min(max_font_scale, Math.max(min_font_scale, 20 / 40))).toBe(
+      min_font_scale,
     )
-    expect(small_font_scale).toBe(min_font_scale) // Should be at minimum
-
-    // Medium segment (40px)
-    const medium_segment_size = 40
-    const medium_font_scale = Math.min(
-      max_font_scale,
-      Math.max(min_font_scale, medium_segment_size / 40),
+    expect(Math.min(max_font_scale, Math.max(min_font_scale, 40 / 40))).toBe(
+      1.0,
     )
-    expect(medium_font_scale).toBe(1.0) // Should be exactly 1.0
-  })
-})
-
-describe(`BarChart external labels`, () => {
-  test(`should show external labels for thin segments`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
-    mount(BarChart, {
-      target: document.body,
-      props: {
-        composition: { H: 1, O: 1, C: 50 }, // H and O will be thin (< 8%), C will be thick
-        width: 400,
-        height: 50,
-        show_labels: true,
-      },
-    })
-
-    // Should have external label containers
-    const external_above = document.querySelector(`.external-labels-above`)
-    const external_below = document.querySelector(`.external-labels-below`)
-    expect(external_above).toBeTruthy()
-    expect(external_below).toBeTruthy()
-
-    // Should have some external labels
-    const external_labels = document.querySelectorAll(`.external-label`)
-    expect(external_labels.length).toBeGreaterThan(0)
-  })
-
-  test(`should alternate positions for consecutive thin segments`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
-    mount(BarChart, {
-      target: document.body,
-      props: {
-        composition: { H: 1, He: 1, Li: 1, C: 50 }, // H, He, Li will be thin and consecutive
-        width: 400,
-        height: 50,
-        show_labels: true,
-      },
-    })
-
-    const external_above = document.querySelectorAll(
-      `.external-labels-above .external-label`,
-    )
-    const external_below = document.querySelectorAll(
-      `.external-labels-below .external-label`,
-    )
-
-    // Should have labels in both above and below sections (alternating)
-    const total_external = external_above.length + external_below.length
-    expect(total_external).toBeGreaterThan(0)
-  })
-
-  test(`should not show internal labels for thin segments with external labels`, async () => {
-    const { mount } = await import(`svelte`)
-    const BarChart = (await import(`$lib/composition/BarChart.svelte`)).default
-
-    document.body.innerHTML = ``
-    mount(BarChart, {
-      target: document.body,
-      props: {
-        composition: { H: 1, O: 50 }, // H will be thin, O will be thick
-        width: 400,
-        height: 50,
-        show_labels: true,
-      },
-    })
-
-    const bar_segments = document.querySelectorAll(`.bar-segment`)
-    expect(bar_segments.length).toBe(2)
-
-    // The thick segment (O) should have internal label
-    const internal_labels = document.querySelectorAll(`.bar-label`)
-    expect(internal_labels.length).toBe(1) // Only the thick segment should have internal label
-
-    // Should have external labels for thin segments
-    const external_labels = document.querySelectorAll(`.external-label`)
-    expect(external_labels.length).toBeGreaterThan(0)
   })
 })

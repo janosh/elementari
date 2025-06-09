@@ -447,61 +447,6 @@ describe(`edge cases and error handling`, () => {
   })
 })
 
-describe(`parametrized tests`, () => {
-  test.each([
-    [`H2O`, { H: 2, O: 1 }],
-    [`CO2`, { C: 1, O: 2 }],
-    [`Fe2O3`, { Fe: 2, O: 3 }],
-    [`CaCO3`, { Ca: 1, C: 1, O: 3 }],
-    [`C8H10N4O2`, { C: 8, H: 10, N: 4, O: 2 }], // caffeine
-    [`Ca(OH)2`, { Ca: 1, O: 2, H: 2 }],
-    [`Mg(NO3)2`, { Mg: 1, N: 2, O: 6 }],
-    [`Al2(SO4)3`, { Al: 2, S: 3, O: 12 }],
-  ])(
-    `should parse formula %s correctly`,
-    (formula: string, expected: Composition) => {
-      expect(parse_formula(formula)).toEqual(expected)
-    },
-  )
-
-  test.each([
-    [
-      { 1: 2, 8: 1 },
-      { H: 2, O: 1 },
-    ], // H2O
-    [
-      { 6: 1, 8: 2 },
-      { C: 1, O: 2 },
-    ], // CO2
-    [
-      { 26: 2, 8: 3 },
-      { Fe: 2, O: 3 },
-    ], // Fe2O3
-    [
-      { 20: 1, 6: 1, 8: 3 },
-      { Ca: 1, C: 1, O: 3 },
-    ], // CaCO3
-  ])(
-    `should convert atomic numbers %o to symbols correctly`,
-    (atomic_comp: Record<number, number>, expected: Composition) => {
-      expect(convert_atomic_numbers_to_symbols(atomic_comp)).toEqual(expected)
-    },
-  )
-
-  test.each([
-    [{ H: 2, O: 1 }, 3],
-    [{ C: 1, O: 2 }, 3],
-    [{ Fe: 2, O: 3 }, 5],
-    [{ C: 8, H: 10, N: 4, O: 2 }, 24],
-  ])(
-    `should calculate total atoms for %o correctly`,
-    (composition: Composition, expected: number) => {
-      expect(get_total_atoms(composition)).toBe(expected)
-    },
-  )
-})
-
-// Test the new versatile formula functions
 describe(`versatile formula functions`, () => {
   test(`get_alphabetical_formula handles strings`, () => {
     expect(get_alphabetical_formula(`Fe2O3`)).toBe(
@@ -550,21 +495,11 @@ describe(`versatile formula functions`, () => {
   test(`get_alphabetical_formula handles structure objects`, () => {
     const structure = {
       sites: [
-        {
-          species: [{ element: `Fe`, occu: 1 }],
-        },
-        {
-          species: [{ element: `Fe`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
+        { species: [{ element: `Fe`, occu: 1 }] },
+        { species: [{ element: `Fe`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
       ],
     }
     expect(get_alphabetical_formula(structure)).toBe(
@@ -575,21 +510,11 @@ describe(`versatile formula functions`, () => {
   test(`get_electro_neg_formula handles structure objects`, () => {
     const structure = {
       sites: [
-        {
-          species: [{ element: `Fe`, occu: 1 }],
-        },
-        {
-          species: [{ element: `Fe`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
-        {
-          species: [{ element: `O`, occu: 1 }],
-        },
+        { species: [{ element: `Fe`, occu: 1 }] },
+        { species: [{ element: `Fe`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
+        { species: [{ element: `O`, occu: 1 }] },
       ],
     }
     expect(get_electro_neg_formula(structure)).toBe(

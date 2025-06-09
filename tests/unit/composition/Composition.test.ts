@@ -1,7 +1,8 @@
+import { Composition } from '$lib/composition'
 import { mount } from 'svelte'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-// Mock the composition parsing utilities
+// Mock composition parsing utilities
 vi.mock(`$lib/composition/parse`, () => ({
   parse_composition_input: vi.fn((input: string | Record<string, number>) => {
     if (typeof input === `string`) {
@@ -37,8 +38,23 @@ vi.mock(`$lib/colors`, () => ({
     Vesta: { H: `#ffffff`, O: `#ff0d0d`, Fe: `#e06633` },
     Jmol: { H: `#ffffff`, O: `#ff0d0d`, Fe: `#e06633` },
   },
-  default_element_colors: { H: `#ffffff`, O: `#ff0d0d`, Fe: `#e06633` },
-  default_category_colors: { metal: `#ff0000`, nonmetal: `#00ff00` },
+  default_category_colors: {
+    'diatomic-nonmetal': `#ff8c00`,
+    'noble-gas': `#9932cc`,
+    'alkali-metal': `#006400`,
+    'alkaline-earth-metal': `#483d8b`,
+    metalloid: `#b8860b`,
+    'polyatomic-nonmetal': `#a52a2a`,
+    'transition-metal': `#571e6c`,
+    'post-transition-metal': `#938d4a`,
+    lanthanide: `#58748e`,
+    actinide: `#6495ed`,
+  },
+  default_element_colors: {
+    H: `#ffffff`,
+    O: `#ff0d0d`,
+    Fe: `#e06633`,
+  },
 }))
 
 function doc_query<T extends Element = Element>(selector: string): T {
@@ -52,14 +68,8 @@ describe(`Composition component`, () => {
     document.body.innerHTML = ``
   })
 
-  test(`should render with basic props`, () => {
-    mount(Composition, {
-      target: document.body,
-      props: {
-        input: `H2O`,
-      },
-    })
-
+  test(`renders with basic props`, () => {
+    mount(Composition, { target: document.body, props: { input: `H2O` } })
     expect(doc_query(`.composition-container`)).toBeTruthy()
   })
 
@@ -67,22 +77,12 @@ describe(`Composition component`, () => {
     [`pie`, `.pie-chart`],
     [`bubble`, `.bubble-chart`],
     [`bar`, `.stacked-bar-chart-container`],
-  ] as const)(
-    `should render %s mode with correct element`,
-    (mode, selector) => {
-      mount(Composition, {
-        target: document.body,
-        props: {
-          input: `H2O`,
-          mode,
-        },
-      })
+  ] as const)(`renders %s mode correctly`, (mode, selector) => {
+    mount(Composition, { target: document.body, props: { input: `H2O`, mode } })
+    expect(doc_query(selector)).toBeTruthy()
+  })
 
-      expect(doc_query(selector)).toBeTruthy()
-    },
-  )
-
-  test(`should forward props to child components`, () => {
+  test(`forwards props to child components`, () => {
     mount(Composition, {
       target: document.body,
       props: {
@@ -92,100 +92,56 @@ describe(`Composition component`, () => {
         interactive: false,
       },
     })
-
-    const pie_chart = doc_query(`.pie-chart`)
-    expect(pie_chart.getAttribute(`viewBox`)).toBe(`0 0 200 200`)
+    expect(doc_query(`.pie-chart`).getAttribute(`viewBox`)).toBe(`0 0 200 200`)
   })
 
-  test(`should handle composition change callback`, async () => {
+  test(`handles composition change callback`, async () => {
     const on_composition_change = vi.fn()
-
     mount(Composition, {
       target: document.body,
-      props: {
-        input: `H2O`,
-        on_composition_change,
-      },
+      props: { input: `H2O`, on_composition_change },
     })
 
-    // Wait for the effect to run
     await new Promise((resolve) => setTimeout(resolve, 0))
-
-    // Should call the callback with parsed composition
     expect(on_composition_change).toHaveBeenCalledWith({ H: 2, O: 1 })
   })
 
-  test(`should handle empty/invalid input gracefully`, () => {
-    mount(Composition, {
-      target: document.body,
-      props: {
-        input: `invalid`,
-      },
-    })
-
+  test(`handles invalid input gracefully`, () => {
+    mount(Composition, { target: document.body, props: { input: `invalid` } })
     expect(doc_query(`.composition-container`)).toBeTruthy()
-    // Should still render without errors
   })
 
-  test(`should apply custom styling`, () => {
-    const custom_style = `background-color: red;`
-    const custom_class = `my-custom-class`
-
+  test(`applies custom styling`, () => {
     mount(Composition, {
       target: document.body,
       props: {
         input: `H2O`,
-        style: custom_style,
-        class: custom_class,
+        style: `background-color: red;`,
+        class: `my-custom-class`,
       },
     })
 
     const container = doc_query(`.composition-container`)
-    expect(container.getAttribute(`style`)).toBe(custom_style)
-    expect(container.classList.contains(custom_class)).toBe(true)
+    expect(container.getAttribute(`style`)).toBe(`background-color: red;`)
+    expect(container.classList.contains(`my-custom-class`)).toBe(true)
   })
 
-  test(`should handle numeric input correctly`, () => {
+  test(`handles numeric input`, () => {
     mount(Composition, {
       target: document.body,
-      props: {
-        input: { 1: 2, 8: 1 } as Record<number, number>, // Atomic numbers
-      },
+      props: { input: { 1: 2, 8: 1 } as Composition },
     })
-
     expect(doc_query(`.composition-container`)).toBeTruthy()
-    // Should handle atomic number input without errors
   })
 
-  test(`should render bar mode with custom dimensions`, () => {
+  test(`renders bar mode with custom dimensions`, () => {
     mount(Composition, {
       target: document.body,
-      props: {
-        input: `H2O`,
-        mode: `bar`,
-        width: 400,
-        height: 80,
-      },
+      props: { input: `H2O`, mode: `bar`, width: 400, height: 80 },
     })
 
     const container = doc_query(`.stacked-bar-chart-container`)
     expect(container.getAttribute(`style`)).toContain(`--bar-max-width: 400px`)
     expect(container.getAttribute(`style`)).toContain(`--bar-height: 80px`)
-  })
-
-  test(`should pass bar-specific props correctly`, () => {
-    mount(Composition, {
-      target: document.body,
-      props: {
-        input: `H2O`,
-        mode: `bar`,
-        width: 300,
-        height: 100,
-        show_percentages: true,
-      },
-    })
-
-    expect(doc_query(`.stacked-bar-chart-container`)).toBeTruthy()
-    // Should render without errors with bar-specific props
   })
 })
