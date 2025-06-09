@@ -1,14 +1,13 @@
-import Composition from '$lib/composition/Composition.svelte'
 import { mount } from 'svelte'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-// Mock dependencies
+// Mock the composition parsing utilities
 vi.mock(`$lib/composition/parse`, () => ({
-  parse_composition_input: vi.fn((input) => {
+  parse_composition_input: vi.fn((input: string | Record<string, number>) => {
     if (typeof input === `string`) {
       if (input === `H2O`) return { H: 2, O: 1 }
-      if (input === `Fe2O3`) return { Fe: 2, O: 3 }
       if (input === `invalid`) return {}
+      return {}
     }
     return input
   }),
@@ -67,6 +66,7 @@ describe(`Composition component`, () => {
   test.each([
     [`pie`, `.pie-chart`],
     [`bubble`, `.bubble-chart`],
+    [`bar`, `.stacked-bar-chart-container`],
   ] as const)(
     `should render %s mode with correct element`,
     (mode, selector) => {
@@ -155,5 +155,37 @@ describe(`Composition component`, () => {
 
     expect(doc_query(`.composition-container`)).toBeTruthy()
     // Should handle atomic number input without errors
+  })
+
+  test(`should render bar mode with custom dimensions`, () => {
+    mount(Composition, {
+      target: document.body,
+      props: {
+        input: `H2O`,
+        mode: `bar`,
+        width: 400,
+        height: 80,
+      },
+    })
+
+    const container = doc_query(`.stacked-bar-chart-container`)
+    expect(container.getAttribute(`style`)).toContain(`--bar-max-width: 400px`)
+    expect(container.getAttribute(`style`)).toContain(`--bar-height: 80px`)
+  })
+
+  test(`should pass bar-specific props correctly`, () => {
+    mount(Composition, {
+      target: document.body,
+      props: {
+        input: `H2O`,
+        mode: `bar`,
+        width: 300,
+        height: 100,
+        show_percentages: true,
+      },
+    })
+
+    expect(doc_query(`.stacked-bar-chart-container`)).toBeTruthy()
+    // Should render without errors with bar-specific props
   })
 })

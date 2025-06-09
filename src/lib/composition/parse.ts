@@ -266,9 +266,7 @@ export function parse_composition_input(
     }
     // If not JSON or JSON parsing failed, treat as chemical formula
     return normalize_composition(parse_formula(input))
-  } else {
-    return normalize_composition(input)
-  }
+  } else return normalize_composition(input)
 }
 
 // Format a composition object into a chemical formula string

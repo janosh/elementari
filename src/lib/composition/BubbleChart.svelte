@@ -174,7 +174,7 @@
               >{bubble.element}</span
             >{#if show_amounts}<sub
                 class="amount"
-                style="font-size: {8 * bubble.font_scale}px">{bubble.amount}</sub
+                style="font-size: {10 * bubble.font_scale}px">{bubble.amount}</sub
               >{/if}
           </div>
         </foreignObject>

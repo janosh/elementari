@@ -218,10 +218,10 @@
               >{segment.element}</span
             >{#if show_amounts}<sub
                 class="amount"
-                style="font-size: {8 * segment.font_scale}px">{segment.amount}</sub
+                style="font-size: {10 * segment.font_scale}px">{segment.amount}</sub
               >{/if}
             {#if show_percentages}
-              <sub class="percentage" style="font-size: {9 * segment.font_scale}px">
+              <sub class="percentage" style="font-size: {11 * segment.font_scale}px">
                 {format_num(segment.percentage, 1)}%
               </sub>
             {/if}

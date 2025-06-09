@@ -71,15 +71,19 @@
   <section class="grid-section">
     <h2>Composition Gallery</h2>
 
-    {#each [`pie`, `bubble`] as const as mode (mode)}
+    {#each [`pie`, `bubble`, `bar`] as const as mode (mode)}
       <h3 style="margin: 1em 0 -1ex;">As {mode} chart</h3>
       <div class="compositions-grid">
-        {#each compositions as comp (comp.name)}
+        {#each compositions as comp, idx (comp.name)}
           <div class="composition-card">
             <h4>
               {comp.name}<br /><small>{@html get_formula_display(comp.input)}</small>
             </h4>
-            <Composition input={comp.input} {mode} />
+            <Composition
+              input={comp.input}
+              {mode}
+              orientation={idx % 2 === 0 ? `horizontal` : `vertical`}
+            />
           </div>
         {/each}
       </div>

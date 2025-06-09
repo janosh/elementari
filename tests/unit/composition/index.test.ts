@@ -21,6 +21,7 @@ describe(`composition module exports`, () => {
     expect(compositionModule.Composition).toBeDefined()
     expect(compositionModule.PieChart).toBeDefined()
     expect(compositionModule.BubbleChart).toBeDefined()
+    expect(compositionModule.BarChart).toBeDefined()
   })
 
   test(`should export parse utilities from main index`, async () => {
