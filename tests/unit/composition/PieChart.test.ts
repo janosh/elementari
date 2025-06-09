@@ -109,59 +109,40 @@ describe(`PieChart component logic`, () => {
 })
 
 describe(`PieChart data processing`, () => {
-  test(`should process composition data correctly`, async () => {
-    const { composition_to_percentages, get_total_atoms } = await import(
-      `$lib/composition/parse`
-    )
-    const composition: Composition = { H: 2, O: 1 }
+  test.each([
+    [{ H: 2, O: 1 }, { H: 66.67, O: 33.33 }, 3, `water composition`],
+    [{}, {}, 0, `empty composition`],
+    [{ H: 5 }, { H: 100 }, 5, `single element`],
+    [
+      { C: 8, H: 10, N: 4, O: 2 },
+      { C: 33.33, H: 41.67, N: 16.67, O: 8.33 },
+      24,
+      `caffeine (complex composition)`,
+    ],
+  ])(
+    `should process %s correctly (%s)`,
+    async (composition, expected_percentages, expected_total, _description) => {
+      const { composition_to_percentages, get_total_atoms } = await import(
+        `$lib/composition/parse`
+      )
 
-    const percentages = composition_to_percentages(composition)
-    expect(percentages.H).toBeCloseTo(66.67, 1)
-    expect(percentages.O).toBeCloseTo(33.33, 1)
+      // Test total atoms
+      const total = get_total_atoms(composition)
+      expect(total).toBe(expected_total)
 
-    const total = get_total_atoms(composition)
-    expect(total).toBe(3)
-  })
-
-  test(`should handle empty composition`, async () => {
-    const { composition_to_percentages, get_total_atoms } = await import(
-      `$lib/composition/parse`
-    )
-    const composition: Composition = {}
-
-    const percentages = composition_to_percentages(composition)
-    expect(Object.keys(percentages)).toHaveLength(0)
-
-    const total = get_total_atoms(composition)
-    expect(total).toBe(0)
-  })
-
-  test(`should handle single element composition`, async () => {
-    const { composition_to_percentages, get_total_atoms } = await import(
-      `$lib/composition/parse`
-    )
-    const composition: Composition = { H: 5 }
-
-    const percentages = composition_to_percentages(composition)
-    expect(percentages.H).toBe(100)
-
-    const total = get_total_atoms(composition)
-    expect(total).toBe(5)
-  })
-
-  test(`should handle complex composition`, async () => {
-    const { composition_to_percentages, get_total_atoms } = await import(
-      `$lib/composition/parse`
-    )
-    const composition: Composition = { C: 8, H: 10, N: 4, O: 2 } // caffeine
-
-    const total = get_total_atoms(composition)
-    expect(total).toBe(24)
-
-    const percentages = composition_to_percentages(composition)
-    expect(percentages.C).toBeCloseTo(33.33, 1) // 8/24
-    expect(percentages.H).toBeCloseTo(41.67, 1) // 10/24
-    expect(percentages.N).toBeCloseTo(16.67, 1) // 4/24
-    expect(percentages.O).toBeCloseTo(8.33, 1) // 2/24
-  })
+      // Test percentages
+      const percentages = composition_to_percentages(composition)
+      if (Object.keys(expected_percentages).length === 0) {
+        expect(Object.keys(percentages)).toHaveLength(0)
+      } else {
+        Object.entries(expected_percentages).forEach(
+          ([element, expected_pct]) => {
+            expect(
+              percentages[element as keyof typeof percentages],
+            ).toBeCloseTo(expected_pct as number, 1)
+          },
+        )
+      }
+    },
+  )
 })

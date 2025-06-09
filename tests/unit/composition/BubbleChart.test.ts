@@ -152,35 +152,22 @@ describe(`BubbleChart circle packing logic`, () => {
 })
 
 describe(`BubbleChart data processing`, () => {
-  test(`should process composition data correctly`, async () => {
-    const { get_total_atoms } = await import(`$lib/composition/parse`)
-    const composition: Composition = { H: 2, O: 1 }
+  test.each([
+    [{ H: 2, O: 1 }, 3, `water composition`],
+    [{}, 0, `empty composition`],
+    [{ C: 60 }, 60, `fullerene (large composition)`],
+    [{ H: 0.1, O: 0.2 }, 0.3, `very small amounts`],
+  ])(
+    `should process %s correctly (total: %f, %s)`,
+    async (composition, expected_total, description) => {
+      const { get_total_atoms } = await import(`$lib/composition/parse`)
 
-    const total = get_total_atoms(composition)
-    expect(total).toBe(3)
-  })
-
-  test(`should handle empty composition`, async () => {
-    const { get_total_atoms } = await import(`$lib/composition/parse`)
-    const composition: Composition = {}
-
-    const total = get_total_atoms(composition)
-    expect(total).toBe(0)
-  })
-
-  test(`should handle large compositions`, async () => {
-    const { get_total_atoms } = await import(`$lib/composition/parse`)
-    const composition: Composition = { C: 60 } // fullerene
-
-    const total = get_total_atoms(composition)
-    expect(total).toBe(60)
-  })
-
-  test(`should handle very small amounts`, async () => {
-    const { get_total_atoms } = await import(`$lib/composition/parse`)
-    const composition: Composition = { H: 0.1, O: 0.2 }
-
-    const total = get_total_atoms(composition)
-    expect(total).toBeCloseTo(0.3, 1)
-  })
+      const total = get_total_atoms(composition)
+      if (description.includes(`small amounts`)) {
+        expect(total).toBeCloseTo(expected_total, 1)
+      } else {
+        expect(total).toBe(expected_total)
+      }
+    },
+  )
 })

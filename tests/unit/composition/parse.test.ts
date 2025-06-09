@@ -15,51 +15,60 @@ import {
 import { describe, expect, test } from 'vitest'
 
 describe(`atomic number utilities`, () => {
-  test(`should convert atomic numbers to element symbols`, () => {
-    expect(atomic_number_to_element_symbol(1)).toBe(`H`)
-    expect(atomic_number_to_element_symbol(6)).toBe(`C`)
-    expect(atomic_number_to_element_symbol(8)).toBe(`O`)
-    expect(atomic_number_to_element_symbol(26)).toBe(`Fe`)
-    expect(atomic_number_to_element_symbol(79)).toBe(`Au`)
-    expect(atomic_number_to_element_symbol(118)).toBe(`Og`)
+  test.each([
+    [1, `H`],
+    [6, `C`],
+    [8, `O`],
+    [26, `Fe`],
+    [79, `Au`],
+    [118, `Og`],
+  ])(
+    `should convert atomic number %i to element symbol %s`,
+    (atomic_number, expected) => {
+      expect(atomic_number_to_element_symbol(atomic_number)).toBe(expected)
+    },
+  )
+
+  test.each([
+    [0, `Invalid atomic number 0`],
+    [-1, `Invalid atomic number -1`],
+    [119, `Invalid atomic number 119`],
+    [999, `Invalid atomic number 999`],
+  ])(`should return null for %s`, (atomic_number, _description) => {
+    expect(atomic_number_to_element_symbol(atomic_number)).toBeNull()
   })
 
-  test(`should return null for invalid atomic numbers`, () => {
-    expect(atomic_number_to_element_symbol(0)).toBeNull()
-    expect(atomic_number_to_element_symbol(-1)).toBeNull()
-    expect(atomic_number_to_element_symbol(119)).toBeNull()
-    expect(atomic_number_to_element_symbol(999)).toBeNull()
+  test.each([
+    [`H`, 1],
+    [`C`, 6],
+    [`O`, 8],
+    [`Fe`, 26],
+    [`Au`, 79],
+    [`Og`, 118],
+  ] as const)(
+    `should convert element symbol %s to atomic number %i`,
+    (symbol, expected) => {
+      expect(element_symbol_to_atomic_number(symbol)).toBe(expected)
+    },
+  )
+
+  test.each([
+    [`Xx`, `Invalid element symbol Xx`],
+    [`ABC`, `Invalid element symbol ABC`],
+  ])(`should return null for %s`, (symbol, _description) => {
+    expect(element_symbol_to_atomic_number(symbol as ElementSymbol)).toBeNull()
   })
 
-  test(`should convert element symbols to atomic numbers`, () => {
-    expect(element_symbol_to_atomic_number(`H`)).toBe(1)
-    expect(element_symbol_to_atomic_number(`C`)).toBe(6)
-    expect(element_symbol_to_atomic_number(`O`)).toBe(8)
-    expect(element_symbol_to_atomic_number(`Fe`)).toBe(26)
-    expect(element_symbol_to_atomic_number(`Au`)).toBe(79)
-    expect(element_symbol_to_atomic_number(`Og`)).toBe(118)
-  })
-
-  test(`should return null for invalid element symbols`, () => {
-    expect(element_symbol_to_atomic_number(`Xx` as ElementSymbol)).toBeNull()
-    expect(element_symbol_to_atomic_number(`ABC` as ElementSymbol)).toBeNull()
-  })
-
-  test(`should convert atomic number compositions to symbol compositions`, () => {
-    expect(convert_atomic_numbers_to_symbols({ 26: 2, 8: 3 })).toEqual({
-      Fe: 2,
-      O: 3,
-    })
-    expect(convert_atomic_numbers_to_symbols({ 1: 2, 8: 1 })).toEqual({
-      H: 2,
-      O: 1,
-    })
-    expect(convert_atomic_numbers_to_symbols({ 20: 1, 6: 1, 8: 3 })).toEqual({
-      Ca: 1,
-      C: 1,
-      O: 3,
-    })
-  })
+  test.each([
+    [{ 26: 2, 8: 3 }, { Fe: 2, O: 3 }, `Fe2O3`],
+    [{ 1: 2, 8: 1 }, { H: 2, O: 1 }, `H2O`],
+    [{ 20: 1, 6: 1, 8: 3 }, { Ca: 1, C: 1, O: 3 }, `CaCO3`],
+  ])(
+    `should convert atomic numbers to symbols for %s (%s)`,
+    (input, expected, _description) => {
+      expect(convert_atomic_numbers_to_symbols(input)).toEqual(expected)
+    },
+  )
 
   test(`should handle duplicate atomic numbers in conversion`, () => {
     // This would be represented as an object with the same key, so it should sum
@@ -69,30 +78,28 @@ describe(`atomic number utilities`, () => {
     })
   })
 
-  test(`should throw error for invalid atomic numbers in conversion`, () => {
-    expect(() => convert_atomic_numbers_to_symbols({ 999: 1 })).toThrow(
-      `Invalid atomic number: 999`,
-    )
-    expect(() => convert_atomic_numbers_to_symbols({ 0: 1 })).toThrow(
-      `Invalid atomic number: 0`,
-    )
-  })
+  test.each([
+    [{ 999: 1 }, `Invalid atomic number: 999`],
+    [{ 0: 1 }, `Invalid atomic number: 0`],
+  ])(
+    `should throw error for invalid atomic numbers %o`,
+    (input, expected_error) => {
+      expect(() => convert_atomic_numbers_to_symbols(input)).toThrow(
+        expected_error,
+      )
+    },
+  )
 
-  test(`should convert symbol compositions to atomic number compositions`, () => {
-    expect(convert_symbols_to_atomic_numbers({ Fe: 2, O: 3 })).toEqual({
-      26: 2,
-      8: 3,
-    })
-    expect(convert_symbols_to_atomic_numbers({ H: 2, O: 1 })).toEqual({
-      1: 2,
-      8: 1,
-    })
-    expect(convert_symbols_to_atomic_numbers({ Ca: 1, C: 1, O: 3 })).toEqual({
-      20: 1,
-      6: 1,
-      8: 3,
-    })
-  })
+  test.each([
+    [{ Fe: 2, O: 3 }, { 26: 2, 8: 3 }, `Fe2O3`],
+    [{ H: 2, O: 1 }, { 1: 2, 8: 1 }, `H2O`],
+    [{ Ca: 1, C: 1, O: 3 }, { 20: 1, 6: 1, 8: 3 }, `CaCO3`],
+  ])(
+    `should convert symbols to atomic numbers for %s (%s)`,
+    (input, expected, _description) => {
+      expect(convert_symbols_to_atomic_numbers(input)).toEqual(expected)
+    },
+  )
 
   test(`should throw error for invalid element symbols in conversion`, () => {
     expect(() =>
@@ -102,28 +109,21 @@ describe(`atomic number utilities`, () => {
 })
 
 describe(`parse_formula`, () => {
-  test(`should parse simple formulas`, () => {
-    expect(parse_formula(`H2O`)).toEqual({ H: 2, O: 1 })
-    expect(parse_formula(`CO2`)).toEqual({ C: 1, O: 2 })
-    expect(parse_formula(`NaCl`)).toEqual({ Na: 1, Cl: 1 })
-    expect(parse_formula(`Fe2O3`)).toEqual({ Fe: 2, O: 3 })
-  })
-
-  test(`should parse formulas with single atoms`, () => {
-    expect(parse_formula(`H`)).toEqual({ H: 1 })
-    expect(parse_formula(`He`)).toEqual({ He: 1 })
-    expect(parse_formula(`Au`)).toEqual({ Au: 1 })
-  })
-
-  test(`should parse formulas with large numbers`, () => {
-    expect(parse_formula(`C60`)).toEqual({ C: 60 })
-    expect(parse_formula(`C8H10N4O2`)).toEqual({ C: 8, H: 10, N: 4, O: 2 })
-  })
-
-  test(`should handle formulas with parentheses`, () => {
-    expect(parse_formula(`Ca(OH)2`)).toEqual({ Ca: 1, O: 2, H: 2 })
-    expect(parse_formula(`Mg(NO3)2`)).toEqual({ Mg: 1, N: 2, O: 6 })
-    expect(parse_formula(`Al2(SO4)3`)).toEqual({ Al: 2, S: 3, O: 12 })
+  test.each([
+    [`H2O`, { H: 2, O: 1 }, `water`],
+    [`CO2`, { C: 1, O: 2 }, `carbon dioxide`],
+    [`NaCl`, { Na: 1, Cl: 1 }, `salt`],
+    [`Fe2O3`, { Fe: 2, O: 3 }, `iron oxide`],
+    [`H`, { H: 1 }, `hydrogen atom`],
+    [`He`, { He: 1 }, `helium atom`],
+    [`Au`, { Au: 1 }, `gold atom`],
+    [`C60`, { C: 60 }, `fullerene`],
+    [`C8H10N4O2`, { C: 8, H: 10, N: 4, O: 2 }, `caffeine`],
+    [`Ca(OH)2`, { Ca: 1, O: 2, H: 2 }, `calcium hydroxide`],
+    [`Mg(NO3)2`, { Mg: 1, N: 2, O: 6 }, `magnesium nitrate`],
+    [`Al2(SO4)3`, { Al: 2, S: 3, O: 12 }, `aluminum sulfate`],
+  ])(`should parse formula %s (%s)`, (formula, expected, _description) => {
+    expect(parse_formula(formula)).toEqual(expected)
   })
 
   test(`should handle nested parentheses`, () => {
@@ -156,63 +156,58 @@ describe(`parse_formula`, () => {
 })
 
 describe(`normalize_composition`, () => {
-  test(`should normalize symbol compositions`, () => {
-    expect(normalize_composition({ H: 2, O: 1, N: 0 })).toEqual({ H: 2, O: 1 })
-    expect(normalize_composition({ Fe: -1, O: 3 })).toEqual({ O: 3 })
-    expect(normalize_composition({ C: 1.5, H: 4 })).toEqual({ C: 1.5, H: 4 })
-  })
-
-  test(`should normalize atomic number compositions`, () => {
-    expect(normalize_composition({ 1: 2, 8: 1, 7: 0 })).toEqual({ H: 2, O: 1 })
-    expect(normalize_composition({ 26: -1, 8: 3 })).toEqual({ O: 3 })
-  })
-
-  test(`should handle mixed string/number keys by treating numbers as atomic numbers`, () => {
-    expect(normalize_composition({ 1: 2, 8: 1 })).toEqual({ H: 2, O: 1 })
-  })
-
-  test(`should remove zero and negative values`, () => {
-    expect(normalize_composition({ H: 0, O: 1, C: -5 })).toEqual({ O: 1 })
-  })
-
-  test(`should handle empty composition`, () => {
-    expect(normalize_composition({})).toEqual({})
-  })
-
-  test(`should handle non-numeric values`, () => {
-    expect(
-      normalize_composition({ H: `invalid` as unknown as number, O: 1 }),
-    ).toEqual({
-      O: 1,
-    })
+  test.each([
+    [{ H: 2, O: 1, N: 0 }, { H: 2, O: 1 }, `removes zero values`],
+    [{ Fe: -1, O: 3 }, { O: 3 }, `removes negative values`],
+    [{ C: 1.5, H: 4 }, { C: 1.5, H: 4 }, `keeps positive values`],
+    [
+      { 1: 2, 8: 1, 7: 0 },
+      { H: 2, O: 1 },
+      `converts atomic numbers to symbols`,
+    ],
+    [
+      { 26: -1, 8: 3 },
+      { O: 3 },
+      `converts atomic numbers and removes negatives`,
+    ],
+    [{ 1: 2, 8: 1 }, { H: 2, O: 1 }, `handles atomic number keys`],
+    [{ H: 0, O: 1, C: -5 }, { O: 1 }, `removes zero and negative mixed`],
+    [{}, {}, `handles empty composition`],
+    [
+      { H: `invalid` as unknown as number, O: 1 },
+      { O: 1 },
+      `handles non-numeric values`,
+    ],
+  ])(`should normalize %s to %s (%s)`, (input, expected, _description) => {
+    expect(normalize_composition(input)).toEqual(expected)
   })
 })
 
 describe(`composition_to_percentages`, () => {
-  test(`should convert to count percentages`, () => {
-    const result = composition_to_percentages({ H: 2, O: 1 })
-    expect(result.H).toBeCloseTo(66.67, 1)
-    expect(result.O).toBeCloseTo(33.33, 1)
-  })
-
-  test(`should handle single element`, () => {
-    expect(composition_to_percentages({ H: 5 })).toEqual({ H: 100 })
-  })
-
-  test(`should handle equal amounts`, () => {
-    const result = composition_to_percentages({ H: 1, O: 1, N: 1 })
-    expect(result.H).toBeCloseTo(33.33, 1)
-    expect(result.O).toBeCloseTo(33.33, 1)
-    expect(result.N).toBeCloseTo(33.33, 1)
-  })
-
-  test(`should return empty object for empty composition`, () => {
-    expect(composition_to_percentages({})).toEqual({})
-  })
-
-  test(`should return empty object for zero total`, () => {
-    expect(composition_to_percentages({ H: 0, O: 0 })).toEqual({})
-  })
+  test.each([
+    [{ H: 2, O: 1 }, { H: 66.67, O: 33.33 }, `water composition`],
+    [{ H: 5 }, { H: 100 }, `single element`],
+    [{ H: 1, O: 1, N: 1 }, { H: 33.33, O: 33.33, N: 33.33 }, `equal amounts`],
+    [{}, {}, `empty composition`],
+    [{ H: 0, O: 0 }, {}, `zero total`],
+  ])(
+    `should convert %s to percentages (%s)`,
+    (input, expected_percentages, _description) => {
+      const result = composition_to_percentages(input)
+      if (Object.keys(expected_percentages).length === 0) {
+        expect(result).toEqual(expected_percentages)
+      } else {
+        Object.entries(expected_percentages).forEach(
+          ([element, expected_pct]) => {
+            expect(result[element as keyof typeof result]).toBeCloseTo(
+              expected_pct as number,
+              1,
+            )
+          },
+        )
+      }
+    },
+  )
 
   test(`should throw error for weight-based percentages`, () => {
     expect(() => composition_to_percentages({ H: 2, O: 1 }, true)).toThrow(
@@ -222,28 +217,21 @@ describe(`composition_to_percentages`, () => {
 })
 
 describe(`get_total_atoms`, () => {
-  test(`should calculate total atoms`, () => {
-    expect(get_total_atoms({ H: 2, O: 1 })).toBe(3)
-    expect(get_total_atoms({ C: 6, H: 12, O: 6 })).toBe(24)
-    expect(get_total_atoms({ Fe: 2, O: 3 })).toBe(5)
-  })
-
-  test(`should handle single element`, () => {
-    expect(get_total_atoms({ H: 1 })).toBe(1)
-    expect(get_total_atoms({ C: 60 })).toBe(60)
-  })
-
-  test(`should handle empty composition`, () => {
-    expect(get_total_atoms({})).toBe(0)
-  })
-
-  test(`should ignore undefined values`, () => {
-    expect(get_total_atoms({ H: 2, O: undefined as unknown as number })).toBe(2)
-  })
-
-  test(`should handle decimal amounts`, () => {
-    expect(get_total_atoms({ H: 2.5, O: 1.5 })).toBe(4)
-  })
+  test.each([
+    [{ H: 2, O: 1 }, 3, `water`],
+    [{ C: 6, H: 12, O: 6 }, 24, `glucose`],
+    [{ Fe: 2, O: 3 }, 5, `iron oxide`],
+    [{ H: 1 }, 1, `single hydrogen`],
+    [{ C: 60 }, 60, `fullerene`],
+    [{}, 0, `empty composition`],
+    [{ H: 2, O: undefined as unknown as number }, 2, `with undefined values`],
+    [{ H: 2.5, O: 1.5 }, 4, `decimal amounts`],
+  ])(
+    `should calculate total atoms for %s as %i (%s)`,
+    (input, expected, _description) => {
+      expect(get_total_atoms(input)).toBe(expected)
+    },
+  )
 })
 
 describe(`parse_composition_input`, () => {
