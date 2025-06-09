@@ -188,11 +188,35 @@ export function composition_to_percentages(
   by_weight = false,
 ): Composition {
   if (by_weight) {
-    // TODO: Implement atomic weight-based percentages
-    // Would need access to element atomic masses
-    throw new Error(`Weight-based percentages not yet implemented`)
+    // Calculate weight-based percentages using atomic masses
+    let total_weight = 0
+    const element_weights: Partial<Record<ElementSymbol, number>> = {}
+
+    // Calculate weight for each element
+    for (const [element, amount] of Object.entries(composition)) {
+      if (typeof amount === `number` && amount > 0) {
+        const element_info = element_data.find((el) => el.symbol === element)
+        if (!element_info) {
+          throw new Error(`Unknown element: ${element}`)
+        }
+        const weight = amount * element_info.atomic_mass
+        element_weights[element as ElementSymbol] = weight
+        total_weight += weight
+      }
+    }
+
+    if (total_weight === 0) return {}
+
+    // Convert to percentages
+    const percentages: Composition = {}
+    for (const [element, weight] of Object.entries(element_weights)) {
+      percentages[element as ElementSymbol] = (weight / total_weight) * 100
+    }
+
+    return percentages
   }
 
+  // Calculate count-based percentages (original implementation)
   const total = Object.values(composition).reduce(
     (sum, count) => sum + (count || 0),
     0,

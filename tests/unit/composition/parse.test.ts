@@ -209,10 +209,120 @@ describe(`composition_to_percentages`, () => {
     },
   )
 
-  test(`should throw error for weight-based percentages`, () => {
-    expect(() => composition_to_percentages({ H: 2, O: 1 }, true)).toThrow(
-      `Weight-based percentages not yet implemented`,
+  describe(`weight-based percentages`, () => {
+    test.each([
+      // Basic compounds
+      [
+        { H: 2, O: 1 },
+        { H: 11.19, O: 88.81 },
+      ],
+      [
+        { Fe: 2, O: 3 },
+        { Fe: 69.94, O: 30.06 },
+      ],
+      [
+        { Na: 1, Cl: 1 },
+        { Na: 39.34, Cl: 60.66 },
+      ],
+      [
+        { C: 1, O: 2 },
+        { C: 27.29, O: 72.71 },
+      ],
+      [
+        { Ca: 1, C: 1, O: 3 },
+        { Ca: 40.04, C: 11.99, O: 47.96 },
+      ],
+      [
+        { Al: 2, O: 3 },
+        { Al: 52.92, O: 47.08 },
+      ],
+      [
+        { Li: 1, F: 1 },
+        { Li: 26.75, F: 73.25 },
+      ],
+      [
+        { Au: 1, Cl: 3 },
+        { Au: 64.95, Cl: 35.05 },
+      ],
+      // Edge cases
+      [{ C: 1 }, { C: 100 }],
+      [{ H: 1 }, { H: 100 }],
+      [{ Au: 1 }, { Au: 100 }],
+      [
+        { H: 1, Li: 1 },
+        { H: 12.7, Li: 87.3 },
+      ],
+      [
+        { H: 10, Li: 1 },
+        { H: 59.2, Li: 40.8 },
+      ],
+      [
+        { C: 0.5, H: 2 },
+        { C: 74.87, H: 25.13 },
+      ],
+      [
+        { Fe: 0.1, Au: 0.1 },
+        { Fe: 22.1, Au: 77.9 },
+      ],
+      [
+        { H: 1, He: 1, Li: 1, Be: 1, B: 1 },
+        { H: 3.17, He: 12.58, Li: 21.82, Be: 28.35, B: 34.0 },
+      ],
+      // Complex compositions
+      [
+        { C: 8, H: 10, N: 4, O: 2 },
+        { C: 49.48, H: 5.19, N: 28.87, O: 16.47 },
+      ],
+      [
+        { Ca: 3, P: 2, O: 8 },
+        { Ca: 38.76, P: 19.97, O: 41.27 },
+      ],
+      [
+        { Fe: 70, Cr: 18, Ni: 8, Mn: 2, Si: 1, C: 1 },
+        { Fe: 71.54, Cr: 17.13, Ni: 8.64, Mn: 2.02, Si: 0.52, C: 0.22 },
+      ],
+      [
+        { Al: 1, Si: 1, O: 5 },
+        { Al: 19.98, Si: 20.79, O: 59.23 },
+      ],
+    ])(
+      `should calculate weight percentages correctly for %s`,
+      (composition, expected_percentages) => {
+        const result = composition_to_percentages(composition, true)
+        Object.entries(expected_percentages).forEach(([element, expected]) => {
+          const tolerance =
+            Object.keys(expected_percentages).length === 1 ? 0 : 1
+          expect(result[element as ElementSymbol]).toBeCloseTo(
+            expected,
+            tolerance,
+          )
+        })
+      },
     )
+
+    test(`should handle empty composition`, () => {
+      expect(composition_to_percentages({}, true)).toEqual({})
+    })
+
+    test(`should throw error for unknown elements`, () => {
+      expect(() =>
+        composition_to_percentages({ Xx: 1 } as Composition, true),
+      ).toThrow(`Unknown element: Xx`)
+    })
+
+    test(`should always sum to 100%`, () => {
+      ;[
+        { H: 2, O: 1 },
+        { Fe: 2, O: 3 },
+        { C: 6, H: 12, O: 6 },
+        { Ca: 1, C: 1, O: 3 },
+        { Na: 2, S: 1, O: 4 },
+      ].forEach((comp) => {
+        const result = composition_to_percentages(comp, true)
+        const total = Object.values(result).reduce((sum, pct) => sum + pct, 0)
+        expect(total).toBeCloseTo(100, 0)
+      })
+    })
   })
 })
 
