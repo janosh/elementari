@@ -60,6 +60,8 @@ Example usage:
     // background color for elements missing from heatmap_values
     // "element-category" falls back to element category default color
     missing_color?: string
+    // control the layout of multi-value splits for all tiles
+    split_layout?: `diagonal` | `horizontal` | `vertical` | `triangular` | `quadrant`
     inset?: Snippet<[{ active_element: ChemicalElement | null }]>
     bottom_left_inset?: Snippet<[{ active_element: ChemicalElement | null }]>
     tooltip?:
@@ -98,6 +100,7 @@ Example usage:
     color_overrides = {},
     labels = {},
     missing_color = `element-category`,
+    split_layout = undefined,
     inset,
     bottom_left_inset,
     tooltip = false,
@@ -297,6 +300,7 @@ Example usage:
         }}
         onfocus={set_active_element(element)}
         onblur={set_active_element(null)}
+        {split_layout}
       />
     {/each}
     <!-- show tile for lanthanides and actinides with text La-Lu and Ac-Lr respectively -->

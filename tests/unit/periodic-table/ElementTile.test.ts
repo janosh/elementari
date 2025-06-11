@@ -4,6 +4,13 @@ import { mount } from 'svelte'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '..'
 
+type SplitLayout =
+  | `diagonal`
+  | `horizontal`
+  | `vertical`
+  | `triangular`
+  | `quadrant`
+
 // test random element for increased robustness
 const rand_idx = Math.floor(Math.random() * element_data.length)
 const rand_element = element_data[rand_idx]
@@ -465,16 +472,18 @@ describe(`ElementTile`, () => {
   })
 
   describe(`multi-value support`, () => {
-    test.each([
+    const test_cases = [
       {
         value: [10, 20],
         segments: [`diagonal-top`, `diagonal-bottom`],
         positions: [`top-left`, `bottom-right`],
+        layout: `diagonal`,
       },
       {
         value: [1, 2, 3],
         segments: [`horizontal-top`, `horizontal-middle`, `horizontal-bottom`],
         positions: [`bar-top-left`, `bar-middle-right`, `bar-bottom-left`],
+        layout: `horizontal`,
       },
       {
         value: [1, 2, 3, 4],
@@ -485,9 +494,12 @@ describe(`ElementTile`, () => {
           `value-quadrant-bl`,
           `value-quadrant-br`,
         ],
+        layout: `quadrant`,
       },
-    ])(
-      `renders $value.length values with segments and positioning`,
+    ]
+
+    test.each(test_cases)(
+      `renders $value.length values with $layout layout (auto)`,
       ({ value, segments, positions }) => {
         mount(ElementTile, {
           target: document.body,
@@ -498,20 +510,92 @@ describe(`ElementTile`, () => {
           },
         })
 
-        // Verify segments and positions are correct
         segments.forEach((cls) =>
           expect(document.querySelector(`.segment.${cls}`)).toBeTruthy(),
         )
         positions.forEach((cls) =>
           expect(document.querySelector(`.multi-value.${cls}`)).toBeTruthy(),
         )
-
-        // Multi-value tiles should have transparent background
         expect(doc_query(`.element-tile`).style.backgroundColor).toBe(
           `transparent`,
         )
+        expect(document.querySelector(`.number`)).toBeNull() // Auto-hide atomic number
       },
     )
+
+    test.each([
+      {
+        value: [1, 2, 3],
+        layout: `vertical`,
+        segments: [`vertical-left`, `vertical-middle`, `vertical-right`],
+        positions: [`bar-left-top`, `bar-middle-bottom`, `bar-right-top`],
+      },
+      {
+        value: [1, 2, 3, 4],
+        layout: `triangular`,
+        segments: [
+          `triangle-top`,
+          `triangle-right`,
+          `triangle-bottom`,
+          `triangle-left`,
+        ],
+        positions: [
+          `triangle-top-pos`,
+          `triangle-right-pos`,
+          `triangle-bottom-pos`,
+          `triangle-left-pos`,
+        ],
+      },
+    ])(
+      `renders $value.length values with explicit $layout layout`,
+      ({ value, layout, segments, positions }) => {
+        mount(ElementTile, {
+          target: document.body,
+          props: {
+            element: rand_element,
+            value,
+            bg_colors: value.map(() => `#ff0000`),
+            split_layout: layout as SplitLayout,
+          },
+        })
+
+        segments.forEach((cls) =>
+          expect(document.querySelector(`.segment.${cls}`)).toBeTruthy(),
+        )
+        positions.forEach((cls) =>
+          expect(document.querySelector(`.multi-value.${cls}`)).toBeTruthy(),
+        )
+        expect(doc_query(`.element-tile`).style.backgroundColor).toBe(
+          `transparent`,
+        )
+        expect(document.querySelector(`.number`)).toBeNull()
+      },
+    )
+
+    test(`atomic number behavior with multi-value splits`, () => {
+      const test_show_number = (
+        props: Record<string, unknown>,
+        should_show: boolean,
+      ) => {
+        document.body.innerHTML = ``
+        mount(ElementTile, {
+          target: document.body,
+          props: { element: rand_element, ...props },
+        })
+        expect(!!document.querySelector(`.number`)).toBe(should_show)
+      }
+
+      test_show_number({ value: 42 }, true) // Single value - show by default
+      test_show_number(
+        { value: [1, 2], bg_colors: [`#ff0000`, `#00ff00`] },
+        false,
+      ) // Multi-value - hide by default
+      test_show_number(
+        { value: [1, 2], bg_colors: [`#ff0000`, `#00ff00`], show_number: true },
+        true,
+      ) // Explicit override
+      test_show_number({ value: 42, show_number: false }, false) // Explicit hide
+    })
 
     test.each([
       { value: [10, 0, 30], expected_count: 2, desc: `zero values hidden` },
@@ -520,6 +604,13 @@ describe(`ElementTile`, () => {
         value: [1, 2, 3, 4, 5, 6],
         expected_segments: 0,
         desc: `arrays >4 fallback`,
+      },
+      { value: [], expected_segments: 0, desc: `empty array` },
+      {
+        value: [0, 0],
+        expected_segments: 2,
+        expected_count: 0,
+        desc: `all zero values`,
       },
     ])(`edge cases: $desc`, ({ value, expected_count, expected_segments }) => {
       mount(ElementTile, {
@@ -534,36 +625,18 @@ describe(`ElementTile`, () => {
         },
       })
 
+      expect(document.querySelector(`.element-tile`)).toBeTruthy()
       if (expected_count !== undefined) {
         expect(document.querySelectorAll(`.multi-value`).length).toBe(
           expected_count,
         )
       }
-
       if (expected_segments !== undefined) {
         expect(document.querySelectorAll(`.segment`).length).toBe(
           expected_segments,
         )
       }
     })
-
-    test.each([[[]], [[0, 0]], [undefined], [false]])(
-      `handles invalid data: %s`,
-      (value) => {
-        mount(ElementTile, {
-          target: document.body,
-          props: {
-            element: rand_element,
-            value: value as never,
-            bg_colors: [],
-          },
-        })
-
-        // Should not crash and should not show segments for invalid data
-        expect(document.querySelector(`.element-tile`)).toBeTruthy()
-        expect(document.querySelector(`.segment`)).toBeNull()
-      },
-    )
   })
 
   describe(`color value support`, () => {

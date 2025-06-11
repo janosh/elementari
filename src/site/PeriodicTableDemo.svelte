@@ -285,7 +285,7 @@
   {/snippet}
 </PeriodicTable>
 
-<h3>4-fold Split (Quadrants)</h3>
+<h3>4-fold Split</h3>
 <p>
   Each element shows four values as quadrants: <strong>top-left = atomic radius</strong>,
   <strong>top-right = electronegativity * 100</strong>,
@@ -296,6 +296,7 @@
   tile_props={{ show_name: false, show_number: false }}
   heatmap_values={four_fold_data}
   color_scale="interpolateViridis"
+  split_layout="quadrant"
   tooltip
   style="margin: 1em auto; max-width: 800px;"
 >
