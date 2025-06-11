@@ -435,7 +435,7 @@ describe(`PeriodicTable`, () => {
       ],
       [
         [`rgb(255, 0, 0)`, `var(--blue)`],
-        [`var(--diatomic-nonmetal-bg-color)`, `var(--noble-gas-bg-color)`],
+        [`#ff8c00`, `#9932cc`], // diatomic-nonmetal and noble-gas hex colors
         `undetected formats`,
       ],
     ])(`single colors (%s)`, async (heatmap_values, expected_colors, _type) => {

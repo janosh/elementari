@@ -184,8 +184,7 @@
         class:hovered={hovered_element === segment.element}
         onmouseenter={() => interactive && (hovered_element = segment.element)}
         onmouseleave={() => interactive && (hovered_element = null)}
-        role={interactive ? `button` : undefined}
-        tabindex={interactive ? 0 : undefined}
+        {...interactive && { role: `button`, tabindex: 0 }}
       >
         <title>
           {segment.element}: {segment.amount}
