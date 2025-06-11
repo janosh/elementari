@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ChemicalElement, PeriodicTableEvents } from '$lib'
   import { choose_bw_for_contrast, format_num } from '$lib'
-  import { is_color } from '$lib/colors'
+  import { default_category_colors, is_color } from '$lib/colors'
   import { selected } from '$lib/state.svelte'
 
   interface Props {
@@ -53,6 +53,11 @@
   let category = $derived(element.category.replaceAll(` `, `-`))
   // background color defaults to category color (initialized in colors/index.ts, user editable in PeriodicTableControls.svelte)
 
+  let fallback_bg_color = $derived(
+    bg_color ?? default_category_colors[category] ?? `var(--${category}-bg-color)`,
+  )
+  let contrast_bg_color = $derived(bg_color ?? default_category_colors[category])
+
   // Helper function to format values appropriately
   const format_value = (val: string | number): string => {
     if (is_color(val)) {
@@ -81,8 +86,9 @@
   class:last-active={selected.last_element === element}
   style:background-color={Array.isArray(value) && bg_colors?.length > 1
     ? `transparent`
-    : (bg_color ?? `var(--${category}-bg-color)`)}
-  style:color={text_color ?? choose_bw_for_contrast(node, bg_color, text_color_threshold)}
+    : fallback_bg_color}
+  style:color={text_color ??
+    choose_bw_for_contrast(node, contrast_bg_color, text_color_threshold)}
   {style}
   role="link"
   tabindex="0"

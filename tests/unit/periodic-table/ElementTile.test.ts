@@ -1,4 +1,5 @@
 import { ElementTile, element_data } from '$lib'
+import { default_category_colors } from '$lib/colors'
 import { mount } from 'svelte'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '..'
@@ -641,6 +642,31 @@ describe(`ElementTile`, () => {
         expected_spans,
       )
       expect(!!document.querySelector(`.name`)).toBe(!should_show)
+    })
+  })
+
+  describe(`background color fallback`, () => {
+    test(`uses default category color when no bg_color provided`, () => {
+      mount(ElementTile, {
+        target: document.body,
+        props: { element: rand_element },
+      })
+
+      const node = doc_query(`.element-tile`)
+      const expected_color =
+        default_category_colors[rand_element.category.replaceAll(` `, `-`)]
+      expect(node.style.backgroundColor).toBe(expected_color)
+    })
+
+    test(`explicit bg_color overrides category default`, () => {
+      const custom_color = `#123456`
+      mount(ElementTile, {
+        target: document.body,
+        props: { element: rand_element, bg_color: custom_color },
+      })
+
+      const node = doc_query(`.element-tile`)
+      expect(node.style.backgroundColor).toBe(custom_color)
     })
   })
 })
