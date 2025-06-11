@@ -1,4 +1,4 @@
-import { element_color_schemes } from '$lib/colors'
+import { element_color_schemes, is_color } from '$lib/colors'
 import { elem_symbols } from '$lib/labels'
 import { describe, expect, test } from 'vitest'
 
@@ -167,5 +167,32 @@ describe(`Element Color Schemes`, () => {
         `${element} in Pastel scheme should have high lightness (got ${lightness})`,
       ).toBeGreaterThan(120)
     }
+  })
+})
+
+describe(`is_color function`, () => {
+  test.each([
+    // Valid patterns
+    [`#ff0000`, true],
+    [`#f00`, true],
+    [`red`, true],
+    [`rgb`, true],
+    [`hsl`, true],
+    [`var`, true],
+
+    // Invalid patterns
+    [`rgb(255, 0, 0)`, false],
+    [`#gg0000`, false],
+    [`hello world`, false],
+    [``, false],
+    [123, false],
+    [null, false],
+  ])(`%s -> %s`, (input, expected) => {
+    expect(is_color(input)).toBe(expected)
+  })
+
+  test(`works with actual color scheme values`, () => {
+    expect(is_color(element_color_schemes.Jmol.H)).toBe(true)
+    expect(is_color(element_color_schemes.Vesta.He)).toBe(true)
   })
 })

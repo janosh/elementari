@@ -62,3 +62,12 @@ export const element_color_schemes = {
 } as const
 
 export const default_element_colors = { ...vesta_hex }
+
+// Helper function to detect if a value is a color string
+export const is_color = (val: unknown): val is string => {
+  if (typeof val !== `string`) return false
+  // Check for hex colors, rgb/rgba, hsl/hsla, named colors, etc.
+  return /^(#[0-9a-f]{3,8}|rgb|hsl|color|var\(|[a-z]+)$/i.test(
+    val.toString().trim(),
+  )
+}

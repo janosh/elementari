@@ -1,11 +1,15 @@
 import { ElementTile, element_data } from '$lib'
 import { mount } from 'svelte'
-import { describe, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { doc_query } from '..'
 
 // test random element for increased robustness
 const rand_idx = Math.floor(Math.random() * element_data.length)
 const rand_element = element_data[rand_idx]
+
+afterEach(() => {
+  document.body.innerHTML = ``
+})
 
 describe(`ElementTile`, () => {
   describe(`basic rendering`, () => {
@@ -559,5 +563,84 @@ describe(`ElementTile`, () => {
         expect(document.querySelector(`.segment`)).toBeNull()
       },
     )
+  })
+
+  describe(`color value support`, () => {
+    test.each([
+      [`#ff0000`, true, `hex`],
+      [`red`, true, `named`],
+      [`rgb(255, 0, 0)`, false, `rgb`],
+      [`var(--color)`, false, `CSS var`],
+    ])(`%s (%s) - detected=%s`, (color_value, is_detected, _type) => {
+      mount(ElementTile, {
+        target: document.body,
+        props: {
+          element: rand_element,
+          value: color_value,
+          bg_color: color_value,
+        },
+      })
+
+      const tile = doc_query(`.element-tile`)
+      expect(tile.style.backgroundColor).toBe(color_value)
+      expect(!!document.querySelector(`.value`)).toBe(!is_detected)
+      expect(!!document.querySelector(`.name`)).toBe(is_detected)
+    })
+
+    test.each([
+      [true, `shows color as text`],
+      [false, `hides all values`],
+    ])(`show_values=%s`, (show_values, _desc) => {
+      mount(ElementTile, {
+        target: document.body,
+        props: {
+          element: rand_element,
+          value: `#ff0000`,
+          bg_color: `#ff0000`,
+          show_values,
+        },
+      })
+
+      const has_value = !!document.querySelector(`.value`)
+      const has_name = !!document.querySelector(`.name`)
+      expect(has_value).toBe(show_values)
+      expect(has_name).toBe(!show_values)
+    })
+
+    test.each([
+      [[`#ff0000`, `#00ff00`], 2],
+      [[`#ff0000`, `#00ff00`, `#0000ff`], 3],
+      [[`#ff0000`, `#00ff00`, `#0000ff`, `#ffff00`], 4],
+    ])(`%s colors -> %s segments`, (colors, segments) => {
+      mount(ElementTile, {
+        target: document.body,
+        props: { element: rand_element, value: colors, bg_colors: colors },
+      })
+
+      expect(document.querySelectorAll(`.segment`).length).toBe(segments)
+      expect(doc_query(`.element-tile`).style.backgroundColor).toBe(
+        `transparent`,
+      )
+      expect(document.querySelector(`.value`)).toBeNull()
+    })
+
+    test.each([
+      [[`#ff0000`, 42], false, 0, `mixed with color`],
+      [[42, 84], true, 2, `numeric only`],
+    ])(`mixed arrays: %s`, (values, should_show, expected_spans, _desc) => {
+      mount(ElementTile, {
+        target: document.body,
+        props: {
+          element: rand_element,
+          value: values as never,
+          bg_colors: [`#ff0000`, `#00ff00`],
+        },
+      })
+
+      expect(document.querySelectorAll(`.multi-value`).length).toBe(
+        expected_spans,
+      )
+      expect(!!document.querySelector(`.name`)).toBe(!should_show)
+    })
   })
 })

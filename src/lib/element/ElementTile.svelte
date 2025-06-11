@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ChemicalElement, PeriodicTableEvents } from '$lib'
   import { choose_bw_for_contrast, format_num } from '$lib'
+  import { is_color } from '$lib/colors'
   import { selected } from '$lib/state.svelte'
 
   interface Props {
@@ -9,7 +10,7 @@
     show_symbol?: boolean
     show_number?: boolean
     show_name?: boolean
-    value?: number | number[] | false | undefined
+    value?: number | number[] | string | string[] | false | undefined
     style?: string
     symbol_style?: string
     active?: boolean
@@ -22,6 +23,7 @@
     label?: string | null
     // NEW: array of background colors for multi-segment tiles
     bg_colors?: (string | null)[]
+    show_values?: boolean // explicitly control whether to show values when colors are passed
     [key: string]: unknown
   }
   let {
@@ -41,6 +43,7 @@
     node = $bindable(null),
     label = null,
     bg_colors = [],
+    show_values = undefined,
     ...rest
   }: Props = $props()
 
@@ -49,6 +52,23 @@
 
   let category = $derived(element.category.replaceAll(` `, `-`))
   // background color defaults to category color (initialized in colors/index.ts, user editable in PeriodicTableControls.svelte)
+
+  // Helper function to format values appropriately
+  const format_value = (val: string | number): string => {
+    if (is_color(val)) {
+      return show_values === true ? val.toString() : ``
+    }
+    return format_num(val as number, precision)
+  }
+
+  // Determine if we should show values - default to false if any array element is a color
+  const should_show_values = $derived.by(() => {
+    if (show_values !== undefined) return show_values
+    if (Array.isArray(value)) {
+      return !value.some((v) => is_color(v))
+    }
+    return !is_color(value)
+  })
 </script>
 
 <svelte:element
@@ -78,113 +98,117 @@
       {element.symbol}
     </span>
   {/if}
-  {#if value}
+  {#if value && should_show_values}
     {#if Array.isArray(value)}
       <!-- Multi-value positioning -->
       {#if value.length === 2}
         <!-- Diagonal split: top-left and bottom-right -->
-        {#if value[0]}
+        {#if value[0] && format_value(value[0])}
           <span
             class="value multi-value top-left"
             style:color={bg_colors?.[0]
               ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
               : null}
           >
-            {format_num(value[0], precision)}
+            {format_value(value[0])}
           </span>
         {/if}
-        {#if value[1]}
+        {#if value[1] && format_value(value[1])}
           <span
             class="value multi-value bottom-right"
             style:color={bg_colors?.[1]
               ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
               : null}
           >
-            {format_num(value[1], precision)}
+            {format_value(value[1])}
           </span>
         {/if}
       {:else if value.length === 3}
         <!-- Horizontal bars: left, right, left alternating -->
-        {#if value[0]}
+        {#if value[0] && format_value(value[0])}
           <span
             class="value multi-value bar-top-left"
             style:color={bg_colors?.[0]
               ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
               : null}
           >
-            {format_num(value[0], precision)}
+            {format_value(value[0])}
           </span>
         {/if}
-        {#if value[1]}
+        {#if value[1] && format_value(value[1])}
           <span
             class="value multi-value bar-middle-right"
             style:color={bg_colors?.[1]
               ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
               : null}
           >
-            {format_num(value[1], precision)}
+            {format_value(value[1])}
           </span>
         {/if}
-        {#if value[2]}
+        {#if value[2] && format_value(value[2])}
           <span
             class="value multi-value bar-bottom-left"
             style:color={bg_colors?.[2]
               ? choose_bw_for_contrast(null, bg_colors[2], text_color_threshold)
               : null}
           >
-            {format_num(value[2], precision)}
+            {format_value(value[2])}
           </span>
         {/if}
       {:else if value.length === 4}
         <!-- Quadrants: all four corners -->
-        {#if value[0]}
+        {#if value[0] && format_value(value[0])}
           <span
             class="value multi-value quad-top-left"
             style:color={bg_colors?.[0]
               ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
               : null}
           >
-            {format_num(value[0], precision)}
+            {format_value(value[0])}
           </span>
         {/if}
-        {#if value[1]}
+        {#if value[1] && format_value(value[1])}
           <span
             class="value multi-value quad-top-right"
             style:color={bg_colors?.[1]
               ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
               : null}
           >
-            {format_num(value[1], precision)}
+            {format_value(value[1])}
           </span>
         {/if}
-        {#if value[2]}
+        {#if value[2] && format_value(value[2])}
           <span
             class="value multi-value quad-bottom-left"
             style:color={bg_colors?.[2]
               ? choose_bw_for_contrast(null, bg_colors[2], text_color_threshold)
               : null}
           >
-            {format_num(value[2], precision)}
+            {format_value(value[2])}
           </span>
         {/if}
-        {#if value[3]}
+        {#if value[3] && format_value(value[3])}
           <span
             class="value multi-value quad-bottom-right"
             style:color={bg_colors?.[3]
               ? choose_bw_for_contrast(null, bg_colors[3], text_color_threshold)
               : null}
           >
-            {format_num(value[3], precision)}
+            {format_value(value[3])}
           </span>
         {/if}
       {:else}
         <!-- Fallback for other array lengths -->
-        <span class="value">{value.map((v) => format_num(v, precision)).join(` / `)}</span
+        <span class="value"
+          >{value
+            .map((v) => format_value(v))
+            .filter((v) => v)
+            .join(` / `)}</span
         >
       {/if}
     {:else}
       <!-- Single value -->
-      <span class="value">{format_num(value, precision)}</span>
+      <span class="value">{format_value(value)}</span>
     {/if}
   {:else if show_name}
     <span class="name">

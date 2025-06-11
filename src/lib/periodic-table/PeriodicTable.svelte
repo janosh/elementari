@@ -16,6 +16,7 @@ Example usage:
   import { goto } from '$app/navigation'
   import type { Category, ChemicalElement, PeriodicTableEvents, XyObj } from '$lib'
   import { ElementPhoto, ElementTile, elem_symbols, type ElementSymbol } from '$lib'
+  import { is_color } from '$lib/colors'
   import element_data from '$lib/element/data'
   import * as d3_sc from 'd3-scale-chromatic'
   import type { ComponentProps, Snippet } from 'svelte'
@@ -30,12 +31,12 @@ Example usage:
     tile_props?: Partial<ComponentProps<typeof ElementTile>>
     show_photo?: boolean
     disabled?: boolean // disable hover and click events from updating active_element
-    // either array of numbers (can be partial, missing elements default to 0) or object with
+    // either array of numbers/colors (can be partial, missing elements default to 0) or object with
     // element symbol as key and heat value as value
-    // NEW: each value can now be a single number or array of 1-4 numbers for multi-segment display
+    // NEW: each value can now be a single number/color or array of 1-4 numbers/colors for multi-segment display
     heatmap_values?:
-      | Partial<Record<ElementSymbol, number | number[]>>
-      | (number | number[])[]
+      | Partial<Record<ElementSymbol, number | number[] | string | string[]>>
+      | (number | number[] | string | string[])[]
     // links is either string with element property (name, symbol, number, ...) to use as link,
     // or object with mapping element symbols to link
     links?: keyof ChemicalElement | Record<ElementSymbol, string> | null
@@ -66,7 +67,7 @@ Example usage:
           [
             {
               element: ChemicalElement
-              value: number | number[]
+              value: number | number[] | string | string[]
               active: boolean
               bg_color: string | null
               scale_context: ScaleContext
@@ -190,18 +191,34 @@ Example usage:
   )
 
   let cs_min = $derived(
-    color_scale_range[0] ?? (heat_values.length ? Math.min(...heat_values.flat()) : 0),
+    color_scale_range[0] ??
+      (heat_values.length
+        ? Math.min(
+            ...heat_values.flat().filter((v): v is number => typeof v === `number`),
+          )
+        : 0),
   )
   let cs_max = $derived(
-    color_scale_range[1] ?? (heat_values.length ? Math.max(...heat_values.flat()) : 1),
+    color_scale_range[1] ??
+      (heat_values.length
+        ? Math.max(
+            ...heat_values.flat().filter((v): v is number => typeof v === `number`),
+          )
+        : 1),
   )
 
   let bg_color = $derived(
-    (value: number | number[] | false, element?: ChemicalElement): string | null => {
+    (
+      value: number | number[] | string | string[] | false,
+      element?: ChemicalElement,
+    ): string | null => {
       if (Array.isArray(value)) {
         // For arrays, return the color of the first value (used as fallback)
         return bg_color(value[0], element)
       }
+
+      // If it's already a color string, return it directly
+      if (is_color(value)) return value as string
 
       // Return missing color for zero/invalid values or when no heatmap data
       if (
@@ -222,17 +239,25 @@ Example usage:
       const span = cs_max - cs_min
       if (span === 0) return color_scale_fn?.(0.5) // midpoint when all values equal
 
-      if (log) value = Math.log(value - cs_min + 1) / Math.log(span + 1)
-      else value = (value - cs_min) / span
-      return color_scale_fn?.(value)
+      if (log) value = Math.log((value as number) - cs_min + 1) / Math.log(span + 1)
+      else value = ((value as number) - cs_min) / span
+      return color_scale_fn?.(value as number)
     },
   )
 
   let bg_colors = $derived(
-    (value: number | number[] | false, element?: ChemicalElement): (string | null)[] => {
+    (
+      value: number | number[] | string | string[] | false,
+      element?: ChemicalElement,
+    ): (string | null)[] => {
       if (!Array.isArray(value)) return []
 
-      return value.map((v) => bg_color(v, element))
+      return value.map((v) => {
+        // If it's already a color string, return it directly
+        if (is_color(v)) return v as string
+        // Otherwise, map it through the color scale
+        return bg_color(v as number, element)
+      })
     },
   )
 </script>

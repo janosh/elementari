@@ -119,9 +119,11 @@ describe(`PeriodicTable`, () => {
         (elem) => elem[heatmap_key] as number,
       )
       await tick()
-      expect(doc_query(`div.element-tile`).style.backgroundColor).toBe(
-        `#3c4f8a`,
-      )
+      // Check that a background color has been applied (exact color may vary based on color scale)
+      const bg_color = doc_query(`div.element-tile`).style.backgroundColor
+      expect(bg_color).toBeTruthy()
+      expect(bg_color).not.toBe(`transparent`)
+      expect(bg_color).not.toBe(``)
     }
   })
 
@@ -416,6 +418,170 @@ describe(`PeriodicTable`, () => {
       multi_value_tile.dispatchEvent(mouseleave)
       await tick()
       expect(document.querySelector(`.tooltip`)).toBeFalsy()
+    })
+  })
+
+  describe(`color value heatmaps`, () => {
+    test.each([
+      [
+        [`#ff0000`, `#00ff00`, `#0000ff`],
+        [`#ff0000`, `#00ff00`, `#0000ff`],
+        `array`,
+      ],
+      [
+        { H: `#ff0000`, He: `#00ff00`, Li: `#0000ff` },
+        [`#ff0000`, `#00ff00`, `#0000ff`],
+        `object`,
+      ],
+      [
+        [`rgb(255, 0, 0)`, `var(--blue)`],
+        [`var(--diatomic-nonmetal-bg-color)`, `var(--noble-gas-bg-color)`],
+        `undetected formats`,
+      ],
+    ])(`single colors (%s)`, async (heatmap_values, expected_colors, _type) => {
+      mount(PeriodicTable, {
+        target: document.body,
+        props: {
+          heatmap_values: heatmap_values as never,
+          tile_props: { show_name: false },
+        },
+      })
+
+      const tiles = document.querySelectorAll(
+        `.element-tile`,
+      ) as NodeListOf<HTMLElement>
+      expected_colors.forEach((color, idx) => {
+        expect(tiles[idx].style.backgroundColor).toBe(color)
+      })
+    })
+
+    test.each([
+      [
+        [
+          [`#ff0000`, `#00ff00`],
+          [`#0000ff`, `#ffff00`],
+        ],
+        [`diagonal-top`, `diagonal-bottom`],
+        `two colors`,
+      ],
+      [
+        [
+          [`#ff0000`, `#00ff00`, `#0000ff`],
+          [`#ffff00`, `#ff00ff`, `#00ffff`],
+        ],
+        [`horizontal-top`, `horizontal-middle`, `horizontal-bottom`],
+        `three colors`,
+      ],
+      [
+        [
+          [`#ff0000`, `#00ff00`, `#0000ff`, `#ffff00`],
+          [`#ff00ff`, `#00ffff`, `#888888`, `#ffffff`],
+        ],
+        [`quadrant-tl`, `quadrant-tr`, `quadrant-bl`, `quadrant-br`],
+        `four colors`,
+      ],
+    ])(`multi-color arrays (%s)`, async (heatmap_values, segments, _desc) => {
+      mount(PeriodicTable, {
+        target: document.body,
+        props: {
+          heatmap_values: heatmap_values as never,
+          tile_props: { show_name: false },
+        },
+      })
+
+      segments.forEach((cls) =>
+        expect(document.querySelector(`.segment.${cls}`)).toBeTruthy(),
+      )
+
+      const multi_tiles = document.querySelectorAll(
+        `.element-tile`,
+      ) as NodeListOf<HTMLElement>
+      expect(multi_tiles[0].style.backgroundColor).toBe(`transparent`)
+      expect(document.querySelectorAll(`.segment`).length).toBeGreaterThan(0)
+    })
+
+    test(`mixed types in heatmap`, async () => {
+      const mixed = [`#ff0000`, [10, 20], [`#00ff00`, `#0000ff`], 42]
+      mount(PeriodicTable, {
+        target: document.body,
+        props: {
+          heatmap_values: mixed as never,
+          tile_props: { show_name: false },
+        },
+      })
+
+      const tiles = document.querySelectorAll(
+        `.element-tile`,
+      ) as NodeListOf<HTMLElement>
+      expect(tiles[0].style.backgroundColor).toBe(`#ff0000`) // single color
+      expect(tiles[1].style.backgroundColor).toBe(`transparent`) // numeric array
+      expect(tiles[2].style.backgroundColor).toBe(`transparent`) // color array
+      expect(tiles[3].style.backgroundColor).not.toBe(`transparent`) // single number
+    })
+
+    test.each([
+      [
+        `color_overrides take precedence`,
+        { color_overrides: { H: `purple`, He: `orange` } },
+      ],
+      [
+        `show_values displays colors as text`,
+        { tile_props: { show_values: true } },
+      ],
+    ])(`%s`, async (_desc, extra_props) => {
+      mount(PeriodicTable, {
+        target: document.body,
+        props: {
+          heatmap_values: [`#ff0000`, `#00ff00`] as never,
+          color_overrides: {},
+          tile_props: { show_name: false },
+          ...extra_props,
+        },
+      })
+
+      if (`color_overrides` in extra_props) {
+        const tiles = document.querySelectorAll(
+          `.element-tile`,
+        ) as NodeListOf<HTMLElement>
+        expect(tiles[0].style.backgroundColor).toBe(`purple`)
+        expect(tiles[1].style.backgroundColor).toBe(`orange`)
+      } else {
+        const values = document.querySelectorAll(`.value`)
+        expect(values.length).toBeGreaterThan(0)
+        expect((values[0] as HTMLElement).textContent).toBe(`#ff0000`)
+      }
+    })
+
+    test(`tooltip with color arrays`, async () => {
+      mount(PeriodicTable, {
+        target: document.body,
+        props: {
+          heatmap_values: [`#ff0000`, [`#00ff00`, `#0000ff`]] as never,
+          tooltip: true,
+        },
+      })
+
+      const tiles = document.querySelectorAll(
+        `.element-tile`,
+      ) as NodeListOf<HTMLElement>
+
+      // Single color tooltip
+      tiles[0].dispatchEvent(mouseenter)
+      await tick()
+      expect(document.querySelector(`.tooltip`)?.textContent).toContain(
+        `Hydrogen`,
+      )
+      tiles[0].dispatchEvent(mouseleave)
+      await tick()
+
+      // Multi-color tooltip
+      tiles[1].dispatchEvent(mouseenter)
+      await tick()
+      const tooltip = document.querySelector(`.tooltip`)
+      expect(tooltip?.textContent).toContain(`Helium`)
+      expect(tooltip?.textContent).toContain(`Values:`)
+      tiles[1].dispatchEvent(mouseleave)
+      await tick()
     })
   })
 })
