@@ -458,4 +458,106 @@ describe(`ElementTile`, () => {
       expect(value_element.textContent).toBe(`42.1`)
     })
   })
+
+  describe(`multi-value support`, () => {
+    test.each([
+      {
+        value: [10, 20],
+        segments: [`diagonal-top`, `diagonal-bottom`],
+        positions: [`top-left`, `bottom-right`],
+      },
+      {
+        value: [1, 2, 3],
+        segments: [`horizontal-top`, `horizontal-middle`, `horizontal-bottom`],
+        positions: [`bar-top-left`, `bar-middle-right`, `bar-bottom-left`],
+      },
+      {
+        value: [1, 2, 3, 4],
+        segments: [`quadrant-tl`, `quadrant-tr`, `quadrant-bl`, `quadrant-br`],
+        positions: [
+          `quad-top-left`,
+          `quad-top-right`,
+          `quad-bottom-left`,
+          `quad-bottom-right`,
+        ],
+      },
+    ])(
+      `renders $value.length values with segments and positioning`,
+      ({ value, segments, positions }) => {
+        mount(ElementTile, {
+          target: document.body,
+          props: {
+            element: rand_element,
+            value,
+            bg_colors: value.map(() => `#ff0000`),
+          },
+        })
+
+        // Verify segments and positions are correct
+        segments.forEach((cls) =>
+          expect(document.querySelector(`.segment.${cls}`)).toBeTruthy(),
+        )
+        positions.forEach((cls) =>
+          expect(document.querySelector(`.multi-value.${cls}`)).toBeTruthy(),
+        )
+
+        // Multi-value tiles should have transparent background
+        expect(doc_query(`.element-tile`).style.backgroundColor).toBe(
+          `transparent`,
+        )
+      },
+    )
+
+    test.each([
+      { value: [10, 0, 30], expected_count: 2, desc: `zero values hidden` },
+      { value: 42, expected_segments: 0, desc: `single value behavior` },
+      {
+        value: [1, 2, 3, 4, 5, 6],
+        expected_segments: 0,
+        desc: `arrays >4 fallback`,
+      },
+    ])(`edge cases: $desc`, ({ value, expected_count, expected_segments }) => {
+      mount(ElementTile, {
+        target: document.body,
+        props: {
+          element: rand_element,
+          value,
+          bg_colors: Array.isArray(value)
+            ? value.map(() => `#ff0000`)
+            : undefined,
+          bg_color: !Array.isArray(value) ? `#ff0000` : undefined,
+        },
+      })
+
+      if (expected_count !== undefined) {
+        expect(document.querySelectorAll(`.multi-value`).length).toBe(
+          expected_count,
+        )
+      }
+
+      if (expected_segments !== undefined) {
+        expect(document.querySelectorAll(`.segment`).length).toBe(
+          expected_segments,
+        )
+      }
+    })
+
+    test.each([[[]], [[0, 0]], [undefined], [false]])(
+      `handles invalid data: %s`,
+      (value) => {
+        mount(ElementTile, {
+          target: document.body,
+          props: {
+            element: rand_element,
+            value: value as never,
+            bg_colors: [],
+          },
+        })
+
+        // Should not crash and should not show segments for invalid data
+        expect(document.querySelector(`.element-tile`)).toBeTruthy()
+        expect(document.querySelector(`.segment`)).toBeNull()
+      },
+    )
+  })
 })

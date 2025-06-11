@@ -239,7 +239,7 @@
   }
   p {
     text-align: center;
-    max-width: 40em;
+    max-width: var(--max-text-width);
     margin: 3em auto;
     font-weight: 200;
   }

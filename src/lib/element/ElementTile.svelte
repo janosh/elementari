@@ -9,7 +9,7 @@
     show_symbol?: boolean
     show_number?: boolean
     show_name?: boolean
-    value?: number | false | undefined
+    value?: number | number[] | false | undefined
     style?: string
     symbol_style?: string
     active?: boolean
@@ -20,6 +20,8 @@
     precision?: string | undefined
     node?: HTMLElement | null
     label?: string | null
+    // NEW: array of background colors for multi-segment tiles
+    bg_colors?: (string | null)[]
     [key: string]: unknown
   }
   let {
@@ -38,6 +40,7 @@
     precision = undefined,
     node = $bindable(null),
     label = null,
+    bg_colors = [],
     ...rest
   }: Props = $props()
 
@@ -56,7 +59,9 @@
   class="element-tile {category}"
   class:active
   class:last-active={selected.last_element === element}
-  style:background-color={bg_color ?? `var(--${category}-bg-color)`}
+  style:background-color={Array.isArray(value) && bg_colors?.length > 1
+    ? `transparent`
+    : (bg_color ?? `var(--${category}-bg-color)`)}
   style:color={text_color ?? choose_bw_for_contrast(node, bg_color, text_color_threshold)}
   {style}
   role="link"
@@ -74,13 +79,137 @@
     </span>
   {/if}
   {#if value}
-    <span class="value">
-      {format_num(value, precision)}
-    </span>
+    {#if Array.isArray(value)}
+      <!-- Multi-value positioning -->
+      {#if value.length === 2}
+        <!-- Diagonal split: top-left and bottom-right -->
+        {#if value[0]}
+          <span
+            class="value multi-value top-left"
+            style:color={bg_colors?.[0]
+              ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
+              : null}
+          >
+            {format_num(value[0], precision)}
+          </span>
+        {/if}
+        {#if value[1]}
+          <span
+            class="value multi-value bottom-right"
+            style:color={bg_colors?.[1]
+              ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
+              : null}
+          >
+            {format_num(value[1], precision)}
+          </span>
+        {/if}
+      {:else if value.length === 3}
+        <!-- Horizontal bars: left, right, left alternating -->
+        {#if value[0]}
+          <span
+            class="value multi-value bar-top-left"
+            style:color={bg_colors?.[0]
+              ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
+              : null}
+          >
+            {format_num(value[0], precision)}
+          </span>
+        {/if}
+        {#if value[1]}
+          <span
+            class="value multi-value bar-middle-right"
+            style:color={bg_colors?.[1]
+              ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
+              : null}
+          >
+            {format_num(value[1], precision)}
+          </span>
+        {/if}
+        {#if value[2]}
+          <span
+            class="value multi-value bar-bottom-left"
+            style:color={bg_colors?.[2]
+              ? choose_bw_for_contrast(null, bg_colors[2], text_color_threshold)
+              : null}
+          >
+            {format_num(value[2], precision)}
+          </span>
+        {/if}
+      {:else if value.length === 4}
+        <!-- Quadrants: all four corners -->
+        {#if value[0]}
+          <span
+            class="value multi-value quad-top-left"
+            style:color={bg_colors?.[0]
+              ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
+              : null}
+          >
+            {format_num(value[0], precision)}
+          </span>
+        {/if}
+        {#if value[1]}
+          <span
+            class="value multi-value quad-top-right"
+            style:color={bg_colors?.[1]
+              ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
+              : null}
+          >
+            {format_num(value[1], precision)}
+          </span>
+        {/if}
+        {#if value[2]}
+          <span
+            class="value multi-value quad-bottom-left"
+            style:color={bg_colors?.[2]
+              ? choose_bw_for_contrast(null, bg_colors[2], text_color_threshold)
+              : null}
+          >
+            {format_num(value[2], precision)}
+          </span>
+        {/if}
+        {#if value[3]}
+          <span
+            class="value multi-value quad-bottom-right"
+            style:color={bg_colors?.[3]
+              ? choose_bw_for_contrast(null, bg_colors[3], text_color_threshold)
+              : null}
+          >
+            {format_num(value[3], precision)}
+          </span>
+        {/if}
+      {:else}
+        <!-- Fallback for other array lengths -->
+        <span class="value">{value.map((v) => format_num(v, precision)).join(` / `)}</span
+        >
+      {/if}
+    {:else}
+      <!-- Single value -->
+      <span class="value">{format_num(value, precision)}</span>
+    {/if}
   {:else if show_name}
     <span class="name">
       {label ?? element.name}
     </span>
+  {/if}
+
+  <!-- Multi-segment backgrounds for heatmap arrays -->
+  {#if Array.isArray(value) && bg_colors && bg_colors.length > 1}
+    {#if bg_colors.length === 2}
+      <!-- Diagonal split -->
+      <div class="segment diagonal-top" style:background-color={bg_colors[0]}></div>
+      <div class="segment diagonal-bottom" style:background-color={bg_colors[1]}></div>
+    {:else if bg_colors.length === 3}
+      <!-- Horizontal bars -->
+      <div class="segment horizontal-top" style:background-color={bg_colors[0]}></div>
+      <div class="segment horizontal-middle" style:background-color={bg_colors[1]}></div>
+      <div class="segment horizontal-bottom" style:background-color={bg_colors[2]}></div>
+    {:else if bg_colors.length === 4}
+      <!-- Four quadrants -->
+      <div class="segment quadrant-tl" style:background-color={bg_colors[0]}></div>
+      <div class="segment quadrant-tr" style:background-color={bg_colors[1]}></div>
+      <div class="segment quadrant-bl" style:background-color={bg_colors[2]}></div>
+      <div class="segment quadrant-br" style:background-color={bg_colors[3]}></div>
+    {/if}
   {/if}
 </svelte:element>
 
@@ -99,9 +228,11 @@
     /* add persistent invisible border so content doesn't move on hover */
     border: 1px solid transparent;
     container-type: inline-size;
+    overflow: hidden;
   }
   .element-tile span {
     line-height: 1em;
+    z-index: 10;
   }
   .element-tile.active,
   .element-tile:hover {
@@ -131,5 +262,122 @@
   }
   span.name {
     font-size: var(--elem-name-font-size, 12cqw);
+  }
+
+  /* Multi-value positioning */
+  .multi-value {
+    position: absolute;
+    font-size: var(--elem-multi-value-font-size, 14cqw);
+    font-weight: 600;
+  }
+
+  /* 2-value diagonal positions */
+  .top-left {
+    top: 4cqw;
+    left: 4cqw;
+  }
+  .bottom-right {
+    bottom: 4cqw;
+    right: 4cqw;
+  }
+
+  /* 3-value horizontal bar positions */
+  .bar-top-left {
+    top: 8cqw;
+    left: 4cqw;
+  }
+  .bar-middle-right {
+    top: calc(33.333% + 11cqw);
+    right: 4cqw;
+  }
+  .bar-bottom-left {
+    bottom: 8cqw;
+    left: 4cqw;
+  }
+
+  /* 4-value quadrant positions */
+  .quad-top-left {
+    top: 4cqw;
+    left: 4cqw;
+  }
+  .quad-top-right {
+    top: 4cqw;
+    right: 4cqw;
+  }
+  .quad-bottom-left {
+    bottom: 4cqw;
+    left: 4cqw;
+  }
+  .quad-bottom-right {
+    bottom: 4cqw;
+    right: 4cqw;
+  }
+
+  /* Multi-segment backgrounds */
+  .segment {
+    position: absolute;
+    z-index: 1;
+  }
+
+  /* Diagonal split (2 values) */
+  .diagonal-top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+  .diagonal-bottom {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+
+  /* Horizontal bars (3 values) */
+  .horizontal-top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+  }
+  .horizontal-middle {
+    top: 33.33%;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+  }
+  .horizontal-bottom {
+    top: 66.66%;
+    left: 0;
+    width: 100%;
+    height: 33.34%;
+  }
+
+  /* Four quadrants (4 values) */
+  .quadrant-tl {
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 50%;
+  }
+  .quadrant-tr {
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 50%;
+  }
+  .quadrant-bl {
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    height: 50%;
+  }
+  .quadrant-br {
+    bottom: 0;
+    right: 0;
+    width: 50%;
+    height: 50%;
   }
 </style>

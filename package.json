@@ -16,8 +16,8 @@
     "serve": "vite build && vite preview",
     "check": "svelte-check",
     "package": "svelte-package",
-    "test": "vitest --run tests/unit/*.ts && playwright test tests/*.ts",
-    "test:unit": "vitest tests/unit/*.ts",
+    "test": "vitest --run tests/unit/**/*.ts && playwright test tests/*.ts",
+    "test:unit": "vitest tests/unit/**/*.ts",
     "test:e2e": "playwright test tests/*.ts",
     "changelog": "npx auto-changelog --package --output changelog.md --hide-credit --commit-limit false",
     "update-coverage": "vitest tests/unit --run --coverage && npx istanbul-badges-readme"
