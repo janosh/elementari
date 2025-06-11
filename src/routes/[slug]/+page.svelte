@@ -196,16 +196,17 @@
     current={page.url.pathname.slice(1)}
   >
     {#snippet children({ item, kind })}
+      {@const element = item[1] as ChemicalElement}
       <a
-        href={item.name.toLowerCase()}
+        href={element.name.toLowerCase()}
         style="display: flex; flex-direction: column; position: relative;"
       >
         <h3>
           {@html kind == `next` ? `Next &rarr;` : `&larr; Previous`}
         </h3>
-        <ElementPhoto element={item} style="width: 200px; border-radius: 4pt;" />
+        <ElementPhoto {element} style="width: 200px; border-radius: 4pt;" />
         <ElementTile
-          element={item}
+          {element}
           style="width: 70px; position: absolute; bottom: 0;"
           --elem-tile-hover-border="1px solid transparent"
         />
