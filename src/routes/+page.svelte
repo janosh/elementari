@@ -2,8 +2,7 @@
   import { Structure } from '$lib'
   import { parse_structure_file } from '$lib/io/parse'
   import type { AnyStructure, PymatgenStructure } from '$lib/structure'
-  import { structures } from '$site'
-  import PeriodicTableDemo from './(demos)/periodic-table/+page.svelte'
+  import { PeriodicTableDemo, structures } from '$site'
 
   interface FileInfo {
     name: string
@@ -153,7 +152,7 @@
   })
 
   // Debounced parsing function
-  let parse_timeout: number
+  let parse_timeout: ReturnType<typeof setTimeout>
   const parse_user_content = () => {
     clearTimeout(parse_timeout)
     parse_timeout = setTimeout(() => {
