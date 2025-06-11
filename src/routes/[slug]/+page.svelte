@@ -14,6 +14,7 @@
   } from '$lib'
   import { format_num, property_labels } from '$lib/labels'
   import { selected } from '$lib/state.svelte'
+  import pkg from '$root/package.json'
   import { PrevNext } from 'svelte-zoo'
 
   let { data } = $props()
@@ -64,7 +65,7 @@
     if (!selected.heatmap_key) selected.heatmap_key = `atomic_radius`
   })
 
-  let head_title = $derived(`${element.name} &bull; Periodic Table`)
+  let head_title = $derived(`${element.name} • ${pkg.name}`)
 
   let orbiting = $state(true)
   let window_width: number = $state(0)

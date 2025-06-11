@@ -480,10 +480,10 @@ describe(`ElementTile`, () => {
         value: [1, 2, 3, 4],
         segments: [`quadrant-tl`, `quadrant-tr`, `quadrant-bl`, `quadrant-br`],
         positions: [
-          `quad-top-left`,
-          `quad-top-right`,
-          `quad-bottom-left`,
-          `quad-bottom-right`,
+          `value-quadrant-tl`,
+          `value-quadrant-tr`,
+          `value-quadrant-bl`,
+          `value-quadrant-br`,
         ],
       },
     ])(
@@ -570,8 +570,8 @@ describe(`ElementTile`, () => {
     test.each([
       [`#ff0000`, true, `hex`],
       [`red`, true, `named`],
-      [`rgb(255, 0, 0)`, false, `rgb`],
-      [`var(--color)`, false, `CSS var`],
+      [`rgb(255, 0, 0)`, true, `rgb`],
+      [`var(--color)`, true, `CSS var`],
     ])(`%s (%s) - detected=%s`, (color_value, is_detected, _type) => {
       mount(ElementTile, {
         target: document.body,

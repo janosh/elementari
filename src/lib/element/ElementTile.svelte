@@ -63,7 +63,21 @@
     if (is_color(val)) {
       return show_values === true ? val.toString() : ``
     }
-    return format_num(val as number, precision)
+
+    // Handle numeric values
+    if (typeof val === `number`) return format_num(val, precision)
+
+    // Handle string values - check if it's a numeric string
+    if (typeof val === `string`) {
+      const parsed_num = parseFloat(val)
+      if (!isNaN(parsed_num) && isFinite(parsed_num)) {
+        return format_num(parsed_num, precision)
+      }
+      // If show_values is true, return the string as-is to preserve non-numeric strings
+      return show_values === true ? val : ``
+    }
+
+    return ``
   }
 
   // Determine if we should show values - default to false if any array element is a color
@@ -165,7 +179,7 @@
         <!-- Quadrants: all four corners -->
         {#if value[0] && format_value(value[0])}
           <span
-            class="value multi-value quad-top-left"
+            class="value multi-value value-quadrant-tl"
             style:color={bg_colors?.[0]
               ? choose_bw_for_contrast(null, bg_colors[0], text_color_threshold)
               : null}
@@ -175,7 +189,7 @@
         {/if}
         {#if value[1] && format_value(value[1])}
           <span
-            class="value multi-value quad-top-right"
+            class="value multi-value value-quadrant-tr"
             style:color={bg_colors?.[1]
               ? choose_bw_for_contrast(null, bg_colors[1], text_color_threshold)
               : null}
@@ -185,7 +199,7 @@
         {/if}
         {#if value[2] && format_value(value[2])}
           <span
-            class="value multi-value quad-bottom-left"
+            class="value multi-value value-quadrant-bl"
             style:color={bg_colors?.[2]
               ? choose_bw_for_contrast(null, bg_colors[2], text_color_threshold)
               : null}
@@ -195,7 +209,7 @@
         {/if}
         {#if value[3] && format_value(value[3])}
           <span
-            class="value multi-value quad-bottom-right"
+            class="value multi-value value-quadrant-br"
             style:color={bg_colors?.[3]
               ? choose_bw_for_contrast(null, bg_colors[3], text_color_threshold)
               : null}
@@ -326,19 +340,19 @@
   }
 
   /* 4-value quadrant positions */
-  .quad-top-left {
+  .value-quadrant-tl {
     top: 4cqw;
     left: 4cqw;
   }
-  .quad-top-right {
+  .value-quadrant-tr {
     top: 4cqw;
     right: 4cqw;
   }
-  .quad-bottom-left {
+  .value-quadrant-bl {
     bottom: 4cqw;
     left: 4cqw;
   }
-  .quad-bottom-right {
+  .value-quadrant-br {
     bottom: 4cqw;
     right: 4cqw;
   }

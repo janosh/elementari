@@ -172,21 +172,53 @@ describe(`Element Color Schemes`, () => {
 
 describe(`is_color function`, () => {
   test.each([
-    // Valid patterns
+    // Valid hex colors
     [`#ff0000`, true],
+    [`#FF0000`, true],
     [`#f00`, true],
-    [`red`, true],
-    [`rgb`, true],
-    [`hsl`, true],
-    [`var`, true],
+    [`#F00`, true],
+    [`#00ff00ab`, true], // 8-digit hex with alpha
 
-    // Invalid patterns
-    [`rgb(255, 0, 0)`, false],
+    // Valid CSS color functions
+    [`rgb(255, 0, 0)`, true],
+    [`rgb(255,0,0)`, true],
+    [`rgba(255, 0, 0, 0.5)`, true],
+    [`rgba(255,0,0,0.5)`, true],
+    [`hsl(120, 100%, 50%)`, true],
+    [`hsl(120,100%,50%)`, true],
+    [`hsla(120, 100%, 50%, 0.8)`, true],
+    [`hsla(120,100%,50%,0.8)`, true],
+    [`var(--my-color)`, true],
+    [`var(--primary-color)`, true],
+    [`color(srgb 1 0 0)`, true],
+    [`color(display-p3 1 0.5 0)`, true],
+
+    // Valid named colors
+    [`red`, true],
+    [`blue`, true],
+    [`green`, true],
+    [`transparent`, true],
+    [`currentcolor`, true],
+
+    // Invalid patterns - incomplete functions (old behavior that should now fail)
+    [`rgb`, false],
+    [`hsl`, false],
+    [`var`, false],
+    [`color`, false],
+
+    // Invalid patterns - malformed
+    [`rgb(255, 0)`, true], // incomplete rgb values but still matches our relaxed pattern
     [`#gg0000`, false],
     [`hello world`, false],
     [``, false],
     [123, false],
     [null, false],
+    [undefined, false],
+
+    // Edge cases
+    [` #ff0000 `, true], // whitespace should be trimmed
+    [`RGB(255, 0, 0)`, true], // case insensitive
+    [`HSL(120, 100%, 50%)`, true], // case insensitive
   ])(`%s -> %s`, (input, expected) => {
     expect(is_color(input)).toBe(expected)
   })
