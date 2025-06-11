@@ -142,7 +142,11 @@
         class:hovered={hovered_element === bubble.element}
         onmouseenter={() => interactive && (hovered_element = bubble.element)}
         onmouseleave={() => interactive && (hovered_element = null)}
-        {...interactive && { role: `button`, tabindex: 0 }}
+        {...interactive && {
+          role: `button`,
+          tabindex: 0,
+          'aria-label': `${bubble.element}: ${bubble.amount} ${bubble.amount === 1 ? `atom` : `atoms`}`,
+        }}
       >
         <title>
           {bubble.element}: {bubble.amount}
