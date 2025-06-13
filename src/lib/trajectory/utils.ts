@@ -1,3 +1,13 @@
+// Helper function to escape HTML special characters to prevent XSS
+function escape_html(unsafe_string: string): string {
+  return unsafe_string
+    .replaceAll(`&`, `&amp;`)
+    .replaceAll(`<`, `&lt;`)
+    .replaceAll(`>`, `&gt;`)
+    .replaceAll(`"`, `&quot;`)
+    .replaceAll(`'`, `&#39;`)
+}
+
 // Helper function to detect unsupported file formats and provide helpful messages
 export function get_unsupported_format_message(
   filename: string,
@@ -82,7 +92,7 @@ u.atoms.write('${filename.replace(`.dcd`, `.xyz`)}', frames='all')`,
     return `
       <div class="unsupported-format">
         <h4>🚫 Unsupported Format: Binary File</h4>
-        <p>The file <code>${filename}</code> appears to be a binary file and cannot be parsed as text.</p>
+        <p>The file <code>${escape_html(filename)}</code> appears to be a binary file and cannot be parsed as text.</p>
         <div class="code-options">
           <h5>💡 Supported Formats:</h5>
           <ul>
@@ -104,10 +114,10 @@ u.atoms.write('${filename.replace(`.dcd`, `.xyz`)}', frames='all')`,
 function is_binary(content: string): boolean {
   return (
     content.includes(`\0`) ||
-    (content.match(/[\x00-\x08\x0E-\x1F\x7F-\xFF]/g) || []).length /
+    (content.match(/[\u0000-\u0008\u000E-\u001F\u007F-\u00FF]/g) || []).length /
       content.length >
       0.1 ||
-    (content.match(/[\x20-\x7E]/g) || []).length / content.length < 0.7
+    (content.match(/[\u0020-\u007E]/g) || []).length / content.length < 0.7
   )
 }
 
@@ -129,8 +139,8 @@ function create_format_error(
 
   return `
     <div class="unsupported-format">
-      <h4>🚫 Unsupported Format: ${format_name}</h4>
-      <p>The file <code>${filename}</code> appears to be a ${format_name.toLowerCase()} file, which is not directly supported.</p>
+      <h4>🚫 Unsupported Format: ${escape_html(format_name)}</h4>
+      <p>The file <code>${escape_html(filename)}</code> appears to be a ${escape_html(format_name.toLowerCase())} file, which is not directly supported.</p>
       <h5>💡 Conversion Options:</h5>
       <div class="code-options">
         ${conversion_html}

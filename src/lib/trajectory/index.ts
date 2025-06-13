@@ -84,17 +84,17 @@ export const force_stress_data_extractor: TrajectoryDataExtractor = (
       ) {
         data.force_max = frame.metadata.force_max
       }
+      // Prefer force_norm if available, fall back to force_rms
       if (
         frame.metadata.force_norm &&
         typeof frame.metadata.force_norm === `number`
       ) {
         data.force_norm = frame.metadata.force_norm
-      }
-      if (
+      } else if (
         frame.metadata.force_rms &&
         typeof frame.metadata.force_rms === `number`
       ) {
-        data.force_norm = frame.metadata.force_rms // Use force_rms as force_norm if available
+        data.force_norm = frame.metadata.force_rms // Use force_rms as fallback
       }
     }
 

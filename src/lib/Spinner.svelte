@@ -6,8 +6,8 @@
   let { text = `Loading...`, ...rest }: Props = $props()
 </script>
 
-<div class="spinner-overlay" {...rest}>
-  <div class="spinner"></div>
+<div class="spinner-overlay" role="status" aria-live="polite" {...rest}>
+  <div class="spinner" aria-hidden="true"></div>
   <p>{text}</p>
 </div>
 

@@ -1,4 +1,3 @@
-import type { AnyStructure } from '$lib'
 import type { Trajectory } from '$lib/trajectory'
 import {
   comprehensive_data_extractor,
@@ -13,11 +12,27 @@ import {
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
+import { gunzipSync } from 'zlib'
 
 // Helper to read test files
 function read_test_file(filename: string): string {
   const file_path = join(process.cwd(), `src/site/trajectories`, filename)
   return readFileSync(file_path, `utf-8`)
+}
+
+// Helper to read and potentially decompress test files
+function read_compressed_test_file(filename: string): string {
+  const file_path = join(process.cwd(), `src/site/trajectories`, filename)
+
+  if (filename.endsWith(`.gz`)) {
+    // Read as buffer and decompress
+    const compressed_data = readFileSync(file_path)
+    const decompressed_data = gunzipSync(compressed_data)
+    return decompressed_data.toString(`utf-8`)
+  } else {
+    // Read as regular text file
+    return readFileSync(file_path, `utf-8`)
+  }
 }
 
 describe(`VASP XDATCAR Parser`, () => {
@@ -183,24 +198,13 @@ Direct configuration=     2
 })
 
 describe(`JSON Trajectory Parser`, () => {
-  const json_content = read_test_file(`pmg_LiMnO2_chgnet_relax.json.gz`)
+  const json_content = read_compressed_test_file(
+    `pmg_LiMnO2_chgnet_relax.json.gz`,
+  )
 
   it(`should parse compressed JSON trajectory`, async () => {
-    // Note: This test assumes the file is already decompressed when read
-    // In real usage, decompress_file would handle the .gz extension
-    let parsed_content: string
-    try {
-      // Try to parse as JSON directly first
-      JSON.parse(json_content)
-      parsed_content = json_content
-    } catch {
-      // If that fails, assume it needs decompression (would be handled by decompress_file in real usage)
-      // For this test, we'll skip if the file is actually compressed
-      return
-    }
-
     const trajectory = parse_trajectory_data(
-      parsed_content,
+      json_content,
       `LiMnO2_chgnet_relax.json.gz`,
     )
 
@@ -441,13 +445,8 @@ describe(`Trajectory Validation`, () => {
 
   it(`should detect missing structure`, () => {
     const invalid_trajectory: Trajectory = {
-      frames: [
-        {
-          structure: null as unknown as AnyStructure,
-          step: 0,
-          metadata: {},
-        },
-      ],
+      // @ts-expect-error Testing invalid structure
+      frames: [{ structure: null, step: 0, metadata: {} }],
       metadata: {},
     }
 

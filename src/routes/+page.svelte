@@ -28,29 +28,8 @@
     // Load CIF structure
     if (cif_file_content) {
       try {
-        const parsed_struct = parse_structure_file(
-          cif_file_content,
-          `Li4Fe3Mn1(PO4)4.cif`,
-        )
-        if (parsed_struct) {
-          viewer_structures[1] = {
-            sites: parsed_struct.sites,
-            charge: 0,
-            ...(parsed_struct.lattice && {
-              lattice: {
-                matrix: parsed_struct.lattice.matrix,
-                pbc: [true, true, true],
-                a: parsed_struct.lattice.a,
-                b: parsed_struct.lattice.b,
-                c: parsed_struct.lattice.c,
-                alpha: parsed_struct.lattice.alpha,
-                beta: parsed_struct.lattice.beta,
-                gamma: parsed_struct.lattice.gamma,
-                volume: parsed_struct.lattice.volume,
-              },
-            }),
-          }
-        }
+        const structure = parse_any_structure(cif_file_content, `Li4Fe3Mn1(PO4)4.cif`)
+        if (structure) viewer_structures[1] = structure
       } catch (error) {
         console.error(`Failed to parse CIF file:`, error)
       }
@@ -186,63 +165,49 @@
     }, 500)
   }
 
-  // Factory function to create file drop handlers for each viewer
-  const create_file_drop_handler = (viewer_number: 1 | 2) => {
-    const handler = (content: string, filename: string) => {
-      try {
-        // Try to parse as JSON first
-        try {
-          const parsed_json: AnyStructure = JSON.parse(content)
-          const idx = viewer_number - 1
-          viewer_structures[idx] = parsed_json
-          active_files[idx] = filename
-          last_loaded_file_content = content
-          last_loaded_filename = filename
-          return
-        } catch {
-          // Not JSON, try other formats
-        }
-
-        // Try to parse as structure file (POSCAR, XYZ, CIF, etc.)
-        const parsed_struct = parse_structure_file(content, filename)
-        if (parsed_struct) {
-          const converted_structure: AnyStructure = {
-            sites: parsed_struct.sites,
+  // Universal parser that handles JSON and structure files
+  const parse_any_structure = (
+    content: string,
+    filename: string,
+  ): AnyStructure | null => {
+    // Try JSON first
+    try {
+      return JSON.parse(content) as AnyStructure
+    } catch {
+      // Try structure file formats
+      const parsed = parse_structure_file(content, filename)
+      return parsed
+        ? {
+            sites: parsed.sites,
             charge: 0,
-            ...(parsed_struct.lattice && {
-              lattice: {
-                matrix: parsed_struct.lattice.matrix,
-                pbc: [true, true, true],
-                a: parsed_struct.lattice.a,
-                b: parsed_struct.lattice.b,
-                c: parsed_struct.lattice.c,
-                alpha: parsed_struct.lattice.alpha,
-                beta: parsed_struct.lattice.beta,
-                gamma: parsed_struct.lattice.gamma,
-                volume: parsed_struct.lattice.volume,
-              },
+            ...(parsed.lattice && {
+              lattice: { ...parsed.lattice, pbc: [true, true, true] },
             }),
           }
+        : null
+    }
+  }
 
-          const idx = viewer_number - 1
-          viewer_structures[idx] = converted_structure
-          active_files[idx] = filename
+  // Simplified file drop handler
+  const create_file_drop_handler =
+    (viewer_idx: number) => (content: string, filename: string) => {
+      try {
+        const structure = parse_any_structure(content, filename)
+        if (structure) {
+          viewer_structures[viewer_idx] = structure
+          active_files[viewer_idx] = filename
           last_loaded_file_content = content
           last_loaded_filename = filename
         } else {
-          console.error(`Failed to parse structure file: ${filename}`)
-          parsing_error = `Failed to parse structure file. Supported formats: JSON, POSCAR, XYZ, CIF`
+          parsing_error = `Failed to parse file. Supported: JSON, POSCAR, XYZ, CIF`
         }
       } catch (error) {
-        console.error(`Error processing file:`, error)
-        parsing_error = `Error processing file: ${error}`
+        parsing_error = `Error: ${error}`
       }
     }
-    return handler
-  }
 
   // Create handlers for each viewer
-  const structure_handlers = [create_file_drop_handler(1), create_file_drop_handler(2)]
+  const structure_handlers = [create_file_drop_handler(0), create_file_drop_handler(1)]
 </script>
 
 <h1 style="margin: 0;">Elementari</h1>

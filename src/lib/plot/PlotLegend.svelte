@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { LegendItem } from '$lib/plot'
+  import { onDestroy } from 'svelte'
 
   interface Props {
     series_data: LegendItem[] // Use the simplified LegendItem type
@@ -32,6 +33,20 @@
 
   let is_dragging = $state(false)
   let drag_start_coords = $state<{ x: number; y: number } | null>(null)
+
+  // Cleanup function prevents memory leaks on component destroy (remove event listeners and reset styles)
+  function cleanup_drag_listeners() {
+    if (is_dragging) {
+      // Remove global event listeners
+      window.removeEventListener(`mousemove`, handle_window_mouse_move)
+      window.removeEventListener(`mouseup`, handle_window_mouse_up)
+
+      // Reset cursor and text selection
+      document.body.style.cursor = `default`
+      document.body.style.userSelect = `auto`
+    }
+  }
+  onDestroy(cleanup_drag_listeners)
 
   function handle_click(event: MouseEvent, series_idx: number) {
     event.preventDefault() // Prevent any default browser behavior

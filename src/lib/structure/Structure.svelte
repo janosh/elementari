@@ -61,6 +61,8 @@
     bottom_left?: Snippet<[{ structure: AnyStructure }]>
     // Generic callback for when files are dropped - receives raw content and filename
     on_file_drop?: (content: string, filename: string) => void
+    // Maximum size for text data to prevent UI freezes (bytes)
+    max_text_size?: number
     [key: string]: unknown
   }
   let {
@@ -103,6 +105,7 @@
     controls_toggle,
     bottom_left,
     on_file_drop,
+    max_text_size = 5 * 1024 * 1024, // 5 MB default
     ...rest
   }: Props = $props()
 
@@ -187,18 +190,35 @@
     if (internal_data) {
       try {
         const file_info = JSON.parse(internal_data)
-        on_file_drop?.(file_info.content, file_info.name)
+        if (file_info.content && file_info.content.length > max_text_size) {
+          console.warn(`Internal file data too large: ${file_info.content.length} bytes`)
+          return
+        }
+        try {
+          on_file_drop?.(file_info.content, file_info.name)
+        } catch (error) {
+          console.error(`Failed to process internal file data:`, error)
+        }
         return
       } catch (error) {
         console.warn(`Failed to parse internal file data:`, error)
-        // Fall through to other methods
       }
     }
 
     // Check for plain text data (fallback)
     const text_data = event.dataTransfer?.getData(`text/plain`)
     if (text_data) {
-      on_file_drop?.(text_data, `structure.json`)
+      if (text_data.length > max_text_size) {
+        console.warn(
+          `Text data too large: ${text_data.length} bytes (max: ${max_text_size})`,
+        )
+        return
+      }
+      try {
+        on_file_drop?.(text_data, `structure.json`)
+      } catch (error) {
+        console.error(`Failed to process text data:`, error)
+      }
       return
     }
 
