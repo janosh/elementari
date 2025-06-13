@@ -167,9 +167,38 @@ export const superscript_map = {
   '9': `⁹`,
   '+': `⁺`,
   '-': `⁻`,
-}
+} as const
 
 export function superscript_digits(input: string): string {
   // use replace all signs and digits with their unicode superscript equivalent
-  return input.replace(/[\d+-]/g, (match) => superscript_map[match])
+  return input.replace(
+    /[\d+-]/g,
+    (match) => superscript_map[match as keyof typeof superscript_map],
+  )
+}
+
+// Trajectory property labels: controls how properties are displayed in trajectory plots
+export const trajectory_labels: Record<string, string> = {
+  // Energy properties
+  energy: `Energy (eV)`,
+  energy_per_atom: `Energy per atom (eV/atom)`,
+  potential_energy: `Potential energy (eV)`,
+  kinetic_energy: `Kinetic energy (eV)`,
+  total_energy: `Total energy (eV)`,
+
+  // Force properties
+  force_max: `F<sub>max</sub> (eV/Å)`,
+  force_norm: `F<sub>norm</sub> (eV/Å)`,
+  'Force Max': `Force Max (eV/Å)`,
+  'Force RMS': `Force RMS (eV/Å)`,
+
+  // Structural properties
+  volume: `Volume (Å³)`,
+  Volume: `Cell Volume (Å³)`,
+  density: `Density (g/cm³)`,
+
+  // Thermodynamic properties
+  temperature: `Temperature (K)`,
+  pressure: `Pressure (GPa)`,
+  stress_max: `σ<sub>max</sub> (GPa)`,
 }

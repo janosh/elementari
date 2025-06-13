@@ -1,6 +1,7 @@
 import type { IdStructure } from '../lib'
 
 export { default as DemoNav } from './DemoNav.svelte'
+export { default as FileCarousel } from './FileCarousel.svelte'
 export { default as Footer } from './Footer.svelte'
 export { default as PeriodicTableControls } from './PeriodicTableControls.svelte'
 export { default as PeriodicTableDemo } from './PeriodicTableDemo.svelte'
@@ -33,3 +34,12 @@ export const molecules = Object.entries(
   mol.name = name
   return mol
 })
+
+export interface FileInfo {
+  name: string
+  content: string
+  formatted_name: string
+  type: string
+  structure_type?: `crystal` | `molecule` | `unknown`
+  is_compressed_url?: boolean // Flag to indicate content is a URL that needs fetching and decompression
+}

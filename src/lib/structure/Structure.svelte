@@ -182,20 +182,27 @@
     dragover = false
     if (!allow_file_drop) return
 
-    const drag_data_json = event.dataTransfer?.getData(`application/json`)
-    if (drag_data_json) {
+    // Check for our custom internal file format first
+    const internal_data = event.dataTransfer?.getData(`application/x-elementari-file`)
+    if (internal_data) {
       try {
-        const file_info = JSON.parse(drag_data_json)
-        if (file_info.name && file_info.content) {
-          on_file_drop?.(file_info.content, file_info.name)
-          return
-        }
-      } catch {
-        // Not our format, continue to file handling
+        const file_info = JSON.parse(internal_data)
+        on_file_drop?.(file_info.content, file_info.name)
+        return
+      } catch (error) {
+        console.warn(`Failed to parse internal file data:`, error)
+        // Fall through to other methods
       }
     }
 
-    // Handle regular file drops
+    // Check for plain text data (fallback)
+    const text_data = event.dataTransfer?.getData(`text/plain`)
+    if (text_data) {
+      on_file_drop?.(text_data, `structure.json`)
+      return
+    }
+
+    // Handle actual file drops from file system
     const file = event.dataTransfer?.files[0]
     if (!file) return
 
@@ -676,9 +683,9 @@
     position: relative;
     container-type: size;
     height: var(--struct-height, 500px);
-    width: var(--struct-width);
-    max-width: var(--struct-max-width);
-    min-width: var(--struct-min-width);
+    width: var(--struct-width, 100%);
+    max-width: var(--struct-max-width, 100%);
+    min-width: var(--struct-min-width, 300px);
     border-radius: var(--struct-border-radius, 3pt);
     background: var(--struct-bg, rgba(255, 255, 255, 0.1));
     --struct-controls-transition-duration: 0.3s;

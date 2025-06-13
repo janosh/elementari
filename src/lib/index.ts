@@ -11,6 +11,7 @@ export * from './math'
 export { default as Nucleus } from './Nucleus.svelte'
 export * from './periodic-table'
 export * from './plot'
+export { default as Spinner } from './Spinner.svelte'
 export * from './structure'
 
 export type Category = (typeof categories)[number]
