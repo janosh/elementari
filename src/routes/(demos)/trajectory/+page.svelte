@@ -1,7 +1,8 @@
 <script lang="ts">
   import { trajectory_labels } from '$lib/labels'
   import type { Trajectory } from '$lib/trajectory'
-  import { comprehensive_data_extractor, TrajectoryViewer } from '$lib/trajectory'
+  import { TrajectoryViewer } from '$lib/trajectory'
+  import { full_data_extractor } from '$lib/trajectory/extract'
   import { FileCarousel, type FileInfo } from '$site'
 
   let trajectories = $state<(Trajectory | undefined)[]>([undefined, undefined])
@@ -127,7 +128,7 @@
     <TrajectoryViewer
       bind:trajectory={trajectories[idx]}
       trajectory_url={!trajectory ? default_trajectory_urls[idx] : undefined}
-      data_extractor={comprehensive_data_extractor}
+      data_extractor={full_data_extractor}
       layout="horizontal"
       property_labels={trajectory_labels}
       structure_props={{

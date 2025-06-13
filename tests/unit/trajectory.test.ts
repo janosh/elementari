@@ -1,14 +1,14 @@
 import type { Trajectory } from '$lib/trajectory'
+
+import { get_trajectory_stats, validate_trajectory } from '$lib/trajectory'
+import { full_data_extractor } from '$lib/trajectory/extract'
 import {
-  comprehensive_data_extractor,
-  get_trajectory_stats,
   is_vasp_xdatcar,
   is_xyz_trajectory,
   parse_trajectory_data,
   parse_vasp_xdatcar,
   parse_xyz_trajectory,
-  validate_trajectory,
-} from '$lib/trajectory'
+} from '$lib/trajectory/parse'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
@@ -665,11 +665,11 @@ describe(`Default Plotting Behavior`, () => {
     }
 
     // Use the comprehensive data extractor to get volume and density
-    const frame1_data = comprehensive_data_extractor(
+    const frame1_data = full_data_extractor(
       trajectory_with_lattice.frames[0],
       trajectory_with_lattice,
     )
-    const frame2_data = comprehensive_data_extractor(
+    const frame2_data = full_data_extractor(
       trajectory_with_lattice.frames[1],
       trajectory_with_lattice,
     )
@@ -760,11 +760,11 @@ describe(`Default Plotting Behavior`, () => {
     }
 
     // Extract data from both frames
-    const frame1_data = comprehensive_data_extractor(
+    const frame1_data = full_data_extractor(
       constant_trajectory.frames[0],
       constant_trajectory,
     )
-    const frame2_data = comprehensive_data_extractor(
+    const frame2_data = full_data_extractor(
       constant_trajectory.frames[1],
       constant_trajectory,
     )

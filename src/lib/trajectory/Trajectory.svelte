@@ -7,8 +7,8 @@
   import type { ComponentProps, Snippet } from 'svelte'
   import { untrack } from 'svelte'
   import type { Trajectory, TrajectoryDataExtractor, TrajectoryFrame } from '.'
-  import { parse_trajectory_data, TrajectoryError } from '.'
-  import { get_unsupported_format_message } from './utils'
+  import { TrajectoryError } from '.'
+  import { get_unsupported_format_message, parse_trajectory_data } from './parse'
 
   // Utility function to load trajectory from URL with automatic format detection
   async function load_trajectory_from_url(url: string): Promise<Trajectory> {
@@ -341,7 +341,7 @@
     // Define priority series that should be visible by default
     const default_visible_properties = new Set([`energy`, `force_max`])
 
-    // Check if lattice parameters are constant (using marker from comprehensive_data_extractor)
+    // Check if lattice parameters are constant (using marker from full_data_extractor)
     const has_constant_lattice_params = all_extracted_data.some(
       (data) => data._constant_lattice_params === 1,
     )
