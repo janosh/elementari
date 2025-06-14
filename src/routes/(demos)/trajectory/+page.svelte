@@ -9,14 +9,14 @@
   let active_trajectory_files = $state<string[]>([])
 
   let default_trajectory_urls = $state([
-    `/trajectories/pmg-LiMnO2-chgnet-relax.json.gz`, // Top viewer
-    `/trajectories/XDATCAR-traj.gz`, // Bottom viewer
+    `/trajectories/torch-sim-gold-cluster-55-atoms.h5`, // Top viewer
+    `/trajectories/vasp-XDATCAR-traj.gz`, // Bottom viewer
   ])
 
   // Load trajectory files from the trajectories directory
   // Load non-compressed files as raw text (excluding files that have compressed versions)
   const trajectory_files_raw = import.meta.glob(
-    [`$site/trajectories/*.{traj}`, `$site/trajectories/pmg-*.json`],
+    [`$site/trajectories/*.{traj}`, `$site/trajectories/pymatgen-*.json`],
     { eager: true, query: `?raw`, import: `default` },
   ) as Record<string, string>
 
@@ -194,44 +194,8 @@
     --traj-error: #fc8181;
     --traj-plot-bg: #2d3748;
     --traj-plot-text: #e2e8f0;
-  }
 
-  h2 {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: var(--traj-text, #e2e8f0);
-  }
-
-  p {
-    text-align: center;
-    max-width: 800px;
-    margin: 0 auto 2rem auto;
-    color: var(--traj-text, #e2e8f0);
-  }
-
-  .dual-trajectory-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    min-height: 80vh;
-  }
-
-  .dual-trajectory-container :global(.trajectory-viewer) {
-    height: 70vh;
-    min-height: 500px;
-    border: 1px solid var(--traj-border-bg, #4a5568);
-    border-radius: 8px;
-    background: var(--traj-surface, #2d3748);
-  }
-
-  .trajectory-files-section {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-
-  /* Global trajectory styling for external customization */
-  :global(.trajectory-viewer) {
+    /* Trajectory component styling */
     --trajectory-controls-bg: var(--traj-surface, #2d3748);
     --trajectory-button-bg: var(--traj-accent, #63b3ed);
     --trajectory-button-color: var(--traj-bg, #1a202c);
@@ -260,5 +224,33 @@
     --trajectory-pre-bg: var(--traj-bg, #1a202c);
     --trajectory-pre-border: var(--traj-border-bg, #4a5568);
     --trajectory-inline-code-bg: var(--traj-border-bg, rgba(74, 85, 104, 0.3));
+  }
+
+  p {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 2rem auto;
+    color: var(--traj-text, #e2e8f0);
+  }
+
+  .dual-trajectory-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    min-height: 80vh;
+  }
+
+  .dual-trajectory-container :global(.trajectory-viewer) {
+    height: 70vh;
+    min-height: 500px;
+    border: 1px solid var(--traj-border-bg, #4a5568);
+    border-radius: 8px;
+    background: var(--traj-surface, #2d3748);
+  }
+
+  .trajectory-files-section {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
   }
 </style>

@@ -38,6 +38,14 @@ export async function load_trajectory_from_url(
 
   let filename = url.split(`/`).pop() || `trajectory`
 
+  // Check if this is an HDF5 file first (regardless of content-encoding)
+  if ([`h5`, `hdf5`].includes(filename.toLowerCase().split(`.`).pop() || ``)) {
+    // Handle HDF5 files as binary: always use arrayBuffer()
+    const buffer = await response.arrayBuffer()
+    return await parse_trajectory_data(buffer, filename)
+  }
+
+  // For non-HDF5 files, handle based on content encoding
   // If server sends gzip content-encoding, the browser auto-decompresses
   // If content-type is application/json, it's likely already decompressed
   if (content_encoding === `gzip` || content_type?.includes(`json`)) {
@@ -46,12 +54,6 @@ export async function load_trajectory_from_url(
     // Remove .gz extension from filename if it exists
     filename = filename.replace(/\.gz$/, ``)
     return await parse_trajectory_data(content, filename)
-  } else if (
-    [`h5`, `hdf5`].includes(filename.toLowerCase().split(`.`).pop() || ``)
-  ) {
-    // Handle HDF5 files as binary
-    const buffer = await response.arrayBuffer()
-    return await parse_trajectory_data(buffer, filename)
   } else {
     // Manual decompression needed (for cases where server sends raw gzip)
     const { decompress_file } = await import(`$lib/io/decompress`)
@@ -186,7 +188,7 @@ const ATOMIC_NUMBER_TO_SYMBOL: Record<number, ElementSymbol> = {
   118: `Og`,
 }
 
-// Parse torch-sim HDF5 trajectory format
+// Parse torch-sim HDF5 trajectory file
 export async function parse_torch_sim_hdf5(
   buffer: ArrayBuffer,
   filename?: string,

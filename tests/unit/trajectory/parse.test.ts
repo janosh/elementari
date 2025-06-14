@@ -56,7 +56,7 @@ function read_compressed_test_file(filename: string): string {
 }
 
 describe(`VASP XDATCAR Parser`, () => {
-  const xdatcar_content = read_test_file(`XDATCAR.MD.gz`)
+  const xdatcar_content = read_test_file(`vasp-XDATCAR.MD.gz`)
 
   it(`should detect XDATCAR format by filename`, () => {
     expect(is_vasp_xdatcar(``, `XDATCAR`)).toBe(true)
@@ -219,7 +219,7 @@ Direct configuration=     2
 
 describe(`JSON Trajectory Parser`, () => {
   const json_content = read_compressed_test_file(
-    `pmg-LiMnO2-chgnet-relax.json.gz`,
+    `pymatgen-LiMnO2-chgnet-relax.json.gz`,
   )
 
   it(`should parse compressed JSON trajectory`, async () => {
@@ -364,7 +364,7 @@ O  0.000  1.000  0.000`
 
 describe(`General Trajectory Parser`, () => {
   it(`should route XDATCAR files to XDATCAR parser`, async () => {
-    const xdatcar_content = read_test_file(`XDATCAR.MD.gz`)
+    const xdatcar_content = read_test_file(`vasp-XDATCAR.MD.gz`)
     const trajectory = await parse_trajectory_data(
       xdatcar_content,
       `XDATCAR.MD`,

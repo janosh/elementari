@@ -4,6 +4,7 @@
   import type { AnyStructure, PymatgenStructure } from '$lib/structure'
   import type { FileInfo } from '$site'
   import { FileCarousel, PeriodicTableDemo, structures } from '$site'
+  import { onMount } from 'svelte'
 
   const structure_files_raw = import.meta.glob(`$site/structures/*.{poscar,xyz,cif}`, {
     eager: true,
@@ -20,8 +21,8 @@
 
   const viewer_titles = [mp_id, `Li4Fe3Mn1(PO4)4.cif`]
 
-  // Initialize structures
-  $effect(() => {
+  // Initialize structures once on mount to avoid reactive loops
+  onMount(() => {
     // Load MP structure
     viewer_structures[0] = structures.find((struct) => struct.id === mp_id)
 

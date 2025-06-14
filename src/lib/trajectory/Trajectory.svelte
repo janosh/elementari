@@ -202,6 +202,9 @@
     }
   })
 
+  // Check if there are any Y2 series to determine padding
+  let has_y2_series = $derived(plot_series.some((s) => s.y_axis === `y2` && s.visible))
+
   // Handle file drop events
   async function handle_file_drop(event: DragEvent) {
     event.preventDefault()
@@ -626,7 +629,7 @@
             item_gap: 0,
             padding: { t: 5, b: 5, l: 5, r: 5 },
           }}
-          padding={{ t: 20, b: 60, l: 100, r: 80 }}
+          padding={{ t: 20, b: 60, l: 100, r: has_y2_series ? 80 : 20 }}
           range_padding={0}
           style="height: 100%;"
           {...plot_props}
