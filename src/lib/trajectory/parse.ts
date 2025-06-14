@@ -2,7 +2,510 @@
 import type { AnyStructure, ElementSymbol, Vector } from '$lib'
 import { escape_html, is_binary } from '$lib'
 import { parse_xyz } from '$lib/io/parse'
+import * as h5wasm from 'h5wasm'
 import type { Trajectory, TrajectoryFrame } from '.'
+
+// Atomic number to element symbol mapping
+const ATOMIC_NUMBER_TO_SYMBOL: Record<number, ElementSymbol> = {
+  1: `H`,
+  2: `He`,
+  3: `Li`,
+  4: `Be`,
+  5: `B`,
+  6: `C`,
+  7: `N`,
+  8: `O`,
+  9: `F`,
+  10: `Ne`,
+  11: `Na`,
+  12: `Mg`,
+  13: `Al`,
+  14: `Si`,
+  15: `P`,
+  16: `S`,
+  17: `Cl`,
+  18: `Ar`,
+  19: `K`,
+  20: `Ca`,
+  21: `Sc`,
+  22: `Ti`,
+  23: `V`,
+  24: `Cr`,
+  25: `Mn`,
+  26: `Fe`,
+  27: `Co`,
+  28: `Ni`,
+  29: `Cu`,
+  30: `Zn`,
+  31: `Ga`,
+  32: `Ge`,
+  33: `As`,
+  34: `Se`,
+  35: `Br`,
+  36: `Kr`,
+  37: `Rb`,
+  38: `Sr`,
+  39: `Y`,
+  40: `Zr`,
+  41: `Nb`,
+  42: `Mo`,
+  43: `Tc`,
+  44: `Ru`,
+  45: `Rh`,
+  46: `Pd`,
+  47: `Ag`,
+  48: `Cd`,
+  49: `In`,
+  50: `Sn`,
+  51: `Sb`,
+  52: `Te`,
+  53: `I`,
+  54: `Xe`,
+  55: `Cs`,
+  56: `Ba`,
+  57: `La`,
+  58: `Ce`,
+  59: `Pr`,
+  60: `Nd`,
+  61: `Pm`,
+  62: `Sm`,
+  63: `Eu`,
+  64: `Gd`,
+  65: `Tb`,
+  66: `Dy`,
+  67: `Ho`,
+  68: `Er`,
+  69: `Tm`,
+  70: `Yb`,
+  71: `Lu`,
+  72: `Hf`,
+  73: `Ta`,
+  74: `W`,
+  75: `Re`,
+  76: `Os`,
+  77: `Ir`,
+  78: `Pt`,
+  79: `Au`,
+  80: `Hg`,
+  81: `Tl`,
+  82: `Pb`,
+  83: `Bi`,
+  84: `Po`,
+  85: `At`,
+  86: `Rn`,
+  87: `Fr`,
+  88: `Ra`,
+  89: `Ac`,
+  90: `Th`,
+  91: `Pa`,
+  92: `U`,
+  93: `Np`,
+  94: `Pu`,
+  95: `Am`,
+  96: `Cm`,
+  97: `Bk`,
+  98: `Cf`,
+  99: `Es`,
+  100: `Fm`,
+  101: `Md`,
+  102: `No`,
+  103: `Lr`,
+  104: `Rf`,
+  105: `Db`,
+  106: `Sg`,
+  107: `Bh`,
+  108: `Hs`,
+  109: `Mt`,
+  110: `Ds`,
+  111: `Rg`,
+  112: `Cn`,
+  113: `Nh`,
+  114: `Fl`,
+  115: `Mc`,
+  116: `Lv`,
+  117: `Ts`,
+  118: `Og`,
+}
+
+// Parse torch-sim HDF5 trajectory format
+export async function parse_torch_sim_hdf5(
+  buffer: ArrayBuffer,
+  filename?: string,
+): Promise<Trajectory> {
+  try {
+    // Initialize h5wasm
+    await h5wasm.ready
+    const { FS } = await h5wasm.ready
+
+    // Write buffer to virtual filesystem
+    const temp_filename = filename || `temp.h5`
+    FS.writeFile(temp_filename, new Uint8Array(buffer))
+
+    // Open the file
+    const f = new h5wasm.File(temp_filename, `r`)
+
+    try {
+      // Define types for h5wasm objects since they don't have proper TypeScript definitions
+      type H5Group = {
+        keys(): string[]
+        get(name: string): H5Dataset | H5Group | null
+        attrs?: Record<string, { toString(): string }>
+      }
+
+      type H5Dataset = {
+        to_array(): unknown
+      }
+
+      // Validate torch-sim format by checking for required groups
+      const data_group = f.get(`data`) as H5Group | null
+      if (!data_group) {
+        throw new Error(`Invalid torch-sim HDF5 format: missing data group`)
+      }
+
+      const data_group_keys = data_group.keys()
+      if (
+        !data_group_keys.includes(`atomic_numbers`) ||
+        !data_group_keys.includes(`positions`)
+      ) {
+        throw new Error(
+          `Invalid torch-sim HDF5 format: missing required datasets`,
+        )
+      }
+
+      // Read atomic numbers and convert to element symbols
+      const atomic_numbers_dataset = data_group.get(
+        `atomic_numbers`,
+      ) as H5Dataset | null
+      if (!atomic_numbers_dataset) {
+        throw new Error(`Missing atomic_numbers dataset`)
+      }
+      const atomic_numbers_data =
+        atomic_numbers_dataset.to_array() as number[][]
+      const atom_numbers = atomic_numbers_data[0] // First (and only) row
+
+      const elements = atom_numbers.map((num: number) => {
+        return ATOMIC_NUMBER_TO_SYMBOL[num] || (`X` as ElementSymbol)
+      })
+
+      // Read positions data
+      const positions_dataset = data_group.get(`positions`) as H5Dataset | null
+      if (!positions_dataset) {
+        throw new Error(`Missing positions dataset`)
+      }
+      const positions = positions_dataset.to_array() as number[][][]
+
+      // Read cell data if available
+      let cells: number[][][] | undefined
+      try {
+        const cell_dataset = data_group.get(`cell`) as H5Dataset | null
+        if (cell_dataset) {
+          cells = cell_dataset.to_array() as number[][][]
+        }
+      } catch {
+        // Cell data might not be available
+      }
+
+      // Read energies if available
+      let potential_energies: number[] | undefined
+      let kinetic_energies: number[] | undefined
+
+      try {
+        const pe_dataset = data_group.get(
+          `potential_energy`,
+        ) as H5Dataset | null
+        if (pe_dataset) {
+          const pe_array = pe_dataset.to_array() as number[][]
+          potential_energies = pe_array.map((row) => row[0])
+        }
+      } catch {
+        // Potential energy might not be available
+      }
+
+      try {
+        const ke_dataset = data_group.get(`kinetic_energy`) as H5Dataset | null
+        if (ke_dataset) {
+          const ke_array = ke_dataset.to_array() as number[][]
+          kinetic_energies = ke_array.map((row) => row[0])
+        }
+      } catch {
+        // Kinetic energy might not be available
+      }
+
+      // Get periodic boundary conditions if available
+      let pbc: boolean[] = [true, true, true] // Default
+      try {
+        const pbc_dataset = data_group.get(`pbc`) as H5Dataset | null
+        if (pbc_dataset) {
+          const pbc_array = pbc_dataset.to_array() as number[]
+          pbc = pbc_array.slice(0, 3).map((val) => val !== 0)
+        }
+      } catch {
+        // PBC might not be available
+      }
+
+      const frames: TrajectoryFrame[] = positions.map(
+        (frame_positions, frame_idx) => {
+          // Get the lattice matrix for this frame
+          const lattice_matrix = cells?.[frame_idx]
+            ? (cells[frame_idx].map((row) => row.slice() as Vector) as [
+                Vector,
+                Vector,
+                Vector,
+              ])
+            : ([
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+              ] as [Vector, Vector, Vector])
+
+          // Calculate lattice parameters
+          const a = Math.sqrt(
+            lattice_matrix[0][0] ** 2 +
+              lattice_matrix[0][1] ** 2 +
+              lattice_matrix[0][2] ** 2,
+          )
+          const b = Math.sqrt(
+            lattice_matrix[1][0] ** 2 +
+              lattice_matrix[1][1] ** 2 +
+              lattice_matrix[1][2] ** 2,
+          )
+          const c = Math.sqrt(
+            lattice_matrix[2][0] ** 2 +
+              lattice_matrix[2][1] ** 2 +
+              lattice_matrix[2][2] ** 2,
+          )
+
+          const volume = Math.abs(
+            lattice_matrix[0][0] *
+              (lattice_matrix[1][1] * lattice_matrix[2][2] -
+                lattice_matrix[1][2] * lattice_matrix[2][1]) +
+              lattice_matrix[0][1] *
+                (lattice_matrix[1][2] * lattice_matrix[2][0] -
+                  lattice_matrix[1][0] * lattice_matrix[2][2]) +
+              lattice_matrix[0][2] *
+                (lattice_matrix[1][0] * lattice_matrix[2][1] -
+                  lattice_matrix[1][1] * lattice_matrix[2][0]),
+          )
+
+          const alpha =
+            (Math.acos(
+              (lattice_matrix[1][0] * lattice_matrix[2][0] +
+                lattice_matrix[1][1] * lattice_matrix[2][1] +
+                lattice_matrix[1][2] * lattice_matrix[2][2]) /
+                (b * c),
+            ) *
+              180) /
+            Math.PI
+
+          const beta =
+            (Math.acos(
+              (lattice_matrix[0][0] * lattice_matrix[2][0] +
+                lattice_matrix[0][1] * lattice_matrix[2][1] +
+                lattice_matrix[0][2] * lattice_matrix[2][2]) /
+                (a * c),
+            ) *
+              180) /
+            Math.PI
+
+          const gamma =
+            (Math.acos(
+              (lattice_matrix[0][0] * lattice_matrix[1][0] +
+                lattice_matrix[0][1] * lattice_matrix[1][1] +
+                lattice_matrix[0][2] * lattice_matrix[1][2]) /
+                (a * b),
+            ) *
+              180) /
+            Math.PI
+
+          // Create sites array in the expected format
+          const sites = frame_positions.map((xyz_pos, atom_idx) => {
+            // Convert Cartesian coordinates to fractional coordinates
+            const inv_matrix = invert_3x3_matrix(lattice_matrix)
+            const abc: Vector = [
+              xyz_pos[0] * inv_matrix[0][0] +
+                xyz_pos[1] * inv_matrix[0][1] +
+                xyz_pos[2] * inv_matrix[0][2],
+              xyz_pos[0] * inv_matrix[1][0] +
+                xyz_pos[1] * inv_matrix[1][1] +
+                xyz_pos[2] * inv_matrix[1][2],
+              xyz_pos[0] * inv_matrix[2][0] +
+                xyz_pos[1] * inv_matrix[2][1] +
+                xyz_pos[2] * inv_matrix[2][2],
+            ]
+
+            return {
+              species: [
+                {
+                  element: elements[atom_idx],
+                  occu: 1,
+                  oxidation_state: 0,
+                },
+              ],
+              abc,
+              xyz: xyz_pos.slice() as Vector,
+              label: `${elements[atom_idx]}${atom_idx + 1}`,
+              properties: {},
+            }
+          })
+
+          const lattice = {
+            matrix: lattice_matrix,
+            a,
+            b,
+            c,
+            alpha,
+            beta,
+            gamma,
+            volume,
+            pbc: pbc as [boolean, boolean, boolean],
+          }
+
+          const structure: AnyStructure = {
+            sites,
+            lattice,
+            charge: 0,
+          }
+
+          const metadata: Record<string, unknown> = {
+            volume,
+            ...(potential_energies &&
+              frame_idx < potential_energies.length && {
+                energy: potential_energies[frame_idx],
+              }),
+            ...(kinetic_energies &&
+              frame_idx < kinetic_energies.length && {
+                kinetic_energy: kinetic_energies[frame_idx],
+              }),
+          }
+
+          return {
+            structure,
+            step: frame_idx,
+            metadata,
+          }
+        },
+      )
+
+      // Get metadata if available
+      let title = `TorchSim Trajectory`
+      let program = `Unknown`
+      try {
+        const header_group = f.get(`header`) as H5Group | null
+        if (header_group && header_group.attrs) {
+          title = header_group.attrs.title?.toString() || title
+          program = header_group.attrs.program?.toString() || program
+        }
+      } catch {
+        // Header might not be available
+      }
+
+      // Count unique elements
+      const element_counts: Record<string, number> = {}
+      elements.forEach((element) => {
+        element_counts[element] = (element_counts[element] || 0) + 1
+      })
+
+      return {
+        frames,
+        metadata: {
+          title,
+          program,
+          num_atoms: elements.length,
+          num_frames: frames.length,
+          periodic_boundary_conditions: pbc,
+          ...(potential_energies && { has_energy: true }),
+          ...(kinetic_energies && { has_kinetic_energy: true }),
+          element_counts,
+        },
+      }
+    } finally {
+      f.close()
+      // Clean up temporary file
+      try {
+        FS.unlink(temp_filename)
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to parse torch-sim HDF5 file: ${error}`)
+  }
+}
+
+// Helper function to invert a 3x3 matrix for coordinate transformation
+function invert_3x3_matrix(
+  matrix: [Vector, Vector, Vector],
+): [Vector, Vector, Vector] {
+  const [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]] = matrix
+
+  const det =
+    a11 * (a22 * a33 - a23 * a32) -
+    a12 * (a21 * a33 - a23 * a31) +
+    a13 * (a21 * a32 - a22 * a31)
+
+  if (Math.abs(det) < 1e-10) {
+    throw new Error(`Matrix is singular and cannot be inverted`)
+  }
+
+  const inv_det = 1.0 / det
+
+  return [
+    [
+      inv_det * (a22 * a33 - a23 * a32),
+      inv_det * (a13 * a32 - a12 * a33),
+      inv_det * (a12 * a23 - a13 * a22),
+    ],
+    [
+      inv_det * (a23 * a31 - a21 * a33),
+      inv_det * (a11 * a33 - a13 * a31),
+      inv_det * (a13 * a21 - a11 * a23),
+    ],
+    [
+      inv_det * (a21 * a32 - a22 * a31),
+      inv_det * (a12 * a31 - a11 * a32),
+      inv_det * (a11 * a22 - a12 * a21),
+    ],
+  ]
+}
+
+// Check if a file is a torch-sim HDF5 trajectory
+export function is_torch_sim_hdf5(
+  content: unknown,
+  filename?: string,
+): boolean {
+  // Check filename extension first
+  const has_hdf5_extension =
+    filename &&
+    (filename.toLowerCase().endsWith(`.h5`) ||
+      filename.toLowerCase().endsWith(`.hdf5`))
+
+  if (filename && !has_hdf5_extension) {
+    return false
+  }
+
+  // If we only have filename (no content), return based on extension
+  if (
+    !content ||
+    (content instanceof ArrayBuffer && content.byteLength === 0)
+  ) {
+    return Boolean(has_hdf5_extension)
+  }
+
+  // Check if content is binary (HDF5 files are binary)
+  if (typeof content === `string`) {
+    return false // HDF5 files should not be parsed as text
+  }
+
+  // Check for HDF5 signature at the beginning of the file
+  if (content instanceof ArrayBuffer && content.byteLength >= 8) {
+    const view = new Uint8Array(content.slice(0, 8))
+    // HDF5 signature: \211HDF\r\n\032\n
+    const hdf5_signature = [0x89, 0x48, 0x44, 0x46, 0x0d, 0x0a, 0x1a, 0x0a]
+    return hdf5_signature.every((byte, idx) => view[idx] === byte)
+  }
+
+  return false
+}
 
 // Parse VASP XDATCAR format
 export function parse_vasp_xdatcar(content: string): Trajectory {
@@ -557,10 +1060,21 @@ export function parse_pymatgen_trajectory(
 }
 
 // Parse trajectory from various common formats
-export function parse_trajectory_data(
+export async function parse_trajectory_data(
   data: unknown,
   filename?: string,
-): Trajectory {
+): Promise<Trajectory> {
+  // Handle binary data (HDF5 files)
+  if (data instanceof ArrayBuffer) {
+    // Check if it's a torch-sim HDF5 file
+    if (is_torch_sim_hdf5(data, filename)) {
+      return await parse_torch_sim_hdf5(data, filename)
+    }
+
+    // If not a recognized HDF5 format, throw error
+    throw new Error(`Unsupported binary file format`)
+  }
+
   // Handle string data (raw file content)
   if (typeof data === `string`) {
     const content = data.trim()
@@ -608,7 +1122,7 @@ export function parse_trajectory_data(
       data = JSON.parse(content)
     } catch {
       throw new Error(
-        `Content is not valid JSON, XYZ trajectory, single XYZ, or VASP XDATCAR format`,
+        `Content is not valid JSON, XYZ trajectory, single XYZ, VASP XDATCAR, or HDF5 format`,
       )
     }
   }

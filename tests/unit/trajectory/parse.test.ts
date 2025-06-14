@@ -1,7 +1,9 @@
 import {
   get_unsupported_format_message,
+  is_torch_sim_hdf5,
   is_vasp_xdatcar,
   is_xyz_trajectory,
+  parse_torch_sim_hdf5,
   parse_trajectory_data,
   parse_vasp_xdatcar,
   parse_xyz_trajectory,
@@ -24,6 +26,16 @@ function read_test_file(filename: string): string {
     // Read as regular text file
     return readFileSync(file_path, `utf-8`)
   }
+}
+
+// Helper to read binary test files (for HDF5)
+function read_binary_test_file(filename: string): ArrayBuffer {
+  const file_path = join(process.cwd(), `src/site/trajectories`, filename)
+  const buffer = readFileSync(file_path)
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  )
 }
 
 // Helper to read and potentially decompress test files
@@ -209,7 +221,7 @@ describe(`JSON Trajectory Parser`, () => {
   )
 
   it(`should parse compressed JSON trajectory`, async () => {
-    const trajectory = parse_trajectory_data(
+    const trajectory = await parse_trajectory_data(
       json_content,
       `LiMnO2-chgnet-relax.json.gz`,
     )
@@ -323,35 +335,59 @@ H  0.000  0.000  0.000
 H  0.000  0.000  1.000
 O  0.000  1.000  0.000`
 
-  it(`should route multi-frame XYZ files to XYZ trajectory parser`, () => {
-    const trajectory = parse_trajectory_data(multi_frame_xyz, `trajectory.xyz`)
+  it(`should route multi-frame XYZ files to XYZ trajectory parser`, async () => {
+    const trajectory = await parse_trajectory_data(
+      multi_frame_xyz,
+      `trajectory.xyz`,
+    )
     expect(trajectory.metadata?.source_format).toBe(`xyz_trajectory`)
     expect(trajectory.frames).toHaveLength(2)
   })
 
-  it(`should handle single-frame XYZ files`, () => {
-    const trajectory = parse_trajectory_data(single_frame_xyz, `molecule.xyz`)
+  it(`should handle single-frame XYZ files`, async () => {
+    const trajectory = await parse_trajectory_data(
+      single_frame_xyz,
+      `molecule.xyz`,
+    )
     expect(trajectory.metadata?.source_format).toBe(`single_xyz`)
     expect(trajectory.frames).toHaveLength(1)
     expect(trajectory.frames[0].structure.charge).toBe(0) // Should have charge property
   })
 
-  it(`should prefer multi-frame over single-frame parsing for XYZ`, () => {
-    const trajectory = parse_trajectory_data(multi_frame_xyz, `test.xyz`)
+  it(`should prefer multi-frame over single-frame parsing for XYZ`, async () => {
+    const trajectory = await parse_trajectory_data(multi_frame_xyz, `test.xyz`)
     expect(trajectory.metadata?.source_format).toBe(`xyz_trajectory`)
   })
 })
 
 describe(`General Trajectory Parser`, () => {
-  it(`should route XDATCAR files to XDATCAR parser`, () => {
+  it(`should route XDATCAR files to XDATCAR parser`, async () => {
     const xdatcar_content = read_test_file(`XDATCAR.MD.gz`)
-    const trajectory = parse_trajectory_data(xdatcar_content, `XDATCAR.MD`)
+    const trajectory = await parse_trajectory_data(
+      xdatcar_content,
+      `XDATCAR.MD`,
+    )
 
     expect(trajectory.metadata?.source_format).toBe(`vasp_xdatcar`)
     expect(trajectory.frames).toHaveLength(5)
   })
 
-  it(`should handle JSON array format`, () => {
+  it(`should route HDF5 files to torch-sim HDF5 parser`, async () => {
+    const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+    const trajectory = await parse_trajectory_data(
+      hdf5_content,
+      `gold-cluster-55-atoms.h5`,
+    )
+
+    expect(trajectory.frames).toHaveLength(20)
+    expect(trajectory.metadata?.num_atoms).toBe(55)
+    expect(trajectory.frames[0].structure.sites).toHaveLength(55)
+    expect(trajectory.frames[0].structure.sites[0].species[0].element).toBe(
+      `Au`,
+    )
+  })
+
+  it(`should handle JSON array format`, async () => {
     const json_array = JSON.stringify([
       {
         structure: {
@@ -371,12 +407,12 @@ describe(`General Trajectory Parser`, () => {
       },
     ])
 
-    const trajectory = parse_trajectory_data(json_array, `test.json`)
+    const trajectory = await parse_trajectory_data(json_array, `test.json`)
     expect(trajectory.metadata?.source_format).toBe(`array`)
     expect(trajectory.frames).toHaveLength(1)
   })
 
-  it(`should handle JSON object with frames`, () => {
+  it(`should handle JSON object with frames`, async () => {
     const json_object = JSON.stringify({
       frames: [
         {
@@ -399,12 +435,12 @@ describe(`General Trajectory Parser`, () => {
       metadata: { description: `test trajectory` },
     })
 
-    const trajectory = parse_trajectory_data(json_object, `test.json`)
+    const trajectory = await parse_trajectory_data(json_object, `test.json`)
     expect(trajectory.metadata?.source_format).toBe(`object_with_frames`)
     expect(trajectory.frames).toHaveLength(1)
   })
 
-  it(`should handle single structure`, () => {
+  it(`should handle single structure`, async () => {
     const single_structure = JSON.stringify({
       sites: [
         {
@@ -418,15 +454,20 @@ describe(`General Trajectory Parser`, () => {
       charge: 0,
     })
 
-    const trajectory = parse_trajectory_data(single_structure, `structure.json`)
+    const trajectory = await parse_trajectory_data(
+      single_structure,
+      `structure.json`,
+    )
     expect(trajectory.metadata?.source_format).toBe(`single_structure`)
     expect(trajectory.frames).toHaveLength(1)
   })
 
-  it(`should throw error for unrecognized format`, () => {
-    expect(() => parse_trajectory_data(`invalid content`, `test.txt`)).toThrow()
-    expect(() => parse_trajectory_data({}, `test.json`)).toThrow()
-    expect(() => parse_trajectory_data(null, `test.json`)).toThrow()
+  it(`should throw error for unrecognized format`, async () => {
+    await expect(
+      parse_trajectory_data(`invalid content`, `test.txt`),
+    ).rejects.toThrow()
+    await expect(parse_trajectory_data({}, `test.json`)).rejects.toThrow()
+    await expect(parse_trajectory_data(null, `test.json`)).rejects.toThrow()
   })
 })
 
@@ -468,42 +509,119 @@ invalid_coord  0.5  0.5`
     expect(trajectory.frames[0].structure.sites).toHaveLength(3) // Exactly total_atoms
   })
 
-  it(`should handle empty content`, () => {
-    expect(() => parse_trajectory_data(``)).toThrow()
-    expect(() => parse_trajectory_data(`   `)).toThrow()
+  it(`should handle empty content`, async () => {
+    await expect(parse_trajectory_data(``)).rejects.toThrow()
+    await expect(parse_trajectory_data(`   `)).rejects.toThrow()
   })
 
-  it(`should handle null/undefined input`, () => {
-    expect(() => parse_trajectory_data(null)).toThrow()
-    expect(() => parse_trajectory_data(undefined)).toThrow()
+  it(`should handle null/undefined input`, async () => {
+    await expect(parse_trajectory_data(null)).rejects.toThrow()
+    await expect(parse_trajectory_data(undefined)).rejects.toThrow()
   })
 })
 
 describe(`Unsupported Format Detection`, () => {
-  it(`should detect ASE trajectory files`, () => {
+  it.each([
+    [`test.traj`, `ASE Binary Trajectory`],
+    [`test.dump`, `LAMMPS Trajectory`],
+    [`test.nc`, `NetCDF Trajectory`],
+    [`test.dcd`, `DCD Trajectory`],
+  ])(`should detect %s as %s`, (filename, expected_format) => {
+    const message = get_unsupported_format_message(filename, ``)
+    expect(message).toContain(expected_format)
+  })
+
+  it(`should detect ASE trajectory files with conversion code`, () => {
     const message = get_unsupported_format_message(`test.traj`, ``)
-    expect(message).toContain(`ASE Binary Trajectory`)
     expect(message).toContain(`from ase.io import read, write`)
   })
 
-  it(`should detect LAMMPS trajectory files`, () => {
-    const message = get_unsupported_format_message(`test.dump`, ``)
-    expect(message).toContain(`LAMMPS Trajectory`)
+  it.each([
+    [`test.xyz`],
+    [`test.json`],
+    [`XDATCAR`],
+    [`test.h5`],
+    [`test.hdf5`],
+  ])(`should return null for supported format: %s`, (filename) => {
+    expect(get_unsupported_format_message(filename, ``)).toBeNull()
+  })
+})
+
+describe(`Torch-sim HDF5 Parser`, () => {
+  const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+
+  it.each([
+    [`test.h5`, true],
+    [`test.hdf5`, true],
+    [`trajectory.H5`, true],
+    [`data.HDF5`, true],
+    [`some_file.json`, false],
+    [`test.xyz`, false],
+    [`XDATCAR`, false],
+    [`test.nc`, false],
+  ])(
+    `should detect HDF5 format by filename: %s -> %s`,
+    (filename, expected) => {
+      expect(is_torch_sim_hdf5(new ArrayBuffer(0), filename)).toBe(expected)
+    },
+  )
+
+  it(`should detect HDF5 format by content`, () => {
+    expect(is_torch_sim_hdf5(hdf5_content)).toBe(true)
+    expect(is_torch_sim_hdf5(`random text`)).toBe(false)
   })
 
-  it(`should detect NetCDF files`, () => {
-    const message = get_unsupported_format_message(`test.nc`, ``)
-    expect(message).toContain(`NetCDF Trajectory`)
+  it(`should parse HDF5 file correctly`, async () => {
+    const trajectory = await parse_torch_sim_hdf5(hdf5_content)
+    const first_frame = trajectory.frames[0]
+
+    expect(trajectory.frames).toHaveLength(20)
+    expect(trajectory.metadata?.num_atoms).toBe(55)
+    expect(first_frame.structure.sites).toHaveLength(55)
+    expect(first_frame.structure.sites[0].species[0].element).toBe(`Au`)
+
+    if (`lattice` in first_frame.structure) {
+      expect(first_frame.structure.lattice.volume).toBeTypeOf(`number`)
+    }
   })
 
-  it(`should detect DCD files`, () => {
-    const message = get_unsupported_format_message(`test.dcd`, ``)
-    expect(message).toContain(`DCD Trajectory`)
+  it(`should handle coordinates and all frames`, async () => {
+    const trajectory = await parse_torch_sim_hdf5(hdf5_content)
+    const first_site = trajectory.frames[0].structure.sites[0]
+
+    // Coordinate validation
+    expect(first_site.abc).toHaveLength(3)
+    expect(first_site.xyz).toHaveLength(3)
+    expect(first_site.abc.every((coord) => typeof coord === `number`)).toBe(
+      true,
+    )
+    expect(first_site.xyz.every((coord) => typeof coord === `number`)).toBe(
+      true,
+    )
+
+    // All frames validation
+    trajectory.frames.forEach((frame, idx) => {
+      expect(frame.step).toBe(idx)
+      expect(frame.structure.sites).toHaveLength(55)
+    })
   })
 
-  it(`should return null for supported formats`, () => {
-    expect(get_unsupported_format_message(`test.xyz`, ``)).toBeNull()
-    expect(get_unsupported_format_message(`test.json`, ``)).toBeNull()
-    expect(get_unsupported_format_message(`XDATCAR`, ``)).toBeNull()
+  it.each([
+    [`invalid signature`, new ArrayBuffer(8)],
+    [
+      `HDF5 signature but invalid structure`,
+      (() => {
+        const buffer = new ArrayBuffer(16)
+        new Uint8Array(buffer).set([
+          0x89, 0x48, 0x44, 0x46, 0x0d, 0x0a, 0x1a, 0x0a,
+        ])
+        return buffer
+      })(),
+    ],
+  ])(`should throw error for %s`, async (_, buffer) => {
+    if (buffer.byteLength === 8) {
+      new Uint8Array(buffer).set([1, 2, 3, 4, 5, 6, 7, 8])
+    }
+    await expect(parse_torch_sim_hdf5(buffer)).rejects.toThrow()
   })
 })

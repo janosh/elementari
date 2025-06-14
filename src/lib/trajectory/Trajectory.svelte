@@ -21,16 +21,23 @@
     const content_encoding = response.headers.get(`content-encoding`)
     const content_type = response.headers.get(`content-type`)
 
-    let content: string
     let filename = url.split(`/`).pop() || `trajectory`
 
     // If server sends gzip content-encoding, the browser auto-decompresses
     // If content-type is application/json, it's likely already decompressed
     if (content_encoding === `gzip` || content_type?.includes(`json`)) {
       // Server already decompressed the content, use it directly
-      content = await response.text()
+      const content = await response.text()
       // Remove .gz extension from filename if it exists
       filename = filename.replace(/\.gz$/, ``)
+      return await parse_trajectory_data(content, filename)
+    } else if (
+      filename.toLowerCase().endsWith(`.h5`) ||
+      filename.toLowerCase().endsWith(`.hdf5`)
+    ) {
+      // Handle HDF5 files as binary
+      const buffer = await response.arrayBuffer()
+      return await parse_trajectory_data(buffer, filename)
     } else {
       // Manual decompression needed (for cases where server sends raw gzip)
       const blob = await response.blob()
@@ -38,11 +45,8 @@
         type: response.headers.get(`content-type`) || `application/octet-stream`,
       })
       const result = await decompress_file(file)
-      content = result.content
-      filename = result.filename
+      return await parse_trajectory_data(result.content, result.filename)
     }
-
-    return parse_trajectory_data(content, filename)
   }
 
   interface Props {
@@ -56,7 +60,7 @@
     data_extractor?: TrajectoryDataExtractor
     // file drop handlers
     allow_file_drop?: boolean
-    on_file_drop?: (content: string, filename: string) => void
+    on_file_drop?: (content: string, filename: string) => Promise<void> | void
     // layout configuration
     layout?: `horizontal` | `vertical`
     // structure viewer props (passed to Structure component)
@@ -392,7 +396,7 @@
           label: get_label_with_unit(key), // Use label with unit
           y_axis, // Assign to appropriate y-axis
           visible: is_default_visible, // Set default visibility
-          markers: `line+points`,
+          markers: x_values.length < 30 ? `line+points` : `line`,
           metadata: x_values.map(() => ({ series_label: get_label_with_unit(key) })), // Add series label to metadata for tooltip
           line_style: {
             stroke: color,
@@ -511,7 +515,7 @@
     if (internal_data) {
       try {
         const file_info = JSON.parse(internal_data)
-        on_file_drop(file_info.content, file_info.name)
+        await on_file_drop(file_info.content, file_info.name)
         return
       } catch (error) {
         console.warn(`Failed to parse internal file data:`, error)
@@ -522,7 +526,7 @@
     // Check for plain text data (fallback)
     const text_data = event.dataTransfer?.getData(`text/plain`)
     if (text_data) {
-      on_file_drop(text_data, `trajectory.json`)
+      await on_file_drop(text_data, `trajectory.json`)
       return
     }
 
@@ -532,6 +536,16 @@
 
     loading = true
     try {
+      // Check if this is an HDF5 file (handle as binary)
+      if (
+        file.name.toLowerCase().endsWith(`.h5`) ||
+        file.name.toLowerCase().endsWith(`.hdf5`)
+      ) {
+        const buffer = await file.arrayBuffer()
+        await handle_trajectory_binary_drop(buffer, file.name)
+        return
+      }
+
       // Check for known unsupported binary formats before trying to read
       const unsupported_message = get_unsupported_format_message(file.name, ``)
       if (unsupported_message) {
@@ -540,7 +554,7 @@
       }
 
       const { content, filename } = await decompress_file(file)
-      if (content) on_file_drop(content, filename)
+      if (content) await on_file_drop(content, filename)
     } catch (error) {
       error_message = `Failed to read file: ${error}`
       console.error(`File reading error:`, error)
@@ -667,7 +681,7 @@
       }
 
       // Use the new parser that can handle multiple formats including XDATCAR
-      trajectory = parse_trajectory_data(content, filename)
+      trajectory = await parse_trajectory_data(content, filename)
       current_step_idx = 0
     } catch (err) {
       // Check if this might be an unsupported format even if not detected initially
@@ -678,6 +692,22 @@
         error_message = `Failed to parse trajectory file: ${err}`
       }
       console.error(`Trajectory parsing error:`, err)
+    } finally {
+      loading = false
+    }
+  }
+
+  async function handle_trajectory_binary_drop(buffer: ArrayBuffer, filename: string) {
+    loading = true
+    error_message = null
+
+    try {
+      // Parse binary data (e.g., HDF5 files)
+      trajectory = await parse_trajectory_data(buffer, filename)
+      current_step_idx = 0
+    } catch (err) {
+      error_message = `Failed to parse binary trajectory file: ${err}`
+      console.error(`Binary trajectory parsing error:`, err)
     } finally {
       loading = false
     }
@@ -828,7 +858,7 @@
                 step="0.1"
                 bind:value={frame_rate_fps}
                 class="speed-slider"
-                title="Frame rate: {format_num(frame_rate_fps, `.1f`)} fps"
+                title="Frame rate: {format_num(frame_rate_fps, `.2~s`)} fps"
               />
               <input
                 type="number"
@@ -848,12 +878,12 @@
             <span>Atoms: {current_frame.structure.sites.length}</span>
             {#if `lattice` in current_frame.structure}
               <span>
-                Vol: {format_num(current_frame.structure.lattice.volume, `.4`)} Å³
+                Vol: {format_num(current_frame.structure.lattice.volume, `.3~s`)} Å³
               </span>
             {/if}
             {#if current_frame.metadata?.energy}
               <span>
-                E: {format_num(current_frame.metadata.energy as number, `.4`)} eV
+                E: {format_num(current_frame.metadata.energy as number, `.3~s`)} eV
               </span>
             {/if}
           </div>
@@ -878,7 +908,7 @@
           y2_label={dynamic_y_labels.y2}
           current_x_value={current_step_idx}
           change={handle_plot_change}
-          markers="line+points"
+          markers="line"
           x_ticks={step_label_positions.length > 1
             ? -(step_label_positions[1] - step_label_positions[0])
             : trajectory && trajectory.frames.length <= 10
@@ -943,13 +973,14 @@
     border: 2px dashed transparent;
     transition: border-color 0.2s ease;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
   }
   /* Content area - grid container for equal sizing */
   .content-area {
     display: grid;
     flex: 1;
     min-height: 0;
+    overflow: visible;
   }
   .trajectory-viewer.horizontal .content-area {
     grid-template-columns: 1fr 1fr;

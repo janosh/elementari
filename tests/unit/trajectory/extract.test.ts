@@ -6,7 +6,20 @@ import {
   full_data_extractor,
   structural_data_extractor,
 } from '$lib/trajectory/extract'
+import { parse_torch_sim_hdf5 } from '$lib/trajectory/parse'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { describe, expect, it } from 'vitest'
+
+// Helper to read binary test files (for HDF5)
+function read_binary_test_file(filename: string): ArrayBuffer {
+  const file_path = join(process.cwd(), `src/site/trajectories`, filename)
+  const buffer = readFileSync(file_path)
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  )
+}
 
 // Helper to create a basic frame structure
 function create_basic_frame(
@@ -358,5 +371,59 @@ describe(`Default Plotting Behavior`, () => {
       expect(frame_data[0].volume).toBe(frame_data[1].volume)
       expect(frame_data[0].energy).toBe(frame_data[1].energy)
     }
+  })
+})
+
+describe(`HDF5 Trajectory Data Extraction`, () => {
+  it(`should extract data from HDF5 trajectory`, async () => {
+    const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+    const trajectory = await parse_torch_sim_hdf5(hdf5_content)
+    const first_frame = trajectory.frames[0]
+
+    const energy_data = energy_data_extractor(first_frame, trajectory)
+    const structural_data = structural_data_extractor(first_frame, trajectory)
+    const full_data = full_data_extractor(first_frame, trajectory)
+
+    expect(energy_data.Step).toBe(0)
+    expect(structural_data.Step).toBe(0)
+    expect(full_data.Step).toBe(0)
+    expect(typeof structural_data.volume).toBe(`number`)
+    expect(structural_data.volume).toBeGreaterThan(0)
+
+    if (`lattice` in first_frame.structure) {
+      expect(structural_data.a).toBeGreaterThan(0)
+      expect(structural_data.b).toBeGreaterThan(0)
+      expect(structural_data.c).toBeGreaterThan(0)
+    }
+  })
+
+  it(`should handle all frames and lattice consistency`, async () => {
+    const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+    const trajectory = await parse_torch_sim_hdf5(hdf5_content)
+
+    const all_frame_data = trajectory.frames.map((frame) =>
+      full_data_extractor(frame, trajectory),
+    )
+
+    expect(all_frame_data).toHaveLength(20)
+
+    all_frame_data.forEach((data, idx) => {
+      expect(data.Step).toBe(idx)
+      expect(typeof data.volume).toBe(`number`)
+      expect(data.volume).toBeGreaterThan(0)
+    })
+
+    // Check lattice consistency
+    const volumes = all_frame_data.map((data) => data.volume)
+    const unique_volumes = new Set(volumes)
+    const is_constant = unique_volumes.size === 1
+
+    all_frame_data.forEach((data) => {
+      if (is_constant) {
+        expect(data._constant_lattice_params).toBe(1)
+      } else {
+        expect(data._constant_lattice_params).toBeUndefined()
+      }
+    })
   })
 })
