@@ -26,22 +26,26 @@
     { eager: true, query: `?url`, import: `default` },
   ) as Record<string, string>
 
+  // Helper function to remove Vite query suffixes from filenames
+  const strip_query = (filename: string): string => filename.split(`?`)[0]
+
   const get_file_type = (filename: string) =>
-    filename.split(`.`).pop()?.toUpperCase() ?? `FILE`
+    strip_query(filename).split(`.`).pop()?.toUpperCase() ?? `FILE`
 
   const format_filename = (filename: string) => {
-    if (filename.length <= 15) return filename
+    const clean_filename = strip_query(filename)
+    if (clean_filename.length <= 15) return clean_filename
 
     // Try to break at hyphens or underscores
-    const parts: string[] = filename.split(/[-_]/)
+    const parts: string[] = clean_filename.split(/[-_]/)
     if (parts.length > 1) {
       const mid_point: number = Math.ceil(parts.length / 2)
       return parts.slice(0, mid_point).join(`-`) + `\n` + parts.slice(mid_point).join(`-`)
     }
 
     // Fallback: break in the middle
-    const mid: number = Math.floor(filename.length / 2)
-    return filename.slice(0, mid) + `\n` + filename.slice(mid)
+    const mid: number = Math.floor(clean_filename.length / 2)
+    return clean_filename.slice(0, mid) + `\n` + clean_filename.slice(mid)
   }
 
   // Unified file loader utility
@@ -58,7 +62,7 @@
       const buffer = await response.arrayBuffer()
       const { array_buffer_to_data_url } = await import(`$lib/trajectory/parse`)
       return {
-        name: filename,
+        name: strip_query(filename),
         content: array_buffer_to_data_url(buffer),
         formatted_name: format_filename(filename),
         type: get_file_type(filename),
@@ -86,7 +90,7 @@
       }
 
       return {
-        name: filename,
+        name: strip_query(filename),
         content,
         formatted_name: format_filename(filename),
         type: get_file_type(filename),
@@ -105,26 +109,30 @@
 
       // Add raw text files
       for (const [path, content] of Object.entries(trajectory_files_raw)) {
-        const filename = path.split(`/`).pop() as string
+        const raw_filename = path.split(`/`).pop() as string
+        const filename = strip_query(raw_filename)
         files.push({
           name: filename,
           content,
-          formatted_name: format_filename(filename),
-          type: get_file_type(filename),
+          formatted_name: format_filename(raw_filename),
+          type: get_file_type(raw_filename),
           content_type: `text`,
         })
       }
 
-      // Add URL-based files (compressed and binary)
-      for (const [path, url] of Object.entries(trajectory_files_compressed)) {
-        const filename = path.split(`/`).pop() as string
-        try {
-          const file_info = await load_file_from_url(url, filename)
-          files.push(file_info)
-        } catch (error) {
-          console.error(`Failed to load file ${filename}:`, error)
-        }
-      }
+      // Add URL-based files (compressed and binary) - load in parallel with Promise.all
+      await Promise.all(
+        Object.entries(trajectory_files_compressed).map(async ([path, url]) => {
+          const raw_filename = path.split(`/`).pop() as string
+          const clean_filename = strip_query(raw_filename)
+          try {
+            const file_info = await load_file_from_url(url, raw_filename)
+            files.push(file_info)
+          } catch (error) {
+            console.error(`Failed to load file ${clean_filename}:`, error)
+          }
+        }),
+      )
 
       trajectory_files = files
     }

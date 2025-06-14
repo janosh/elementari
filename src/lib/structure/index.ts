@@ -53,7 +53,7 @@ export type PymatgenLattice = {
   matrix: [Vector, Vector, Vector]
   pbc: [boolean, boolean, boolean]
   volume: number
-} & Record<(typeof lattice_param_keys)[number], number>
+} & { [key in (typeof lattice_param_keys)[number]]: number }
 
 export type PymatgenMolecule = { sites: Site[]; charge: number; id?: string }
 export type PymatgenStructure = PymatgenMolecule & { lattice: PymatgenLattice }

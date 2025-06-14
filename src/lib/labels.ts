@@ -173,7 +173,7 @@ export function superscript_digits(input: string): string {
   // use replace all signs and digits with their unicode superscript equivalent
   return input.replace(
     /[\d+-]/g,
-    (match) => superscript_map[match as keyof typeof superscript_map],
+    (match) => superscript_map[match as keyof typeof superscript_map] ?? match,
   )
 }
 
@@ -228,7 +228,8 @@ export function get_label_with_unit(
   if (lower_key === `stress_max`)
     return unit ? `σ<sub>max</sub> (${unit})` : `σ<sub>max</sub>`
 
-  if (lower_key === `temperature`) return unit ? `Temp (${unit})` : `Temp`
+  if (lower_key === `temperature`)
+    return unit ? `Temperature (${unit})` : `Temperature`
 
   // Capitalize the key name for all other properties
   const capitalized_key = key.charAt(0).toUpperCase() + key.slice(1)

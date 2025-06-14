@@ -452,10 +452,8 @@ export async function parse_torch_sim_hdf5(
       let program = `Unknown`
       try {
         const header_group = f.get(`header`) as H5Group | null
-        if (header_group && header_group.attrs) {
-          title = header_group.attrs.title?.toString() || title
-          program = header_group.attrs.program?.toString() || program
-        }
+        title = header_group?.attrs?.title?.toString() ?? title
+        program = header_group?.attrs?.program?.toString() ?? program
       } catch {
         // Header might not be available
       }

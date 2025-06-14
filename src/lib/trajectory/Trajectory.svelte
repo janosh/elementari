@@ -6,6 +6,7 @@
   import { ScatterPlot } from '$lib/plot'
   import type { ComponentProps, Snippet } from 'svelte'
   import { untrack } from 'svelte'
+  import { titles_as_tooltips } from 'svelte-zoo'
   import type { Trajectory, TrajectoryDataExtractor } from '.'
   import { TrajectoryError } from '.'
   import { full_data_extractor } from './extract'
@@ -111,6 +112,7 @@
   let is_playing = $state(false)
   let frame_rate_fps = $state(1) // default 1 frame per second
   let play_interval: ReturnType<typeof setInterval> | undefined = $state(undefined)
+  let current_filename = $state<string | null>(null)
 
   // Current frame structure for display
   let current_structure = $derived(
@@ -118,6 +120,18 @@
       ? trajectory.frames[current_step_idx]?.structure
       : undefined,
   )
+
+  // Truncate filename for display
+  let display_filename = $derived.by((): string | null => {
+    if (!current_filename) return null
+
+    if (current_filename.length <= 20) return current_filename
+
+    // Truncate with ellipsis in the middle: 8 chars + "..." + 9 chars = 20 total
+    const start = current_filename.slice(0, 8)
+    const end = current_filename.slice(-9)
+    return `${start}...${end}`
+  })
 
   // Calculate step label positions based on step_labels prop
   let step_label_positions = $derived.by((): number[] => {
@@ -258,6 +272,7 @@
       const unsupported_message = get_unsupported_format_message(file.name, ``)
       if (unsupported_message) {
         error_message = unsupported_message
+        current_filename = null
         return
       }
 
@@ -265,6 +280,7 @@
       if (content) await on_file_drop(content, filename)
     } catch (error) {
       error_message = `Failed to read file: ${error}`
+      current_filename = null
       console.error(`File reading error:`, error)
     } finally {
       loading = false
@@ -350,9 +366,7 @@
   // Cleanup interval on component destroy
   $effect(() => {
     return () => {
-      if (play_interval !== undefined) {
-        clearInterval(play_interval)
-      }
+      if (play_interval !== undefined) clearInterval(play_interval)
     }
   })
 
@@ -366,11 +380,14 @@
         .then((loaded_trajectory: Trajectory) => {
           trajectory = loaded_trajectory
           current_step_idx = 0
+          // Extract filename from URL
+          current_filename = trajectory_url.split(`/`).pop() || trajectory_url
           loading = false
         })
         .catch((err: Error) => {
           console.error(`Failed to load trajectory from URL:`, err)
           error_message = `Failed to load trajectory: ${err.message}`
+          current_filename = null
           loading = false
         })
     }
@@ -385,12 +402,14 @@
       const unsupported_message = get_unsupported_format_message(filename, content)
       if (unsupported_message) {
         error_message = unsupported_message
+        current_filename = null
         return
       }
 
       // Use the new parser that can handle multiple formats including XDATCAR
       trajectory = await parse_trajectory_data(content, filename)
       current_step_idx = 0
+      current_filename = filename
     } catch (err) {
       // Check if this might be an unsupported format even if not detected initially
       const unsupported_message = get_unsupported_format_message(filename, content)
@@ -399,6 +418,7 @@
       } else {
         error_message = `Failed to parse trajectory file: ${err}`
       }
+      current_filename = null
       console.error(`Trajectory parsing error:`, err)
     } finally {
       loading = false
@@ -413,8 +433,10 @@
       // Parse binary data (e.g., HDF5 files)
       trajectory = await parse_trajectory_data(buffer, filename)
       current_step_idx = 0
+      current_filename = filename
     } catch (err) {
       error_message = `Failed to parse binary trajectory file: ${err}`
+      current_filename = null
       console.error(`Binary trajectory parsing error:`, err)
     } finally {
       loading = false
@@ -583,6 +605,14 @@
 
           <!-- Frame info section -->
           <div class="info-section">
+            {#if display_filename}
+              <span
+                use:titles_as_tooltips
+                title={current_filename !== display_filename
+                  ? current_filename
+                  : undefined}>{display_filename}</span
+              >
+            {/if}
             <span>Atoms: {current_frame.structure.sites.length}</span>
             {#if `lattice` in current_frame.structure}
               <span>

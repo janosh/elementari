@@ -15,7 +15,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import { gunzipSync } from 'zlib'
 
-// Helper to read test files
+// Helper to read test files (handles both gzip and regular text files)
 function read_test_file(filename: string): string {
   const file_path = join(process.cwd(), `src/site/trajectories`, filename)
 
@@ -38,21 +38,6 @@ function read_binary_test_file(filename: string): ArrayBuffer {
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength,
   )
-}
-
-// Helper to read and potentially decompress test files
-function read_compressed_test_file(filename: string): string {
-  const file_path = join(process.cwd(), `src/site/trajectories`, filename)
-
-  if (filename.endsWith(`.gz`)) {
-    // Read as buffer and decompress
-    const compressed_data = readFileSync(file_path)
-    const decompressed_data = gunzipSync(compressed_data)
-    return decompressed_data.toString(`utf-8`)
-  } else {
-    // Read as regular text file
-    return readFileSync(file_path, `utf-8`)
-  }
 }
 
 describe(`VASP XDATCAR Parser`, () => {
@@ -218,9 +203,7 @@ Direct configuration=     2
 })
 
 describe(`JSON Trajectory Parser`, () => {
-  const json_content = read_compressed_test_file(
-    `pymatgen-LiMnO2-chgnet-relax.json.gz`,
-  )
+  const json_content = read_test_file(`pymatgen-LiMnO2-chgnet-relax.json.gz`)
 
   it(`should parse compressed JSON trajectory`, async () => {
     const trajectory = await parse_trajectory_data(

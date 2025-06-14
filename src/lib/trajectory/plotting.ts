@@ -84,8 +84,7 @@ export function generate_plot_series(
       const lower_key = key.toLowerCase()
 
       // Determine which y-axis to use based on property type
-      const y_axis: `y1` | `y2` =
-        y2_properties.has(lower_key) || y2_properties.has(key) ? `y2` : `y1`
+      const y_axis: `y1` | `y2` = y2_properties.has(lower_key) ? `y2` : `y1`
 
       // Determine default visibility
       let is_default_visible =
