@@ -78,10 +78,6 @@
     // Add global event listeners
     window.addEventListener(`mousemove`, handle_window_mouse_move)
     window.addEventListener(`mouseup`, handle_window_mouse_up)
-
-    // Change cursor and prevent text selection
-    document.body.style.cursor = `move`
-    document.body.style.userSelect = `none`
   }
 
   function handle_window_mouse_move(event: MouseEvent) {
@@ -102,10 +98,6 @@
     // Remove global event listeners
     window.removeEventListener(`mousemove`, handle_window_mouse_move)
     window.removeEventListener(`mouseup`, handle_window_mouse_up)
-
-    // Reset cursor and text selection
-    document.body.style.cursor = `default`
-    document.body.style.userSelect = `auto`
   }
 
   let grid_template_style = $derived.by(() => {
@@ -122,7 +114,7 @@
 </script>
 
 <div
-  class="legend {draggable ? `draggable` : ``}"
+  class="legend {draggable ? `draggable` : ``} {is_dragging ? `is-dragging` : ``}"
   style="{wrapper_style} {grid_template_style}"
   onmousedown={handle_legend_mouse_down}
   {...rest}
@@ -221,6 +213,10 @@
   }
   .legend.draggable:active {
     cursor: grabbing;
+  }
+  .legend.is-dragging {
+    cursor: move;
+    user-select: none;
   }
   .legend-item {
     display: flex;
