@@ -113,6 +113,7 @@
   let frame_rate_fps = $state(1) // default 1 frame per second
   let play_interval: ReturnType<typeof setInterval> | undefined = $state(undefined)
   let current_filename = $state<string | null>(null)
+  let file_size = $state<number | null>(null)
 
   // Current frame structure for display
   let current_structure = $derived(
@@ -131,6 +132,75 @@
     const start = current_filename.slice(0, 8)
     const end = current_filename.slice(-9)
     return `${start}...${end}`
+  })
+
+  // Comprehensive tooltip with trajectory statistics
+  let info_tooltip = $derived.by((): string | undefined => {
+    if (!trajectory) return undefined
+
+    const stats: string[] = []
+    const first_frame = trajectory.frames[0]
+
+    // File information
+    if (current_filename) stats.push(`File: ${current_filename}`)
+    if (file_size !== null) {
+      const size_str =
+        file_size > 1024 * 1024
+          ? `${format_num(file_size / (1024 * 1024), `.2~f`)} MB`
+          : `${format_num(file_size / 1024, `.1~f`)} KB`
+      stats.push(`Size: ${size_str}`)
+    }
+
+    // Lattice information (atoms/volume already in top bar)
+    if (`lattice` in first_frame.structure) {
+      const { volume, a, b, c, alpha, beta, gamma } = first_frame.structure.lattice
+      stats.push(
+        `Density: ${format_num(first_frame.structure.sites.length / volume, `.4~s`)} atoms/Å³`,
+      )
+      stats.push(
+        `Cell: ${format_num(a, `.2~s`)} × ${format_num(b, `.2~s`)} × ${format_num(c, `.2~s`)} Å`,
+      )
+      stats.push(
+        `Angles: α=${format_num(alpha, `.1~f`)}° β=${format_num(beta, `.1~f`)}° γ=${format_num(gamma, `.1~f`)}°`,
+      )
+
+      // Volume change if available
+      if (trajectory.frames.length > 1) {
+        const volumes = trajectory.frames
+          .map((frame) =>
+            `lattice` in frame.structure ? frame.structure.lattice.volume : null,
+          )
+          .filter((v): v is number => v !== null)
+
+        if (volumes.length > 1) {
+          const vol_change =
+            ((Math.max(...volumes) - Math.min(...volumes)) / Math.min(...volumes)) * 100
+          if (Math.abs(vol_change) > 0.1) {
+            stats.push(`Volume change: ${format_num(vol_change, `.2~f`)}%`)
+          }
+        }
+      }
+    }
+
+    // Energy range with span in parentheses
+    const energies = trajectory.frames
+      .map((f) => f.metadata?.energy)
+      .filter(Boolean) as number[]
+    if (energies.length > 1) {
+      const min_energy = Math.min(...energies)
+      const max_energy = Math.max(...energies)
+      const energy_span = max_energy - min_energy
+      stats.push(
+        `Energy: ${format_num(min_energy, `.3~s`)} to ${format_num(max_energy, `.3~s`)} eV (span: ${format_num(energy_span, `.3~s`)} eV)`,
+      )
+    }
+
+    // Format if available
+    if (trajectory.metadata?.source_format) {
+      stats.push(`Format: ${trajectory.metadata.source_format}`)
+    }
+
+    return stats.join(`<br />`)
   })
 
   // Calculate step label positions based on step_labels prop
@@ -248,6 +318,7 @@
     // Check for plain text data (fallback)
     const text_data = event.dataTransfer?.getData(`text/plain`)
     if (text_data) {
+      file_size = null // Size not available for text drops
       await on_file_drop(text_data, `trajectory.json`)
       return
     }
@@ -257,6 +328,7 @@
     if (!file) return
 
     loading = true
+    file_size = file.size // Capture file size
     try {
       // Check if this is an HDF5 file (handle as binary)
       if (
@@ -273,6 +345,7 @@
       if (unsupported_message) {
         error_message = unsupported_message
         current_filename = null
+        file_size = null
         return
       }
 
@@ -281,6 +354,7 @@
     } catch (error) {
       error_message = `Failed to read file: ${error}`
       current_filename = null
+      file_size = null
       console.error(`File reading error:`, error)
     } finally {
       loading = false
@@ -382,12 +456,14 @@
           current_step_idx = 0
           // Extract filename from URL
           current_filename = trajectory_url.split(`/`).pop() || trajectory_url
+          file_size = null // Size not available for URL loads
           loading = false
         })
         .catch((err: Error) => {
           console.error(`Failed to load trajectory from URL:`, err)
           error_message = `Failed to load trajectory: ${err.message}`
           current_filename = null
+          file_size = null
           loading = false
         })
     }
@@ -403,6 +479,7 @@
       if (unsupported_message) {
         error_message = unsupported_message
         current_filename = null
+        file_size = null
         return
       }
 
@@ -410,6 +487,7 @@
       trajectory = await parse_trajectory_data(content, filename)
       current_step_idx = 0
       current_filename = filename
+      // Note: file_size remains as set by the caller (could be null for text drops)
     } catch (err) {
       // Check if this might be an unsupported format even if not detected initially
       const unsupported_message = get_unsupported_format_message(filename, content)
@@ -419,6 +497,7 @@
         error_message = `Failed to parse trajectory file: ${err}`
       }
       current_filename = null
+      file_size = null
       console.error(`Trajectory parsing error:`, err)
     } finally {
       loading = false
@@ -434,9 +513,11 @@
       trajectory = await parse_trajectory_data(buffer, filename)
       current_step_idx = 0
       current_filename = filename
+      // Note: file_size should already be set by the caller
     } catch (err) {
       error_message = `Failed to parse binary trajectory file: ${err}`
       current_filename = null
+      file_size = null
       console.error(`Binary trajectory parsing error:`, err)
     } finally {
       loading = false
@@ -615,14 +696,26 @@
             {/if}
             <span>Atoms: {current_frame.structure.sites.length}</span>
             {#if `lattice` in current_frame.structure}
-              <span>
-                Vol: {format_num(current_frame.structure.lattice.volume, `.3~s`)} Å³
+              <span title="Initial cell volume" use:titles_as_tooltips>
+                Vol<sub>0</sub>: {format_num(
+                  current_frame.structure.lattice.volume,
+                  `.3~s`,
+                )} Å³
               </span>
             {/if}
             {#if current_frame.metadata?.energy}
-              <span>
-                E: {format_num(current_frame.metadata.energy as number, `.3~s`)} eV
+              <span title="Initial total energy" use:titles_as_tooltips>
+                E<sub>0</sub>: {format_num(
+                  current_frame.metadata.energy as number,
+                  `.3~s`,
+                )} eV
               </span>
+            {/if}
+            <!-- Info icon with comprehensive tooltip -->
+            {#if info_tooltip}
+              <div class="info-icon" use:titles_as_tooltips title={info_tooltip}>
+                <svg style="width: 20px; height: 20px;"><use href="#icon-info" /></svg>
+              </div>
             {/if}
           </div>
         {/if}
