@@ -5,6 +5,24 @@ import { parse_xyz } from '$lib/io/parse'
 import * as h5wasm from 'h5wasm'
 import type { Trajectory, TrajectoryFrame } from '.'
 
+// Helper to convert ArrayBuffer to base64 data URL
+export function array_buffer_to_data_url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  const base64 = btoa(String.fromCharCode(...bytes))
+  return `data:application/octet-stream;base64,${base64}`
+}
+
+// Helper to convert base64 data URL back to ArrayBuffer
+export function data_url_to_array_buffer(data_url: string): ArrayBuffer {
+  const base64 = data_url.replace(`data:application/octet-stream;base64,`, ``)
+  const binary_string = atob(base64)
+  const bytes = new Uint8Array(binary_string.length)
+  for (let i = 0; i < binary_string.length; i++) {
+    bytes[i] = binary_string.charCodeAt(i)
+  }
+  return bytes.buffer
+}
+
 // Atomic number to element symbol mapping
 const ATOMIC_NUMBER_TO_SYMBOL: Record<number, ElementSymbol> = {
   1: `H`,

@@ -23,9 +23,7 @@
   const get_base_file_type = (filename: string): string => {
     let base_name = filename
     // Remove .gz extension if present
-    if (base_name.toLowerCase().endsWith(`.gz`)) {
-      base_name = base_name.slice(0, -3)
-    }
+    if (base_name.toLowerCase().endsWith(`.gz`)) base_name = base_name.slice(0, -3)
 
     const type = base_name.split(`.`).pop()?.toLowerCase() || `file`
 
@@ -38,6 +36,9 @@
     ) {
       return `traj`
     }
+
+    // Normalize HDF5 files
+    if ([`h5`, `hdf5`].includes(type)) return `h5`
 
     return type
   }
@@ -72,6 +73,8 @@
       ? file.name.slice(0, -3)
       : file.name
 
+    const is_binary = file.content_type === `binary`
+
     // Set drag data using a custom MIME type for internal transfers
     event.dataTransfer?.setData(
       `application/x-elementari-file`,
@@ -79,11 +82,14 @@
         name: filename,
         content: file.content,
         type: file.type,
+        is_binary,
       }),
     )
 
-    // Also set plain text as fallback for external applications
-    event.dataTransfer?.setData(`text/plain`, file.content)
+    // For text files, also set plain text as fallback for external applications
+    if (!is_binary) {
+      event.dataTransfer?.setData(`text/plain`, file.content)
+    }
 
     on_drag_start?.(file, event)
   }
@@ -273,6 +279,9 @@
   .traj-color {
     background-color: rgba(255, 192, 203, 0.8);
   }
+  .h5-color {
+    background-color: rgba(255, 69, 0, 0.8);
+  }
   .gz-color {
     background-color: rgba(169, 169, 169, 0.8);
   }
@@ -322,6 +331,10 @@
   .traj-file {
     background: rgba(255, 192, 203, 0.08);
     border-color: rgba(255, 192, 203, 0.2);
+  }
+  .h5-file {
+    background: rgba(255, 69, 0, 0.08);
+    border-color: rgba(255, 69, 0, 0.2);
   }
   .gz-file {
     background: rgba(169, 169, 169, 0.08);

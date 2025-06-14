@@ -8,7 +8,11 @@
   import { untrack } from 'svelte'
   import type { Trajectory, TrajectoryDataExtractor, TrajectoryFrame } from '.'
   import { TrajectoryError } from '.'
-  import { get_unsupported_format_message, parse_trajectory_data } from './parse'
+  import {
+    data_url_to_array_buffer,
+    get_unsupported_format_message,
+    parse_trajectory_data,
+  } from './parse'
 
   // Utility function to load trajectory from URL with automatic format detection
   async function load_trajectory_from_url(url: string): Promise<Trajectory> {
@@ -515,7 +519,14 @@
     if (internal_data) {
       try {
         const file_info = JSON.parse(internal_data)
-        await on_file_drop(file_info.content, file_info.name)
+
+        // Check if this is a binary file
+        if (file_info.is_binary) {
+          const array_buffer = data_url_to_array_buffer(file_info.content)
+          await handle_trajectory_binary_drop(array_buffer, file_info.name)
+        } else {
+          await on_file_drop(file_info.content, file_info.name)
+        }
         return
       } catch (error) {
         console.warn(`Failed to parse internal file data:`, error)

@@ -1,4 +1,6 @@
 import {
+  array_buffer_to_data_url,
+  data_url_to_array_buffer,
   get_unsupported_format_message,
   is_torch_sim_hdf5,
   is_vasp_xdatcar,
@@ -373,10 +375,12 @@ describe(`General Trajectory Parser`, () => {
   })
 
   it(`should route HDF5 files to torch-sim HDF5 parser`, async () => {
-    const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+    const hdf5_content = read_binary_test_file(
+      `torch-sim-gold-cluster-55-atoms.h5`,
+    )
     const trajectory = await parse_trajectory_data(
       hdf5_content,
-      `gold-cluster-55-atoms.h5`,
+      `torch-sim-gold-cluster-55-atoms.h5`,
     )
 
     expect(trajectory.frames).toHaveLength(20)
@@ -548,7 +552,9 @@ describe(`Unsupported Format Detection`, () => {
 })
 
 describe(`Torch-sim HDF5 Parser`, () => {
-  const hdf5_content = read_binary_test_file(`gold-cluster-55-atoms.h5`)
+  const hdf5_content = read_binary_test_file(
+    `torch-sim-gold-cluster-55-atoms.h5`,
+  )
 
   it.each([
     [`test.h5`, true],
@@ -623,5 +629,31 @@ describe(`Torch-sim HDF5 Parser`, () => {
       new Uint8Array(buffer).set([1, 2, 3, 4, 5, 6, 7, 8])
     }
     await expect(parse_torch_sim_hdf5(buffer)).rejects.toThrow()
+  })
+})
+
+describe(`Binary Conversion Utilities`, () => {
+  it.each([
+    [`simple ASCII data`, [72, 101, 108, 108, 111]], // "Hello"
+    [`empty buffer`, []],
+    [`single byte`, [255]],
+    [`edge values`, [0, 1, 127, 128, 254, 255]],
+    [`full byte range`, Array.from({ length: 256 }, (_, i) => i)],
+  ])(`should handle round-trip conversion for %s`, (_, bytes) => {
+    const original_data = new Uint8Array(bytes)
+    const original_buffer = original_data.buffer.slice(
+      original_data.byteOffset,
+      original_data.byteOffset + original_data.byteLength,
+    )
+
+    const data_url = array_buffer_to_data_url(original_buffer)
+    const recovered_buffer = data_url_to_array_buffer(data_url)
+    const recovered_data = new Uint8Array(recovered_buffer)
+
+    expect(data_url.startsWith(`data:application/octet-stream;base64,`)).toBe(
+      true,
+    )
+    expect(recovered_data.length).toBe(original_data.length)
+    expect(Array.from(recovered_data)).toEqual(Array.from(original_data))
   })
 })

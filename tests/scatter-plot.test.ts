@@ -714,50 +714,20 @@ test.describe(`ScatterPlot Component Tests`, () => {
   })
 
   test.describe(`Legend Dragging`, () => {
-    // Helper to get legend position from transform or position
+    // Helper to get legend position using getBoundingClientRect
     const get_legend_position = async (
       plot_locator: Locator,
     ): Promise<{ x: number; y: number }> => {
-      const legend_wrapper = plot_locator.locator(`.legend`).locator(`..`) // Get parent wrapper
+      const legend_wrapper = plot_locator.locator(`.legend`).locator(`..`)
       await legend_wrapper.waitFor({ state: `visible` })
 
-      const position = await legend_wrapper.evaluate((el) => {
-        const computed = window.getComputedStyle(el)
-        const transform = computed.transform
-        const left = computed.left
-        const top = computed.top
-
-        // Try to extract position from transform first
-        if (transform && transform !== `none`) {
-          const matrix_match = transform.match(/matrix\(([^)]+)\)/)
-          if (matrix_match) {
-            const values = matrix_match[1]
-              .split(`,`)
-              .map((v) => parseFloat(v.trim()))
-            if (values.length >= 6) {
-              return { x: values[4], y: values[5] }
-            }
-          }
-
-          const translate_match = transform.match(
-            /translate\(([^,)]+),?\s*([^)]*)\)/,
-          )
-          if (translate_match) {
-            return {
-              x: parseFloat(translate_match[1].replace(`px`, ``)),
-              y: parseFloat(translate_match[2]?.replace(`px`, ``) || `0`),
-            }
-          }
-        }
-
-        // Fallback to left/top positioning
-        return {
-          x: parseFloat(left.replace(`px`, ``) || `0`),
-          y: parseFloat(top.replace(`px`, ``) || `0`),
-        }
+      return await legend_wrapper.evaluate((el) => {
+        const rect = el.getBoundingClientRect()
+        const parent_rect = (
+          el as HTMLElement
+        ).offsetParent?.getBoundingClientRect() || { x: 0, y: 0 }
+        return { x: rect.x - parent_rect.x, y: rect.y - parent_rect.y }
       })
-
-      return position
     }
 
     test(`legend can be dragged to new position`, async ({ page }) => {

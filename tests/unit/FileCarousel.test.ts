@@ -10,13 +10,16 @@ describe(`FileCarousel`, () => {
     name: string,
     content: string,
     structure_type: `crystal` | `molecule` | `unknown` = `crystal`,
-  ): FileInfo => ({
-    name,
-    content,
-    formatted_name: name,
-    type: name.split(`.`).pop()?.toUpperCase() ?? `FILE`,
-    structure_type,
-  })
+  ): FileInfo => {
+    // Extract the correct file type, handling double extensions like .cif.gz
+    let base_name = name
+    if (base_name.toLowerCase().endsWith(`.gz`))
+      base_name = base_name.slice(0, -3)
+
+    const type = base_name.split(`.`).pop()?.toUpperCase() ?? `FILE`
+
+    return { name, content, formatted_name: name, type, structure_type }
+  }
 
   const mock_files: FileInfo[] = [
     create_mock_file(`structure1.cif`, `cif content`, `crystal`),

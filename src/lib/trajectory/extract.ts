@@ -4,6 +4,7 @@ import type { Trajectory, TrajectoryDataExtractor, TrajectoryFrame } from '.'
 // Common data extractor that extracts energy and structural properties
 export const energy_data_extractor: TrajectoryDataExtractor = (
   frame: TrajectoryFrame,
+  _trajectory: Trajectory,
 ): Record<string, number> => {
   const data: Record<string, number> = {
     Step: frame.step,
@@ -35,6 +36,7 @@ export const energy_data_extractor: TrajectoryDataExtractor = (
 // Data extractor for forces and stresses
 export const force_stress_data_extractor: TrajectoryDataExtractor = (
   frame: TrajectoryFrame,
+  _trajectory: Trajectory,
 ): Record<string, number> => {
   const data: Record<string, number> = {
     Step: frame.step,
@@ -94,6 +96,7 @@ export const force_stress_data_extractor: TrajectoryDataExtractor = (
 // Data extractor for structural properties
 export const structural_data_extractor: TrajectoryDataExtractor = (
   frame: TrajectoryFrame,
+  _trajectory: Trajectory,
 ): Record<string, number> => {
   const data: Record<string, number> = {
     Step: frame.step,

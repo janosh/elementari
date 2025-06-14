@@ -20,12 +20,11 @@
     { eager: true, query: `?raw`, import: `default` },
   ) as Record<string, string>
 
-  // Load compressed files as URLs (to be fetched and decompressed later)
-  const trajectory_files_compressed = import.meta.glob(`$site/trajectories/*.gz`, {
-    eager: true,
-    query: `?url`,
-    import: `default`,
-  }) as Record<string, string>
+  // Load compressed and binary files as URLs (to be fetched later)
+  const trajectory_files_compressed = import.meta.glob(
+    [`$site/trajectories/*.{gz,h5,hdf5}`],
+    { eager: true, query: `?url`, import: `default` },
+  ) as Record<string, string>
 
   const get_file_type = (filename: string) =>
     filename.split(`.`).pop()?.toUpperCase() ?? `FILE`
@@ -45,36 +44,54 @@
     return filename.slice(0, mid) + `\n` + filename.slice(mid)
   }
 
-  // Helper function to load and decompress a compressed file
-  async function load_compressed_file(url: string, filename: string): Promise<string> {
+  // Unified file loader utility
+  async function load_file_from_url(url: string, filename: string): Promise<FileInfo> {
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`)
     }
 
-    // Check if the server automatically decompressed the content
-    const content_encoding = response.headers.get(`content-encoding`)
+    const is_binary =
+      filename.toLowerCase().endsWith(`.h5`) || filename.toLowerCase().endsWith(`.hdf5`)
 
-    if (content_encoding === `gzip`) {
-      // Server sent compressed content, browser auto-decompressed it
-      return await response.text()
+    if (is_binary) {
+      const buffer = await response.arrayBuffer()
+      const { array_buffer_to_data_url } = await import(`$lib/trajectory/parse`)
+      return {
+        name: filename,
+        content: array_buffer_to_data_url(buffer),
+        formatted_name: format_filename(filename),
+        type: get_file_type(filename),
+        content_type: `binary`,
+      }
     } else {
-      // Server sent raw compressed bytes, we need to decompress manually
-      const arrayBuffer = await response.arrayBuffer()
+      // Handle compressed/text files
+      const content_encoding = response.headers.get(`content-encoding`)
+      let content: string
 
-      // Import decompression utilities
-      const { decompress_data, detect_compression_format } = await import(
-        `$lib/io/decompress`
-      )
+      if (content_encoding === `gzip`) {
+        content = await response.text()
+      } else {
+        const arrayBuffer = await response.arrayBuffer()
+        const { decompress_data, detect_compression_format } = await import(
+          `$lib/io/decompress`
+        )
+        const format = detect_compression_format(filename)
 
-      // Detect compression format from filename
-      const format = detect_compression_format(filename)
-      if (!format) {
-        throw new Error(`Unsupported compression format: ${filename}`)
+        if (format) {
+          content = await decompress_data(arrayBuffer, format)
+        } else {
+          content = new TextDecoder().decode(arrayBuffer)
+        }
       }
 
-      // Decompress the data
-      return await decompress_data(arrayBuffer, format)
+      return {
+        name: filename,
+        content,
+        formatted_name: format_filename(filename),
+        type: get_file_type(filename),
+        content_type: `text`,
+      }
     }
   }
 
@@ -86,31 +103,26 @@
     const init_files = async () => {
       const files: FileInfo[] = []
 
-      // Add non-compressed files
+      // Add raw text files
       for (const [path, content] of Object.entries(trajectory_files_raw)) {
+        const filename = path.split(`/`).pop() as string
         files.push({
-          name: path.split(`/`).pop() as string,
-          content: content,
-          formatted_name: format_filename(path.split(`/`).pop() as string),
-          type: get_file_type(path.split(`/`).pop() as string),
+          name: filename,
+          content,
+          formatted_name: format_filename(filename),
+          type: get_file_type(filename),
+          content_type: `text`,
         })
       }
 
-      // Add compressed files (load and decompress them)
+      // Add URL-based files (compressed and binary)
       for (const [path, url] of Object.entries(trajectory_files_compressed)) {
         const filename = path.split(`/`).pop() as string
         try {
-          const decompressed_content = await load_compressed_file(url, filename)
-          files.push({
-            name: filename,
-            content: decompressed_content,
-            formatted_name: format_filename(filename),
-            type: get_file_type(filename),
-          })
+          const file_info = await load_file_from_url(url, filename)
+          files.push(file_info)
         } catch (error) {
-          console.error(`Failed to load compressed file ${filename}:`, error)
-          // Skip failed files instead of adding them with URL content
-          // This prevents drag errors when the content is not valid JSON/trajectory data
+          console.error(`Failed to load file ${filename}:`, error)
         }
       }
 
