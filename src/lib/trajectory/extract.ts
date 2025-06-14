@@ -1,9 +1,5 @@
 // Data extraction functions for trajectory analysis and plotting
-import type {
-  Trajectory,
-  TrajectoryDataExtractor,
-  TrajectoryFrame,
-} from './index'
+import type { Trajectory, TrajectoryDataExtractor, TrajectoryFrame } from '.'
 
 // Common data extractor that extracts energy and structural properties
 export const energy_data_extractor: TrajectoryDataExtractor = (

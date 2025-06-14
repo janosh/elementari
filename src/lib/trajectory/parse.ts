@@ -2,7 +2,7 @@
 import type { AnyStructure, ElementSymbol, Vector } from '$lib'
 import { escape_html, is_binary } from '$lib'
 import { parse_xyz } from '$lib/io/parse'
-import type { Trajectory, TrajectoryFrame } from './index'
+import type { Trajectory, TrajectoryFrame } from '.'
 
 // Parse VASP XDATCAR format
 export function parse_vasp_xdatcar(content: string): Trajectory {
@@ -414,6 +414,7 @@ export function is_xyz_trajectory(content: string, filename?: string): boolean {
 // Parse pymatgen Trajectory format
 export function parse_pymatgen_trajectory(
   obj_data: Record<string, unknown>,
+  filename?: string,
 ): Trajectory {
   const species = obj_data.species as Array<{ element: ElementSymbol }>
   const coords = obj_data.coords as number[][][] // [frame][atom][xyz]
@@ -546,7 +547,7 @@ export function parse_pymatgen_trajectory(
   return {
     frames,
     metadata: {
-      filename: obj_data.filename,
+      filename: filename || obj_data.filename,
       source_format: `pymatgen_trajectory`,
       species_list: species.map((s) => s.element),
       constant_lattice: obj_data.constant_lattice as boolean,
@@ -667,7 +668,7 @@ export function parse_trajectory_data(
     obj_data.frame_properties &&
     Array.isArray(obj_data.frame_properties)
   ) {
-    return parse_pymatgen_trajectory(obj_data)
+    return parse_pymatgen_trajectory(obj_data, filename)
   }
 
   // Check if it has a frames property

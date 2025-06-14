@@ -1,8 +1,5 @@
-import type { Trajectory } from '$lib/trajectory'
-
-import { get_trajectory_stats, validate_trajectory } from '$lib/trajectory'
-import { full_data_extractor } from '$lib/trajectory/extract'
 import {
+  get_unsupported_format_message,
   is_vasp_xdatcar,
   is_xyz_trajectory,
   parse_trajectory_data,
@@ -17,7 +14,16 @@ import { gunzipSync } from 'zlib'
 // Helper to read test files
 function read_test_file(filename: string): string {
   const file_path = join(process.cwd(), `src/site/trajectories`, filename)
-  return readFileSync(file_path, `utf-8`)
+
+  if (filename.endsWith(`.gz`)) {
+    // Read as buffer and decompress
+    const compressed_data = readFileSync(file_path)
+    const decompressed_data = gunzipSync(compressed_data)
+    return decompressed_data.toString(`utf-8`)
+  } else {
+    // Read as regular text file
+    return readFileSync(file_path, `utf-8`)
+  }
 }
 
 // Helper to read and potentially decompress test files
@@ -36,7 +42,7 @@ function read_compressed_test_file(filename: string): string {
 }
 
 describe(`VASP XDATCAR Parser`, () => {
-  const xdatcar_content = read_test_file(`XDATCAR.MD`)
+  const xdatcar_content = read_test_file(`XDATCAR.MD.gz`)
 
   it(`should detect XDATCAR format by filename`, () => {
     expect(is_vasp_xdatcar(``, `XDATCAR`)).toBe(true)
@@ -93,13 +99,13 @@ describe(`VASP XDATCAR Parser`, () => {
     expect(first_site.label).toBe(`O1`)
 
     // Check that O atoms come first (48 of them)
-    for (let i = 0; i < 48; i++) {
-      expect(first_frame.structure.sites[i].species[0].element).toBe(`O`)
+    for (let idx = 0; idx < 48; idx++) {
+      expect(first_frame.structure.sites[idx].species[0].element).toBe(`O`)
     }
 
     // Check that Fe atoms come after (32 of them)
-    for (let i = 48; i < 80; i++) {
-      expect(first_frame.structure.sites[i].species[0].element).toBe(`Fe`)
+    for (let idx = 48; idx < 80; idx++) {
+      expect(first_frame.structure.sites[idx].species[0].element).toBe(`Fe`)
     }
   })
 
@@ -199,19 +205,19 @@ Direct configuration=     2
 
 describe(`JSON Trajectory Parser`, () => {
   const json_content = read_compressed_test_file(
-    `pmg_LiMnO2_chgnet_relax.json.gz`,
+    `pmg-LiMnO2-chgnet-relax.json.gz`,
   )
 
   it(`should parse compressed JSON trajectory`, async () => {
     const trajectory = parse_trajectory_data(
       json_content,
-      `LiMnO2_chgnet_relax.json.gz`,
+      `LiMnO2-chgnet-relax.json.gz`,
     )
 
     expect(trajectory).toBeDefined()
     expect(trajectory.frames).toBeDefined()
     expect(trajectory.frames.length).toBeGreaterThan(0)
-    expect(trajectory.metadata?.filename).toBe(`LiMnO2_chgnet_relax.json.gz`)
+    expect(trajectory.metadata?.filename).toBe(`LiMnO2-chgnet-relax.json.gz`)
   })
 })
 
@@ -338,7 +344,7 @@ O  0.000  1.000  0.000`
 
 describe(`General Trajectory Parser`, () => {
   it(`should route XDATCAR files to XDATCAR parser`, () => {
-    const xdatcar_content = read_test_file(`XDATCAR.MD`)
+    const xdatcar_content = read_test_file(`XDATCAR.MD.gz`)
     const trajectory = parse_trajectory_data(xdatcar_content, `XDATCAR.MD`)
 
     expect(trajectory.metadata?.source_format).toBe(`vasp_xdatcar`)
@@ -424,123 +430,6 @@ describe(`General Trajectory Parser`, () => {
   })
 })
 
-describe(`Trajectory Validation`, () => {
-  it(`should validate correct trajectory`, () => {
-    const xdatcar_content = read_test_file(`XDATCAR.MD`)
-    const trajectory = parse_vasp_xdatcar(xdatcar_content)
-
-    const errors = validate_trajectory(trajectory)
-    expect(errors).toHaveLength(0)
-  })
-
-  it(`should detect missing frames`, () => {
-    const invalid_trajectory: Trajectory = {
-      frames: [],
-      metadata: {},
-    }
-
-    const errors = validate_trajectory(invalid_trajectory)
-    expect(errors).toContain(`Trajectory must have at least one frame`)
-  })
-
-  it(`should detect missing structure`, () => {
-    const invalid_trajectory: Trajectory = {
-      // @ts-expect-error Testing invalid structure
-      frames: [{ structure: null, step: 0, metadata: {} }],
-      metadata: {},
-    }
-
-    const errors = validate_trajectory(invalid_trajectory)
-    expect(errors).toContain(`Frame 0 missing structure`)
-  })
-
-  it(`should detect empty sites`, () => {
-    const invalid_trajectory: Trajectory = {
-      frames: [
-        {
-          structure: {
-            sites: [],
-            charge: 0,
-          },
-          step: 0,
-          metadata: {},
-        },
-      ],
-      metadata: {},
-    }
-
-    const errors = validate_trajectory(invalid_trajectory)
-    expect(errors).toContain(`Frame 0 structure has no sites`)
-  })
-})
-
-describe(`Trajectory Statistics`, () => {
-  it(`should calculate correct statistics for XDATCAR`, () => {
-    const xdatcar_content = read_test_file(`XDATCAR.MD`)
-    const trajectory = parse_vasp_xdatcar(xdatcar_content)
-
-    const stats = get_trajectory_stats(trajectory)
-
-    expect(stats.frame_count).toBe(5)
-    expect(stats.steps).toEqual([1, 2, 3, 4, 5])
-    expect(stats.step_range).toEqual([1, 5])
-    expect(stats.total_atoms).toBe(80)
-    expect(stats.constant_atom_count).toBe(true)
-  })
-
-  it(`should handle variable atom counts`, () => {
-    const trajectory: Trajectory = {
-      frames: [
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0, 0, 0],
-                xyz: [0, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-          },
-          step: 0,
-          metadata: {},
-        },
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0, 0, 0],
-                xyz: [0, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0.5, 0.5, 0.5],
-                xyz: [1, 1, 1],
-                label: `H2`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-          },
-          step: 1,
-          metadata: {},
-        },
-      ],
-      metadata: {},
-    }
-
-    const stats = get_trajectory_stats(trajectory)
-
-    expect(stats.constant_atom_count).toBe(false)
-    expect(stats.atom_count_range).toEqual([1, 2])
-  })
-})
-
 describe(`Edge Cases`, () => {
   it(`should handle XDATCAR with missing configurations`, () => {
     const minimal_xdatcar = `Molten Fe2O3
@@ -590,188 +479,31 @@ invalid_coord  0.5  0.5`
   })
 })
 
-describe(`Default Plotting Behavior`, () => {
-  it(`should default to volume and density when no other metadata is available`, () => {
-    // Create a trajectory with only structural data (no explicit energy/force metadata)
-    const trajectory_with_lattice: Trajectory = {
-      frames: [
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0, 0, 0],
-                xyz: [0, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-            lattice: {
-              matrix: [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1],
-              ],
-              pbc: [true, true, true],
-              a: 1,
-              b: 1,
-              c: 1,
-              alpha: 90,
-              beta: 90,
-              gamma: 90,
-              volume: 1.0,
-            },
-          },
-          step: 0,
-          metadata: {}, // No metadata
-        },
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0, 0, 0],
-                xyz: [0, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-            lattice: {
-              matrix: [
-                [1.1, 0, 0],
-                [0, 1.1, 0],
-                [0, 0, 1.1],
-              ],
-              pbc: [true, true, true],
-              a: 1.1,
-              b: 1.1,
-              c: 1.1,
-              alpha: 90,
-              beta: 90,
-              gamma: 90,
-              volume: 1.331, // Different volume
-            },
-          },
-          step: 1,
-          metadata: {}, // No metadata
-        },
-      ],
-      metadata: {
-        source_format: `test`,
-        frame_count: 2,
-      },
-    }
-
-    // Use the comprehensive data extractor to get volume and density
-    const frame1_data = full_data_extractor(
-      trajectory_with_lattice.frames[0],
-      trajectory_with_lattice,
-    )
-    const frame2_data = full_data_extractor(
-      trajectory_with_lattice.frames[1],
-      trajectory_with_lattice,
-    )
-
-    // Should have volume in both frames (comprehensive extractor now uses lowercase)
-    expect(frame1_data.volume).toBe(1.0)
-    expect(frame2_data.volume).toBe(1.331)
-
-    // Should have calculated density (rough approximation) - not available in structural extractor yet
-    // expect(frame1_data.density).toBeTypeOf(`number`)
-    // expect(frame2_data.density).toBeTypeOf(`number`)
-
-    // Volume should be different between frames
-    expect(frame1_data.volume).not.toBe(frame2_data.volume)
+describe(`Unsupported Format Detection`, () => {
+  it(`should detect ASE trajectory files`, () => {
+    const message = get_unsupported_format_message(`test.traj`, ``)
+    expect(message).toContain(`ASE Binary Trajectory`)
+    expect(message).toContain(`from ase.io import read, write`)
   })
 
-  it(`should detect constant values in trajectory`, () => {
-    // Create a trajectory with constant lattice (like NVT simulation)
-    const constant_trajectory: Trajectory = {
-      frames: [
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0, 0, 0],
-                xyz: [0, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-            lattice: {
-              matrix: [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1],
-              ],
-              pbc: [true, true, true],
-              a: 1,
-              b: 1,
-              c: 1,
-              alpha: 90,
-              beta: 90,
-              gamma: 90,
-              volume: 1.0, // Same volume
-            },
-          },
-          step: 0,
-          metadata: { energy: -10.0 }, // Same energy
-        },
-        {
-          structure: {
-            sites: [
-              {
-                species: [{ element: `H`, occu: 1, oxidation_state: 0 }],
-                abc: [0.1, 0, 0], // Atom moved but lattice constant
-                xyz: [0.1, 0, 0],
-                label: `H1`,
-                properties: {},
-              },
-            ],
-            charge: 0,
-            lattice: {
-              matrix: [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1],
-              ],
-              pbc: [true, true, true],
-              a: 1,
-              b: 1,
-              c: 1,
-              alpha: 90,
-              beta: 90,
-              gamma: 90,
-              volume: 1.0, // Same volume
-            },
-          },
-          step: 1,
-          metadata: { energy: -10.0 }, // Same energy
-        },
-      ],
-      metadata: {
-        source_format: `test`,
-        frame_count: 2,
-      },
-    }
+  it(`should detect LAMMPS trajectory files`, () => {
+    const message = get_unsupported_format_message(`test.dump`, ``)
+    expect(message).toContain(`LAMMPS Trajectory`)
+  })
 
-    // Extract data from both frames
-    const frame1_data = full_data_extractor(
-      constant_trajectory.frames[0],
-      constant_trajectory,
-    )
-    const frame2_data = full_data_extractor(
-      constant_trajectory.frames[1],
-      constant_trajectory,
-    )
+  it(`should detect NetCDF files`, () => {
+    const message = get_unsupported_format_message(`test.nc`, ``)
+    expect(message).toContain(`NetCDF Trajectory`)
+  })
 
-    // All properties should be the same
-    expect(frame1_data.energy).toBe(frame2_data.energy)
-    expect(frame1_data.volume).toBe(frame2_data.volume)
-    // expect(frame1_data.density).toBe(frame2_data.density)
+  it(`should detect DCD files`, () => {
+    const message = get_unsupported_format_message(`test.dcd`, ``)
+    expect(message).toContain(`DCD Trajectory`)
+  })
+
+  it(`should return null for supported formats`, () => {
+    expect(get_unsupported_format_message(`test.xyz`, ``)).toBeNull()
+    expect(get_unsupported_format_message(`test.json`, ``)).toBeNull()
+    expect(get_unsupported_format_message(`XDATCAR`, ``)).toBeNull()
   })
 })

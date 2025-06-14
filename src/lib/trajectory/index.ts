@@ -61,7 +61,6 @@ export function get_trajectory_stats(
     const last_frame = trajectory.frames[trajectory.frames.length - 1]
 
     stats.step_range = [first_frame.step, last_frame.step]
-    stats.total_atoms = first_frame.structure.sites.length
 
     // Check if all frames have the same number of atoms
     const atom_counts = trajectory.frames.map((f) => f.structure.sites.length)
@@ -70,7 +69,9 @@ export function get_trajectory_stats(
     )
     stats.constant_atom_count = constant_atoms
 
-    if (!constant_atoms) {
+    if (constant_atoms) {
+      stats.total_atoms = first_frame.structure.sites.length
+    } else {
       stats.atom_count_range = [
         Math.min(...atom_counts),
         Math.max(...atom_counts),
