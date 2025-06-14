@@ -6,52 +6,16 @@
   import { ScatterPlot } from '$lib/plot'
   import type { ComponentProps, Snippet } from 'svelte'
   import { untrack } from 'svelte'
-  import type { Trajectory, TrajectoryDataExtractor, TrajectoryFrame } from '.'
+  import type { Trajectory, TrajectoryDataExtractor } from '.'
   import { TrajectoryError } from '.'
+  import { full_data_extractor } from './extract'
   import {
     data_url_to_array_buffer,
     get_unsupported_format_message,
+    load_trajectory_from_url,
     parse_trajectory_data,
   } from './parse'
-
-  // Utility function to load trajectory from URL with automatic format detection
-  async function load_trajectory_from_url(url: string): Promise<Trajectory> {
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch trajectory file: ${response.status}`)
-    }
-
-    // Check response headers to determine if decompression is needed
-    const content_encoding = response.headers.get(`content-encoding`)
-    const content_type = response.headers.get(`content-type`)
-
-    let filename = url.split(`/`).pop() || `trajectory`
-
-    // If server sends gzip content-encoding, the browser auto-decompresses
-    // If content-type is application/json, it's likely already decompressed
-    if (content_encoding === `gzip` || content_type?.includes(`json`)) {
-      // Server already decompressed the content, use it directly
-      const content = await response.text()
-      // Remove .gz extension from filename if it exists
-      filename = filename.replace(/\.gz$/, ``)
-      return await parse_trajectory_data(content, filename)
-    } else if (
-      filename.toLowerCase().endsWith(`.h5`) ||
-      filename.toLowerCase().endsWith(`.hdf5`)
-    ) {
-      // Handle HDF5 files as binary
-      const buffer = await response.arrayBuffer()
-      return await parse_trajectory_data(buffer, filename)
-    } else {
-      // Manual decompression needed (for cases where server sends raw gzip)
-      const blob = await response.blob()
-      const file = new File([blob], filename, {
-        type: response.headers.get(`content-type`) || `application/octet-stream`,
-      })
-      const result = await decompress_file(file)
-      return await parse_trajectory_data(result.content, result.filename)
-    }
-  }
+  import { generate_plot_series, should_hide_plot } from './plotting'
 
   interface Props {
     // trajectory data - can be provided directly or loaded from file
@@ -115,7 +79,7 @@
     trajectory = $bindable(undefined),
     trajectory_url,
     current_step_idx = $bindable(0),
-    data_extractor = default_data_extractor,
+    data_extractor = full_data_extractor,
     allow_file_drop = true,
     on_file_drop = handle_trajectory_file_drop,
     layout = `horizontal`,
@@ -147,82 +111,6 @@
   let is_playing = $state(false)
   let frame_rate_fps = $state(1) // default 1 frame per second
   let play_interval: ReturnType<typeof setInterval> | undefined = $state(undefined)
-
-  // Default data extractor - extracts common trajectory properties
-  function default_data_extractor(frame: TrajectoryFrame): Record<string, number> {
-    const data: Record<string, number> = {
-      Step: frame.step,
-    }
-
-    // Try to extract common properties from metadata
-    if (frame.metadata) {
-      // Map common property name variations to standardized names
-      const property_mappings = {
-        // Energy properties
-        E: `energy`,
-        energy: `energy`,
-        total_energy: `energy`,
-        energy_per_atom: `energy_per_atom`,
-
-        // Force properties
-        force_max: `force_max`,
-        force_norm: `force_norm`,
-        max_force: `force_max`,
-
-        // Stress properties
-        stress_max: `stress_max`,
-        max_stress: `stress_max`,
-
-        // Volume properties (normalize all to lowercase)
-        Vol: `volume`,
-        volume: `volume`,
-        Volume: `volume`,
-
-        // Other properties
-        density: `density`,
-        temperature: `temperature`,
-        pressure: `pressure`,
-      }
-
-      // Extract properties using the mapping
-      for (const [original_key, normalized_key] of Object.entries(property_mappings)) {
-        if (
-          original_key in frame.metadata &&
-          typeof frame.metadata[original_key] === `number`
-        ) {
-          data[normalized_key] = frame.metadata[original_key] as number
-        }
-      }
-
-      // Also check for any remaining properties that might match our units directly
-      for (const [key, value] of Object.entries(frame.metadata)) {
-        if (typeof value === `number` && !data[key] && units[key.toLowerCase()]) {
-          data[key.toLowerCase()] = value
-        }
-      }
-    }
-
-    // Extract structural properties - always use lowercase for consistency
-    if (`lattice` in frame.structure && frame.structure.lattice) {
-      const lattice = frame.structure.lattice
-      data[`volume`] = lattice.volume // Use lowercase to match units mapping
-
-      // Calculate density if we can estimate the mass
-      // Simple approximation: number of atoms * average atomic mass / volume
-      const num_atoms = frame.structure.sites.length
-      if (num_atoms > 0) {
-        // Rough estimate: average atomic mass ~ 20 amu for typical materials
-        // Convert to g/cm³: (num_atoms * 20 amu) / (volume Å³) * conversion factor
-        // 1 amu = 1.66054e-24 g, 1 Å³ = 1e-24 cm³
-        const avg_mass_amu = 20 // rough average
-        const mass_g = num_atoms * avg_mass_amu * 1.66054e-24
-        const volume_cm3 = lattice.volume * 1e-24
-        data[`density`] = mass_g / volume_cm3
-      }
-    }
-
-    return data
-  }
 
   // Current frame structure for display
   let current_structure = $derived(
@@ -273,231 +161,37 @@
     return []
   })
 
-  // Helper function to get label with unit - moved outside so it can be reused
-  function get_label_with_unit(key: string): string {
-    // First check if we have an explicit label mapping
-    if (property_labels?.[key]) {
-      return property_labels[key]
-    }
-
-    // Fallback to old units approach for backward compatibility
-    const lower_key = key.toLowerCase()
-    const unit = units[lower_key] || units[key] || ``
-
-    // Special formatting for force properties
-    if (lower_key === `force_max` || key === `Force Max`) {
-      return unit ? `F<sub>max</sub> (${unit})` : `F<sub>max</sub>`
-    }
-    if (lower_key === `force_norm` || key === `Force RMS`) {
-      return unit ? `F<sub>norm</sub> (${unit})` : `F<sub>norm</sub>`
-    }
-    if (lower_key === `stress_max`) {
-      return unit ? `σ<sub>max</sub> (${unit})` : `σ<sub>max</sub>`
-    }
-    if (lower_key === `temperature`) {
-      return unit ? `Temp (${unit})` : `Temp`
-    }
-
-    // Capitalize the key name for all other properties
-    const capitalized_key = key.charAt(0).toUpperCase() + key.slice(1)
-    return unit ? `${capitalized_key} (${unit})` : capitalized_key
-  }
-
-  // Generate plot data from trajectory
-
+  // Generate plot data using extracted plotting utilities
   let plot_series = $derived.by((): DataSeries[] => {
-    if (!trajectory || trajectory.frames.length === 0) return []
+    if (!trajectory) return []
 
-    // Extract data from all frames
-    const all_extracted_data = trajectory.frames.map((frame) =>
-      data_extractor(frame, trajectory!),
-    )
-
-    if (all_extracted_data.length === 0) return []
-
-    // Get all unique keys from extracted data
-    const all_keys = new Set<string>()
-    for (const data of all_extracted_data) {
-      Object.keys(data).forEach((key) => all_keys.add(key))
-    }
-
-    // Define colors for series
-    const colors = [
-      `#63b3ed`,
-      `#68d391`,
-      `#fbd38d`,
-      `#fc8181`,
-      `#d6bcfa`,
-      `#4fd1c7`,
-      `#f687b3`,
-      `#fed7d7`,
-      `#bee3f8`,
-      `#c6f6d5`,
-    ]
-
-    // Group properties by their scale/type to assign to different y-axes
-    const y2_properties = new Set([
-      `force_max`,
-      `force_norm`,
-      `stress_max`,
-      `volume`,
-      `density`,
-      `pressure`,
-      `temperature`,
-    ])
-
-    // Define priority series that should be visible by default
-    const default_visible_properties = new Set([`energy`, `force_max`])
-
-    // Check if lattice parameters are constant (using marker from full_data_extractor)
-    const has_constant_lattice_params = all_extracted_data.some(
-      (data) => data._constant_lattice_params === 1,
-    )
-
-    // Define lattice parameter keys that should be excluded from default visibility if constant
-    const lattice_param_keys = new Set([`a`, `b`, `c`, `alpha`, `beta`, `gamma`])
-
-    // Create a series for each property
-    const series: DataSeries[] = []
-    let color_idx = 0
-    for (const key of all_keys) {
-      // Skip Step for x-axis (we use step index instead)
-      if (key === `Step`) continue
-      // Skip the marker property used for lattice parameter detection
-      if (key === `_constant_lattice_params`) continue
-
-      const x_values: number[] = []
-      const y_values: number[] = []
-
-      for (let idx = 0; idx < all_extracted_data.length; idx++) {
-        const data = all_extracted_data[idx]
-        if (key in data && typeof data[key] === `number`) {
-          x_values.push(idx) // step index as x (0-based)
-          y_values.push(data[key])
-        }
-      }
-
-      if (x_values.length > 0) {
-        const color = colors[color_idx % colors.length]
-        const lower_key = key.toLowerCase()
-
-        // Determine which y-axis to use based on property type
-        const y_axis: `y1` | `y2` =
-          y2_properties.has(lower_key) || y2_properties.has(key) ? `y2` : `y1`
-
-        // Determine default visibility
-        let is_default_visible =
-          default_visible_properties.has(lower_key) || default_visible_properties.has(key)
-
-        // If lattice parameters are constant, don't show them by default
-        if (has_constant_lattice_params && lattice_param_keys.has(lower_key)) {
-          is_default_visible = false
-        }
-
-        series.push({
-          x: x_values,
-          y: y_values,
-          label: get_label_with_unit(key), // Use label with unit
-          y_axis, // Assign to appropriate y-axis
-          visible: is_default_visible, // Set default visibility
-          markers: x_values.length < 30 ? `line+points` : `line`,
-          metadata: x_values.map(() => ({ series_label: get_label_with_unit(key) })), // Add series label to metadata for tooltip
-          line_style: {
-            stroke: color,
-            stroke_width: 2,
-          },
-          point_style: {
-            fill: color,
-            radius: 4,
-            stroke: color,
-            stroke_width: 1,
-          },
-        })
-        color_idx++
+    // Filter out undefined values from units
+    const filtered_units: Record<string, string> = {}
+    for (const [key, value] of Object.entries(units)) {
+      if (value !== undefined) {
+        filtered_units[key] = value
       }
     }
 
-    // If no priority properties are visible, make volume and density visible by default
-    const has_visible_priority_properties = series.some(
-      (s) =>
-        s.visible &&
-        ![`volume`, `density`].some((prop) =>
-          s.label?.toLowerCase().includes(prop.toLowerCase()),
-        ),
-    )
-
-    if (!has_visible_priority_properties) {
-      for (const s of series) {
-        const label_lower = s.label?.toLowerCase() || ``
-        if (label_lower.includes(`volume`) || label_lower.includes(`density`)) {
-          s.visible = true
-        }
-      }
-    }
-
-    // Sort by visible series so they appear first in legend
-    series.sort((s1, s2) => {
-      // If a is visible and b is not, a should come first (negative)
-      if (s1.visible === true && s2.visible !== true) return -1
-      // If b is visible and a is not, b should come first (positive)
-      if (s2.visible === true && s1.visible !== true) return 1
-      // Otherwise maintain original order
-      return 0
+    return generate_plot_series(trajectory, data_extractor, {
+      property_labels,
+      units: filtered_units,
     })
-
-    return series
   })
 
-  // Check if all plotted values are constant (no variation)
-  let should_hide_plot = $derived.by(() => {
-    if (!trajectory || trajectory.frames.length <= 1) return false
+  // Check if all plotted values are constant (no variation) using extracted utility
+  let show_plot = $derived(!should_hide_plot(trajectory, plot_series))
 
-    // If there are no series to plot, hide the plot
-    if (plot_series.length === 0) return true
-
-    // Get all visible series, and if none are visible, check fallback properties
-    let visible_series = plot_series.filter((s) => s.visible)
-
-    // If no explicit properties are visible, fall back to volume and density if they exist
-    if (visible_series.length === 0) {
-      const fallback_properties = [`volume`, `density`]
-      visible_series = plot_series.filter((s) =>
-        fallback_properties.some((prop) =>
-          s.label?.toLowerCase().includes(prop.toLowerCase()),
-        ),
-      )
-    }
-
-    if (visible_series.length === 0) return true
-
-    const tolerance = 1e-10
-    for (const series of visible_series) {
-      if (series.y.length <= 1) continue
-
-      const first_value = series.y[0]
-      const has_variation = series.y.some(
-        (value) => Math.abs(value - first_value) > tolerance,
-      )
-
-      if (has_variation) {
-        return false // Found variation, don't hide plot
-      }
-    }
-
-    return true // All series are constant, hide plot
-  })
-
-  // Generate dynamic y-axis labels based on available data
-  let dynamic_y_labels = $derived.by(() => {
+  // Generate intelligent axis labels based on first series on each axis
+  let y_axis_labels = $derived.by(() => {
     if (plot_series.length === 0) return { y1: `Value`, y2: `Value` }
 
     const y1_series = plot_series.filter((s) => (s.y_axis ?? `y1`) === `y1`)
     const y2_series = plot_series.filter((s) => s.y_axis === `y2`)
 
-    const get_axis_label = (series: typeof plot_series): string => {
+    const get_axis_label = (series: DataSeries[]): string => {
       if (series.length === 0) return `Value`
-
-      // Just use the first series label as the axis label
+      // Use the first series label as the axis label
       const first_series = series[0]
       return first_series?.label || `Value`
     }
@@ -666,12 +360,12 @@
       error_message = null
 
       load_trajectory_from_url(trajectory_url)
-        .then((loaded_trajectory) => {
+        .then((loaded_trajectory: Trajectory) => {
           trajectory = loaded_trajectory
           current_step_idx = 0
           loading = false
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           console.error(`Failed to load trajectory from URL:`, err)
           error_message = `Failed to load trajectory: ${err.message}`
           loading = false
@@ -902,7 +596,7 @@
       </div>
     {/if}
 
-    <div class="content-area" class:hide-plot={should_hide_plot}>
+    <div class="content-area" class:hide-plot={!show_plot}>
       <Structure
         structure={current_structure}
         allow_file_drop={false}
@@ -910,13 +604,13 @@
         {...structure_props}
       />
 
-      {#if !should_hide_plot}
+      {#if show_plot}
         <ScatterPlot
           series={plot_series}
           x_label="Step"
-          y_label={dynamic_y_labels.y1}
+          y_label={y_axis_labels.y1}
           y_label_shift={{ y: 20 }}
-          y2_label={dynamic_y_labels.y2}
+          y2_label={y_axis_labels.y2}
           current_x_value={current_step_idx}
           change={handle_plot_change}
           markers="line"

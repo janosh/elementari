@@ -202,3 +202,35 @@ export const trajectory_labels: Record<string, string> = {
   pressure: `Pressure (GPa)`,
   stress_max: `σ<sub>max</sub> (GPa)`,
 }
+
+// Helper function to get property label with unit for trajectory plotting
+export function get_label_with_unit(
+  key: string,
+  property_labels?: Record<string, string>,
+  units?: Record<string, string>,
+): string {
+  // First check if we have an explicit label mapping
+  if (property_labels?.[key]) {
+    return property_labels[key]
+  }
+
+  // Fallback to old units approach for backward compatibility
+  const lower_key = key.toLowerCase()
+  const unit = units?.[lower_key] || units?.[key] || ``
+
+  // Special formatting for force properties
+  if (lower_key === `force_max` || key === `Force Max`)
+    return unit ? `F<sub>max</sub> (${unit})` : `F<sub>max</sub>`
+
+  if (lower_key === `force_norm` || key === `Force RMS`)
+    return unit ? `F<sub>norm</sub> (${unit})` : `F<sub>norm</sub>`
+
+  if (lower_key === `stress_max`)
+    return unit ? `σ<sub>max</sub> (${unit})` : `σ<sub>max</sub>`
+
+  if (lower_key === `temperature`) return unit ? `Temp (${unit})` : `Temp`
+
+  // Capitalize the key name for all other properties
+  const capitalized_key = key.charAt(0).toUpperCase() + key.slice(1)
+  return unit ? `${capitalized_key} (${unit})` : capitalized_key
+}

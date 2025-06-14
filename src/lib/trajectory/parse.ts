@@ -23,6 +23,47 @@ export function data_url_to_array_buffer(data_url: string): ArrayBuffer {
   return bytes.buffer
 }
 
+// Utility function to load trajectory from URL with automatic format detection
+export async function load_trajectory_from_url(
+  url: string,
+): Promise<Trajectory> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch trajectory file: ${response.status}`)
+  }
+
+  // Check response headers to determine if decompression is needed
+  const content_encoding = response.headers.get(`content-encoding`)
+  const content_type = response.headers.get(`content-type`)
+
+  let filename = url.split(`/`).pop() || `trajectory`
+
+  // If server sends gzip content-encoding, the browser auto-decompresses
+  // If content-type is application/json, it's likely already decompressed
+  if (content_encoding === `gzip` || content_type?.includes(`json`)) {
+    // Server already decompressed the content, use it directly
+    const content = await response.text()
+    // Remove .gz extension from filename if it exists
+    filename = filename.replace(/\.gz$/, ``)
+    return await parse_trajectory_data(content, filename)
+  } else if (
+    [`h5`, `hdf5`].includes(filename.toLowerCase().split(`.`).pop() || ``)
+  ) {
+    // Handle HDF5 files as binary
+    const buffer = await response.arrayBuffer()
+    return await parse_trajectory_data(buffer, filename)
+  } else {
+    // Manual decompression needed (for cases where server sends raw gzip)
+    const { decompress_file } = await import(`$lib/io/decompress`)
+    const blob = await response.blob()
+    const file = new File([blob], filename, {
+      type: response.headers.get(`content-type`) || `application/octet-stream`,
+    })
+    const result = await decompress_file(file)
+    return await parse_trajectory_data(result.content, result.filename)
+  }
+}
+
 // Atomic number to element symbol mapping
 const ATOMIC_NUMBER_TO_SYMBOL: Record<number, ElementSymbol> = {
   1: `H`,
