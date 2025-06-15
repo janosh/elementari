@@ -2,7 +2,7 @@ import type { FileInfo } from '$site'
 import { FileCarousel } from '$site'
 import { mount } from 'svelte'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { doc_query } from '.'
+import { doc_query } from './index'
 
 describe(`FileCarousel`, () => {
   // Mock file data for testing

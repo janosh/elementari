@@ -1182,7 +1182,7 @@ This example demonstrates how the color bar automatically positions itself in on
           min="0"
           max="100"
           value={density[quadrant]}
-          onchange={(evt) => (density[quadrant] = evt.target.value)}
+          onchange={(evt) => (density[quadrant] = Number(evt.target.value))}
           style="width: 100px; margin-left: 0.5em"
         />
       </label>

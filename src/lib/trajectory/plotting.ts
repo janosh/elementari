@@ -3,7 +3,7 @@ import { plot_colors } from '$lib/colors'
 import { get_label_with_unit } from '$lib/labels'
 import type { DataSeries } from '$lib/plot'
 import { lattice_param_keys } from '$lib/structure'
-import type { Trajectory, TrajectoryDataExtractor } from '.'
+import type { Trajectory, TrajectoryDataExtractor } from './index'
 
 // Properties that should be assigned to the secondary y-axis
 export const Y2_PROPERTIES = new Set([

@@ -8,7 +8,7 @@ import {
   heatmap_labels,
 } from '$lib/labels'
 import { expect, type Page, test } from '@playwright/test'
-import { random_sample } from '.'
+import { random_sample } from './index'
 
 test.describe(`Periodic Table`, () => {
   // SKIPPED: Server-side rendering error prevents page load

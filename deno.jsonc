@@ -25,18 +25,16 @@
         "ban-unused-ignore",
         "default-param-last",
         "eqeqeq",
-        "explicit-function-return-type",
         "guard-for-in",
         "jsx-key",
         "jsx-no-duplicate-props",
         "jsx-no-useless-fragment",
         "no-async-promise-executor",
         "no-await-in-loop",
-        "no-boolean-literal-for-arguments",
+        // "no-boolean-literal-for-arguments", // TODO only disable this in test files or even just for .toBe(true)
         "no-const-assign",
         "no-eval",
         "no-explicit-any",
-        "no-inferrable-types",
         "no-non-null-asserted-optional-chain",
         "no-non-null-assertion",
         "no-self-compare",
@@ -45,19 +43,11 @@
         "no-throw-literal",
         "no-unused-vars",
         "no-useless-rename",
-        "prefer-ascii",
         "prefer-const",
         "require-await",
         "single-var-declarator"
       ],
-      "exclude": [
-        "prefer-ascii",
-        "explicit-function-return-type",
-        // TODO: ideally only exclude this in test files or even just for .toBe(true)
-        "no-boolean-literal-for-arguments",
-        "no-sloppy-imports",
-        "no-inferrable-types"
-      ]
+      "exclude": ["no-sloppy-imports"]
     }
   },
   "fmt": {

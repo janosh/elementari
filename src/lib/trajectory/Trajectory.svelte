@@ -7,14 +7,14 @@
   import type { ComponentProps, Snippet } from 'svelte'
   import { untrack } from 'svelte'
   import { titles_as_tooltips } from 'svelte-zoo'
-  import type { Trajectory, TrajectoryDataExtractor } from '.'
-  import { TrajectoryError } from '.'
   import { full_data_extractor } from './extract'
+  import type { Trajectory, TrajectoryDataExtractor } from './index'
+  import { TrajectoryError } from './index'
   import {
-    data_url_to_array_buffer,
-    get_unsupported_format_message,
-    load_trajectory_from_url,
-    parse_trajectory_data,
+      data_url_to_array_buffer,
+      get_unsupported_format_message,
+      load_trajectory_from_url,
+      parse_trajectory_data,
   } from './parse'
   import { generate_plot_series, should_hide_plot } from './plotting'
 

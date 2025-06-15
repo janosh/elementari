@@ -84,7 +84,12 @@
     },
     {
       title: `Ordering`,
-      value: { NM: `non-magnetic` }[material.ordering] ?? `unknown`,
+      value: ({
+        NM: `non-magnetic`,
+        FM: `ferromagnetic`,
+        FiM: `ferrimagnetic`,
+        AFM: `antiferromagnetic`,
+      } as Record<string, string>)[material.ordering] ?? `unknown`,
     },
     {
       title: `Possible oxidation states`,

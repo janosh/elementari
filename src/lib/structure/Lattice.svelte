@@ -10,7 +10,7 @@
     Quaternion,
     Vector3,
   } from 'three'
-  import { CELL_DEFAULTS } from '.'
+  import { CELL_DEFAULTS } from './index'
 
   interface Props {
     matrix?: [Vector, Vector, Vector] | undefined

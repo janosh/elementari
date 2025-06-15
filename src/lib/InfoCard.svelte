@@ -50,7 +50,7 @@
       ![undefined, null].includes(itm.value)
     ) as
     { title, value, unit, fmt = default_fmt, tooltip }
-    ([title, value, unit, fmt])
+    (title + value + unit + fmt)
   }
     <div>
       <span class="title" {title}>
