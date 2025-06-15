@@ -75,7 +75,7 @@
     // Calculate rotation to align cylinder with the line
     const quaternion = new Quaternion().setFromUnitVectors(
       new Vector3(0, 1, 0), // cylinder default orientation
-      direction.normalize(),
+      direction.normalize(), // TODO guard against zero-length direction vector
     )
     const euler = new Euler().setFromQuaternion(quaternion)
 

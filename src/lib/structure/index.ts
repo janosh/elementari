@@ -95,9 +95,7 @@ export function get_elem_amounts(structure: AnyStructure) {
   for (const site of structure.sites) {
     for (const species of site.species) {
       const { element: elem, occu } = species
-      // deno-lint-ignore no-non-null-assertion
-      if (elem in elements) elements[elem]! += occu
-      else elements[elem] = occu
+      elements[elem] = (elements[elem] ?? 0) + occu
     }
   }
   return elements
