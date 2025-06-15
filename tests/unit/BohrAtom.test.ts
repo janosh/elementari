@@ -12,7 +12,7 @@ describe(`BohrAtom`, () => {
     [`O`, `Oxygen`, [2, 6]],
   ])(
     `renders with custom styles and properties`,
-    async (symbol, name, shells) => {
+    (symbol, name, shells) => {
       mount(BohrAtom, {
         target: document.body,
         props: {
