@@ -130,13 +130,16 @@
       </T.Mesh>
     {/if}
 
+    <!-- NOTE below is an untested fix for the lattice vectors being much too small when deployed even though they look correct in local dev -->
+
     {#if show_vectors}
       <T.Group position={vector_origin}>
         {#each matrix as vec, idx (vec)}
-          {@const shaft_end = scale(vec, 0.9) as Vector}
-          <!-- Shaft goes to 90% of vector length -->
-          {@const tip_position = scale(vec, 0.9) as Vector}
-          <!-- Tip positioned at 90% of vector length -->
+          {@const vector_length = Math.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)}
+          {@const shaft_length = vector_length * 0.85}
+          <!-- Shaft goes to 85% of vector length -->
+          {@const tip_start_position = scale(vec, 0.85) as Vector}
+          <!-- Calculate rotation to align with vector direction -->
           {@const quaternion = new Quaternion().setFromUnitVectors(
       new Vector3(0, 1, 0), // Default up direction for cylinder/cone
       new Vector3(...vec).normalize(),
@@ -146,25 +149,17 @@
       .toArray()
       .slice(0, 3) as Vector}
 
-          <!-- arrow shaft -->
-          {@const shaft_direction = new Vector3(...shaft_end)}
-          {@const shaft_length = shaft_direction.length()}
-          {@const shaft_midpoint = scale(shaft_end, 0.5) as Vector}
-          {@const shaft_quaternion = new Quaternion().setFromUnitVectors(
-      new Vector3(0, 1, 0),
-      shaft_direction.normalize(),
-    )}
-          {@const shaft_rotation = new Euler()
-      .setFromQuaternion(shaft_quaternion)
-      .toArray()}
-          <T.Mesh position={shaft_midpoint} rotation={shaft_rotation}>
+          <!-- Arrow shaft - position at center of shaft length -->
+          {@const shaft_center = scale(vec, 0.425) as Vector}
+          <!-- Center at 42.5% = half of 85% -->
+          <T.Mesh position={shaft_center} {rotation}>
             <T.CylinderGeometry args={[0.05, 0.05, shaft_length, 16]} />
             <T.MeshStandardMaterial color={vector_colors[idx]} />
           </T.Mesh>
 
-          <!-- arrow tip -->
-          <T.Mesh position={tip_position} {rotation}>
-            <T.ConeGeometry args={[0.15, 0.3, 32]} />
+          <!-- Arrow tip -->
+          <T.Mesh position={tip_start_position} {rotation}>
+            <T.ConeGeometry args={[0.15, vector_length * 0.15, 16]} />
             <T.MeshStandardMaterial color={vector_colors[idx]} />
           </T.Mesh>
         {/each}

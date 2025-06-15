@@ -727,6 +727,7 @@
         structure={current_structure}
         allow_file_drop={false}
         style="height: 100%; border-radius: 0;"
+        enable_tips={false}
         {...structure_props}
       />
 
