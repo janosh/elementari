@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import type { AnyStructure, Lattice } from '$lib'
-  import { get_elem_amounts, get_pbc_image_sites } from '$lib'
+  import { get_elem_amounts, get_pbc_image_sites, Icon } from '$lib'
   import { element_color_schemes } from '$lib/colors'
   import { decompress_file } from '$lib/io/decompress'
   import * as exports from '$lib/io/export'
@@ -56,7 +56,7 @@
     show_image_atoms?: boolean
     show_full_controls?: boolean
     tips_icon?: Snippet<[]>
-    fullscreen_toggle?: Snippet<[]>
+    fullscreen_toggle?: Snippet<[]> | boolean
     controls_toggle?: Snippet<[{ controls_open: boolean }]>
     bottom_left?: Snippet<[{ structure: AnyStructure }]>
     // Generic callback for when files are dropped - receives raw content and filename
@@ -101,7 +101,7 @@
     show_image_atoms = $bindable(true),
     show_full_controls = $bindable(false),
     tips_icon,
-    fullscreen_toggle,
+    fullscreen_toggle = true,
     controls_toggle,
     bottom_left,
     on_file_drop,
@@ -299,13 +299,12 @@
       {#if camera_has_moved}
         <button class="reset-camera" onclick={reset_camera} title={reset_text}>
           <!-- Target/Focus icon for reset camera -->
-          <svg><use href="#icon-reset" /></svg>
+          <Icon icon="Reset" />
         </button>
       {/if}
       {#if enable_tips}
         <button class="info-icon" onclick={() => tips_modal?.showModal()}>
-          {#if tips_icon}{@render tips_icon()}{:else}<svg><use href="#icon-info" /></svg
-            >{/if}
+          {#if tips_icon}{@render tips_icon()}{:else}<Icon icon="Info" />{/if}
         </button>
       {/if}
       <button
@@ -313,8 +312,10 @@
         class="fullscreen-toggle"
         title="Toggle fullscreen"
       >
-        {#if fullscreen_toggle}{@render fullscreen_toggle()}{:else}
-          <svg style="transform: scale(0.9);"><use href="#icon-fullscreen" /></svg>
+        {#if typeof fullscreen_toggle === `function`}
+          {@render fullscreen_toggle()}
+        {:else if fullscreen_toggle}
+          <Icon icon="Fullscreen" style="transform: scale(0.9);" />
         {/if}
       </button>
       <button
@@ -326,9 +327,9 @@
         {#if controls_toggle}{@render controls_toggle({
             controls_open,
           })}{:else if controls_open}
-          <svg><use href="#icon-x" /></svg>
+          <Icon icon="Close" />
         {:else}
-          <svg><use href="#icon-settings" /></svg>
+          <Icon icon="Settings" />
         {/if}
       </button>
     </section>
@@ -421,7 +422,10 @@
         <input type="checkbox" bind:checked={lattice_props.show_vectors} />
         lattice vectors
       </label>
-      {#each [{ label: `Edge color`, color_prop: `cell_edge_color` as const, opacity_prop: `cell_edge_opacity` as const, step: 0.05 }, { label: `Surface color`, color_prop: `cell_surface_color` as const, opacity_prop: `cell_surface_opacity` as const, step: 0.01 }] as { label, color_prop, opacity_prop, step } (label)}
+      {#each [
+        { label: `Edge color`, color_prop: `cell_edge_color`, opacity_prop: `cell_edge_opacity`, step: 0.05 },
+        { label: `Surface color`, color_prop: `cell_surface_color`, opacity_prop: `cell_surface_opacity`, step: 0.01 },
+      ] as const as { label, color_prop, opacity_prop, step } (label)}
         <div class="control-row">
           <label class="compact">
             {label}
@@ -732,7 +736,6 @@
   button:hover {
     background-color: transparent !important;
   }
-
   section {
     position: absolute;
     display: flex;
@@ -742,16 +745,10 @@
     gap: var(--struct-buttons-gap, 3pt);
     z-index: 2;
   }
-
   section button {
     pointer-events: auto;
+    font-size: 1em;
   }
-  section button svg {
-    pointer-events: none;
-    width: 20px;
-    height: 20px;
-  }
-
   dialog.controls {
     position: absolute;
     left: unset;
@@ -810,7 +807,6 @@
   input::-webkit-inner-spin-button {
     display: none;
   }
-
   dialog.controls[open] {
     visibility: visible;
     opacity: 1;

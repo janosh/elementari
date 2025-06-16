@@ -2,8 +2,62 @@
 import type { AnyStructure, ElementSymbol, Vector } from '$lib'
 import { escape_html, is_binary } from '$lib'
 import { parse_xyz } from '$lib/io/parse'
+import {
+  calc_lattice_params,
+  matrix_inverse_3x3,
+  matrix_vector_multiply,
+} from '$lib/math'
 import * as h5wasm from 'h5wasm'
-import type { Trajectory, TrajectoryFrame } from '.'
+import type { Trajectory, TrajectoryFrame } from './index'
+
+// Cache for matrix inversions to avoid repeated calculations
+const matrix_inversion_cache = new WeakMap<
+  [Vector, Vector, Vector],
+  [Vector, Vector, Vector]
+>()
+
+// Cached matrix inversion for coordinate transformations
+function get_inverse_matrix(matrix: [Vector, Vector, Vector]): [Vector, Vector, Vector] {
+  // Check cache first
+  const cached = matrix_inversion_cache.get(matrix)
+  if (cached) return cached
+
+  // Use the shared matrix_inverse_3x3 function
+  const inverse = matrix_inverse_3x3(matrix)
+
+  // Cache the result
+  matrix_inversion_cache.set(matrix, inverse)
+  return inverse
+}
+
+// Optimized coordinate transformation
+function cartesian_to_fractional(
+  xyz: Vector,
+  inverse_matrix: [Vector, Vector, Vector],
+): Vector {
+  return matrix_vector_multiply(inverse_matrix, xyz)
+}
+
+function fractional_to_cartesian(abc: Vector, matrix: [Vector, Vector, Vector]): Vector {
+  return [
+    abc[0] * matrix[0][0] + abc[1] * matrix[1][0] + abc[2] * matrix[2][0],
+    abc[0] * matrix[0][1] + abc[1] * matrix[1][1] + abc[2] * matrix[2][1],
+    abc[0] * matrix[0][2] + abc[1] * matrix[1][2] + abc[2] * matrix[2][2],
+  ]
+}
+
+// Create complete lattice object from matrix
+function create_lattice_from_matrix(
+  matrix: [Vector, Vector, Vector],
+  pbc: [boolean, boolean, boolean] = [true, true, true],
+) {
+  const params = calc_lattice_params(matrix)
+  return {
+    matrix,
+    ...params,
+    pbc,
+  }
+}
 
 // Helper to convert ArrayBuffer to base64 data URL
 export function array_buffer_to_data_url(buffer: ArrayBuffer): string {
@@ -318,77 +372,19 @@ export async function parse_torch_sim_hdf5(
               [0, 0, 1],
             ] as [Vector, Vector, Vector])
 
-          // Calculate lattice parameters
-          const a = Math.sqrt(
-            lattice_matrix[0][0] ** 2 +
-              lattice_matrix[0][1] ** 2 +
-              lattice_matrix[0][2] ** 2,
-          )
-          const b = Math.sqrt(
-            lattice_matrix[1][0] ** 2 +
-              lattice_matrix[1][1] ** 2 +
-              lattice_matrix[1][2] ** 2,
-          )
-          const c = Math.sqrt(
-            lattice_matrix[2][0] ** 2 +
-              lattice_matrix[2][1] ** 2 +
-              lattice_matrix[2][2] ** 2,
+          // Calculate lattice parameters efficiently
+          const lattice = create_lattice_from_matrix(
+            lattice_matrix,
+            pbc as [boolean, boolean, boolean],
           )
 
-          const volume = Math.abs(
-            lattice_matrix[0][0] *
-                (lattice_matrix[1][1] * lattice_matrix[2][2] -
-                  lattice_matrix[1][2] * lattice_matrix[2][1]) +
-              lattice_matrix[0][1] *
-                (lattice_matrix[1][2] * lattice_matrix[2][0] -
-                  lattice_matrix[1][0] * lattice_matrix[2][2]) +
-              lattice_matrix[0][2] *
-                (lattice_matrix[1][0] * lattice_matrix[2][1] -
-                  lattice_matrix[1][1] * lattice_matrix[2][0]),
-          )
-
-          const alpha = (Math.acos(
-            (lattice_matrix[1][0] * lattice_matrix[2][0] +
-              lattice_matrix[1][1] * lattice_matrix[2][1] +
-              lattice_matrix[1][2] * lattice_matrix[2][2]) /
-              (b * c),
-          ) *
-            180) /
-            Math.PI
-
-          const beta = (Math.acos(
-            (lattice_matrix[0][0] * lattice_matrix[2][0] +
-              lattice_matrix[0][1] * lattice_matrix[2][1] +
-              lattice_matrix[0][2] * lattice_matrix[2][2]) /
-              (a * c),
-          ) *
-            180) /
-            Math.PI
-
-          const gamma = (Math.acos(
-            (lattice_matrix[0][0] * lattice_matrix[1][0] +
-              lattice_matrix[0][1] * lattice_matrix[1][1] +
-              lattice_matrix[0][2] * lattice_matrix[1][2]) /
-              (a * b),
-          ) *
-            180) /
-            Math.PI
+          // Cache inverse matrix for coordinate transformations
+          const inv_matrix = get_inverse_matrix(lattice_matrix)
 
           // Create sites array in the expected format
           const sites = frame_positions.map((xyz_pos, atom_idx) => {
-            // Convert Cartesian coordinates to fractional coordinates
-            const inv_matrix = invert_3x3_matrix(lattice_matrix)
-            const abc: Vector = [
-              xyz_pos[0] * inv_matrix[0][0] +
-              xyz_pos[1] * inv_matrix[0][1] +
-              xyz_pos[2] * inv_matrix[0][2],
-              xyz_pos[0] * inv_matrix[1][0] +
-              xyz_pos[1] * inv_matrix[1][1] +
-              xyz_pos[2] * inv_matrix[1][2],
-              xyz_pos[0] * inv_matrix[2][0] +
-              xyz_pos[1] * inv_matrix[2][1] +
-              xyz_pos[2] * inv_matrix[2][2],
-            ]
+            // Convert Cartesian coordinates to fractional coordinates efficiently
+            const abc = cartesian_to_fractional(xyz_pos as Vector, inv_matrix)
 
             return {
               species: [
@@ -405,18 +401,6 @@ export async function parse_torch_sim_hdf5(
             }
           })
 
-          const lattice = {
-            matrix: lattice_matrix,
-            a,
-            b,
-            c,
-            alpha,
-            beta,
-            gamma,
-            volume,
-            pbc: pbc as [boolean, boolean, boolean],
-          }
-
           const structure: AnyStructure = {
             sites,
             lattice,
@@ -424,7 +408,7 @@ export async function parse_torch_sim_hdf5(
           }
 
           const metadata: Record<string, unknown> = {
-            volume,
+            volume: lattice.volume,
             ...(potential_energies &&
               frame_idx < potential_energies.length && {
               energy: potential_energies[frame_idx],
@@ -485,41 +469,6 @@ export async function parse_torch_sim_hdf5(
   } catch (error) {
     throw new Error(`Failed to parse torch-sim HDF5 file: ${error}`)
   }
-}
-
-// Helper function to invert a 3x3 matrix for coordinate transformation
-function invert_3x3_matrix(
-  matrix: [Vector, Vector, Vector],
-): [Vector, Vector, Vector] {
-  const [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]] = matrix
-
-  const det = a11 * (a22 * a33 - a23 * a32) -
-    a12 * (a21 * a33 - a23 * a31) +
-    a13 * (a21 * a32 - a22 * a31)
-
-  if (Math.abs(det) < 1e-10) {
-    throw new Error(`Matrix is singular and cannot be inverted`)
-  }
-
-  const inv_det = 1.0 / det
-
-  return [
-    [
-      inv_det * (a22 * a33 - a23 * a32),
-      inv_det * (a13 * a32 - a12 * a33),
-      inv_det * (a12 * a23 - a13 * a22),
-    ],
-    [
-      inv_det * (a23 * a31 - a21 * a33),
-      inv_det * (a11 * a33 - a13 * a31),
-      inv_det * (a13 * a21 - a11 * a23),
-    ],
-    [
-      inv_det * (a21 * a32 - a22 * a31),
-      inv_det * (a12 * a31 - a11 * a32),
-      inv_det * (a11 * a22 - a12 * a21),
-    ],
-  ]
 }
 
 // Check if a file is a torch-sim HDF5 trajectory
@@ -591,51 +540,8 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
     lattice_vectors[i] = coords.map((x) => x * scale_factor) as Vector
   }
 
-  // Calculate lattice parameters
-  const a_vec = lattice_vectors[0]
-  const b_vec = lattice_vectors[1]
-  const c_vec = lattice_vectors[2]
-
-  const a = Math.sqrt(a_vec[0] ** 2 + a_vec[1] ** 2 + a_vec[2] ** 2)
-  const b = Math.sqrt(b_vec[0] ** 2 + b_vec[1] ** 2 + b_vec[2] ** 2)
-  const c = Math.sqrt(c_vec[0] ** 2 + c_vec[1] ** 2 + c_vec[2] ** 2)
-
-  const volume = Math.abs(
-    a_vec[0] * (b_vec[1] * c_vec[2] - b_vec[2] * c_vec[1]) +
-      a_vec[1] * (b_vec[2] * c_vec[0] - b_vec[0] * c_vec[2]) +
-      a_vec[2] * (b_vec[0] * c_vec[1] - b_vec[1] * c_vec[0]),
-  )
-
-  const alpha = (Math.acos(
-    (b_vec[0] * c_vec[0] + b_vec[1] * c_vec[1] + b_vec[2] * c_vec[2]) /
-      (b * c),
-  ) *
-    180) /
-    Math.PI
-  const beta = (Math.acos(
-    (a_vec[0] * c_vec[0] + a_vec[1] * c_vec[1] + a_vec[2] * c_vec[2]) /
-      (a * c),
-  ) *
-    180) /
-    Math.PI
-  const gamma = (Math.acos(
-    (a_vec[0] * b_vec[0] + a_vec[1] * b_vec[1] + a_vec[2] * b_vec[2]) /
-      (a * b),
-  ) *
-    180) /
-    Math.PI
-
-  const lattice = {
-    matrix: lattice_vectors,
-    a,
-    b,
-    c,
-    alpha,
-    beta,
-    gamma,
-    volume,
-    pbc: [true, true, true] as [boolean, boolean, boolean],
-  }
+  // Calculate lattice parameters efficiently
+  const lattice = create_lattice_from_matrix(lattice_vectors)
 
   // Parse element names and counts
   const element_line = lines[line_idx++].trim().split(/\s+/)
@@ -700,18 +606,8 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
 
       const abc: Vector = [coords[0], coords[1], coords[2]]
 
-      // Convert fractional to Cartesian coordinates
-      const xyz: Vector = [
-        abc[0] * lattice_vectors[0][0] +
-        abc[1] * lattice_vectors[1][0] +
-        abc[2] * lattice_vectors[2][0],
-        abc[0] * lattice_vectors[0][1] +
-        abc[1] * lattice_vectors[1][1] +
-        abc[2] * lattice_vectors[2][1],
-        abc[0] * lattice_vectors[0][2] +
-        abc[1] * lattice_vectors[1][2] +
-        abc[2] * lattice_vectors[2][2],
-      ]
+      // Convert fractional to Cartesian coordinates efficiently
+      const xyz = fractional_to_cartesian(abc, lattice_vectors)
 
       sites.push({
         species: [{ element, occu: 1, oxidation_state: 0 }],
@@ -830,18 +726,69 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     // Try to extract step number from comment
     const step_match = comment_line.match(/step\s*[=:]?\s*(\d+)/i)
     const frame_match = comment_line.match(/frame\s*[=:]?\s*(\d+)/i)
-    const energy_match = comment_line.match(
-      /energy\s*[=:]?\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)/i,
-    )
+    const ionic_step_match = comment_line.match(/ionic_step\s*[=:]?\s*(\d+)/i)
 
     const step = step_match
       ? parseInt(step_match[1])
       : frame_match
       ? parseInt(frame_match[1])
+      : ionic_step_match
+      ? parseInt(ionic_step_match[1])
       : frames.length
 
-    if (energy_match) {
-      frame_metadata.energy = parseFloat(energy_match[1])
+    // Extract various properties from extended XYZ comment line
+    // Map canonical property names to possible alternative names
+    const property_aliases: Record<string, string[]> = {
+      energy: [`energy`, `E`, `total_energy`, `etot`, `total_e`],
+      energy_per_atom: [`energy_per_atom`, `e_per_atom`, `energy/atom`, `epa`],
+      volume: [`volume`, `vol`, `V`, `cell_volume`],
+      pressure: [`pressure`, `P`, `press`],
+      temperature: [`temperature`, `temp`, `T`, `kelvin`],
+      bandgap: [`bandgap`, `E_gap`, `gap`, `band_gap`, `egap`, `bg`],
+    }
+
+    for (const [canonical_name, aliases] of Object.entries(property_aliases)) {
+      let found_value: number | undefined
+
+      // Try each alias until we find a match
+      for (const alias of aliases) {
+        const regex = new RegExp(
+          `${alias}\\s*[=:]?\\s*([-+]?\\d*\\.?\\d+(?:[eE][-+]?\\d+)?)`,
+          `i`,
+        )
+        const match = comment_line.match(regex)
+        if (match) {
+          found_value = parseFloat(match[1])
+          break // Stop at first match to avoid conflicts
+        }
+      }
+
+      if (found_value !== undefined) {
+        frame_metadata[canonical_name] = found_value
+      }
+    }
+
+    // Parse lattice matrix if present (for extended XYZ format)
+    const lattice_match = comment_line.match(/Lattice\s*=\s*"([^"]+)"/i)
+    let lattice_info = null
+    if (lattice_match) {
+      const lattice_values = lattice_match[1].split(/\s+/).map(Number)
+      if (lattice_values.length === 9) {
+        // Convert flat array to 3x3 matrix
+        const lattice_matrix: [Vector, Vector, Vector] = [
+          [lattice_values[0], lattice_values[1], lattice_values[2]],
+          [lattice_values[3], lattice_values[4], lattice_values[5]],
+          [lattice_values[6], lattice_values[7], lattice_values[8]],
+        ]
+
+        // Calculate lattice parameters efficiently
+        lattice_info = create_lattice_from_matrix(lattice_matrix)
+
+        // Add calculated volume to metadata if not already present
+        if (!frame_metadata.volume) {
+          frame_metadata.volume = lattice_info.volume
+        }
+      }
     }
 
     // Parse atomic coordinates (lines 3 to N+2)
@@ -875,9 +822,13 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       // XYZ coordinates are typically in Angstroms (Cartesian)
       const xyz: Vector = [x, y, z]
 
-      // For XYZ files without lattice info, we can't compute fractional coordinates
-      // so we set abc to [0, 0, 0] or use xyz directly
-      const abc: Vector = [0, 0, 0]
+      // Calculate fractional coordinates if lattice info is available
+      let abc: Vector = [0, 0, 0]
+      if (lattice_info) {
+        // Convert Cartesian to fractional coordinates efficiently
+        const inv_matrix = get_inverse_matrix(lattice_info.matrix)
+        abc = cartesian_to_fractional(xyz, inv_matrix)
+      }
 
       sites.push({
         species: [{ element, occu: 1, oxidation_state: 0 }],
@@ -894,8 +845,8 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     const structure: AnyStructure = {
       sites,
       charge: 0,
-      // XYZ files typically don't contain lattice information
-      // If needed, this could be extended to parse extended XYZ format
+      // Include lattice information if parsed from extended XYZ format
+      ...(lattice_info && { lattice: lattice_info }),
     }
 
     frames.push({
@@ -915,6 +866,7 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       source_format: `xyz_trajectory`,
       frame_count: frames.length,
       total_atoms: frames[0]?.structure.sites.length || 0,
+      has_lattice_info: frames.some((f) => `lattice` in f.structure),
     },
   }
 }
@@ -924,7 +876,7 @@ export function is_xyz_trajectory(content: string, filename?: string): boolean {
   // Check filename patterns
   if (filename) {
     const basename = filename.toLowerCase().split(`/`).pop() || ``
-    if (basename.endsWith(`.xyz`)) {
+    if (basename.endsWith(`.xyz`) || basename.endsWith(`.extxyz`)) {
       // Check if it's a multi-frame XYZ by looking for multiple atom count lines
       const lines = content.trim().split(/\r?\n/)
       let atom_count_lines = 0
@@ -976,50 +928,30 @@ export function parse_pymatgen_trajectory(
     Record<string, unknown>
   >
 
-  // Calculate lattice parameters from lattice vectors
-  const a_vec = lattice[0]
-  const b_vec = lattice[1]
-  const c_vec = lattice[2]
-
-  const a = Math.sqrt(a_vec[0] ** 2 + a_vec[1] ** 2 + a_vec[2] ** 2)
-  const b = Math.sqrt(b_vec[0] ** 2 + b_vec[1] ** 2 + b_vec[2] ** 2)
-  const c = Math.sqrt(c_vec[0] ** 2 + c_vec[1] ** 2 + c_vec[2] ** 2)
-
-  // Calculate volume
-  const volume = Math.abs(
-    a_vec[0] * (b_vec[1] * c_vec[2] - b_vec[2] * c_vec[1]) +
-      a_vec[1] * (b_vec[2] * c_vec[0] - b_vec[0] * c_vec[2]) +
-      a_vec[2] * (b_vec[0] * c_vec[1] - b_vec[1] * c_vec[0]),
-  )
-
-  // Calculate angles
-  const dot_ab = a_vec[0] * b_vec[0] + a_vec[1] * b_vec[1] + a_vec[2] * b_vec[2]
-  const dot_ac = a_vec[0] * c_vec[0] + a_vec[1] * c_vec[1] + a_vec[2] * c_vec[2]
-  const dot_bc = b_vec[0] * c_vec[0] + b_vec[1] * c_vec[1] + b_vec[2] * c_vec[2]
-
-  const gamma = Math.acos(dot_ab / (a * b)) * (180 / Math.PI)
-  const beta = Math.acos(dot_ac / (a * c)) * (180 / Math.PI)
-  const alpha = Math.acos(dot_bc / (b * c)) * (180 / Math.PI)
+  // Calculate lattice parameters efficiently
+  const lattice_matrix = lattice as [Vector, Vector, Vector]
+  const lattice_params = calc_lattice_params(lattice_matrix)
 
   const frames: TrajectoryFrame[] = coords.map((frame_coords, frame_idx) => {
     // Convert coordinates and species to sites
-    const sites = frame_coords.map((xyz, site_idx) => ({
-      species: [
-        {
-          element: species[site_idx].element,
-          occu: 1,
-          oxidation_state: 0,
-        },
-      ],
-      abc: [xyz[0], xyz[1], xyz[2]] as Vector, // pymatgen uses fractional coordinates
-      xyz: [
-        xyz[0] * a_vec[0] + xyz[1] * b_vec[0] + xyz[2] * c_vec[0],
-        xyz[0] * a_vec[1] + xyz[1] * b_vec[1] + xyz[2] * c_vec[1],
-        xyz[0] * a_vec[2] + xyz[1] * b_vec[2] + xyz[2] * c_vec[2],
-      ] as Vector,
-      label: species[site_idx].element,
-      properties: {},
-    }))
+    const sites = frame_coords.map((xyz, site_idx) => {
+      const abc = [xyz[0], xyz[1], xyz[2]] as Vector // pymatgen uses fractional coordinates
+      const cartesian = fractional_to_cartesian(abc, lattice_matrix)
+
+      return {
+        species: [
+          {
+            element: species[site_idx].element,
+            occu: 1,
+            oxidation_state: 0,
+          },
+        ],
+        abc,
+        xyz: cartesian,
+        label: species[site_idx].element,
+        properties: {},
+      }
+    })
 
     // Extract frame metadata
     const frame_props = frame_properties[frame_idx] || {}
@@ -1078,15 +1010,9 @@ export function parse_pymatgen_trajectory(
         sites,
         charge: (obj_data.charge as number) || 0,
         lattice: {
-          matrix: lattice as [Vector, Vector, Vector],
+          matrix: lattice_matrix,
           pbc: [true, true, true] as [boolean, boolean, boolean],
-          a,
-          b,
-          c,
-          alpha,
-          beta,
-          gamma,
-          volume,
+          ...lattice_params,
         },
       },
       step: frame_idx,
@@ -1137,7 +1063,10 @@ export async function parse_trajectory_data(
     }
 
     // Try single-frame XYZ (convert to trajectory format)
-    if (filename?.toLowerCase().endsWith(`.xyz`)) {
+    if (
+      filename?.toLowerCase().endsWith(`.xyz`) ||
+      filename?.toLowerCase().endsWith(`.extxyz`)
+    ) {
       try {
         const single_structure = parse_xyz(content)
         if (single_structure) {

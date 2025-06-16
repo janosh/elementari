@@ -49,11 +49,13 @@ export const lattice_param_keys = [
   `gamma`,
 ] as const
 
+export type LatticeParams = { [key in (typeof lattice_param_keys)[number]]: number }
+
 export type PymatgenLattice = {
   matrix: [Vector, Vector, Vector]
   pbc: [boolean, boolean, boolean]
   volume: number
-} & { [key in (typeof lattice_param_keys)[number]]: number }
+} & LatticeParams
 
 export type PymatgenMolecule = { sites: Site[]; charge?: number; id?: string }
 export type PymatgenStructure = PymatgenMolecule & { lattice: PymatgenLattice }

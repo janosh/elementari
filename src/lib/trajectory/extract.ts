@@ -207,21 +207,16 @@ export const full_data_extractor: TrajectoryDataExtractor = (
     ...structural_data_extractor(frame, trajectory),
   }
 
-  // Check if lattice parameters vary and conditionally include them
+  // Check which lattice parameters vary
   const lattice_params = [`a`, `b`, `c`, `alpha`, `beta`, `gamma`]
-  const varying_lattice_params = lattice_params.filter((param) =>
-    property_varies(trajectory, param)
-  )
-
-  // If lattice parameters don't vary, mark them for conditional visibility
-  // (This doesn't remove them from data, but helps with default visibility logic)
   const result = { ...base_data }
 
-  // Add metadata to help identify non-varying properties
-  if (varying_lattice_params.length === 0) {
-    // Add a special marker that can be used by plotting components
-    // to identify that lattice parameters are constant
-    result._constant_lattice_params = 1
+  // Add metadata to specify which properties don't vary
+  for (const param of lattice_params) {
+    if (!property_varies(trajectory, param)) {
+      // Mark individual lattice parameters as constant
+      result[`_constant_${param}`] = 1
+    }
   }
 
   return result

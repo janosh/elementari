@@ -1,5 +1,39 @@
+import type { LatticeParams } from '$lib/structure/index'
+
 export type Vector = [number, number, number]
 export type NdVector = number[]
+
+// Calculate all lattice parameters in a single efficient pass
+export function calc_lattice_params(
+  matrix: [Vector, Vector, Vector],
+): LatticeParams & { volume: number } {
+  const [a_vec, b_vec, c_vec] = matrix
+
+  // Calculate vector lengths (lattice parameters a, b, c)
+  const a = Math.sqrt(a_vec[0] ** 2 + a_vec[1] ** 2 + a_vec[2] ** 2)
+  const b = Math.sqrt(b_vec[0] ** 2 + b_vec[1] ** 2 + b_vec[2] ** 2)
+  const c = Math.sqrt(c_vec[0] ** 2 + c_vec[1] ** 2 + c_vec[2] ** 2)
+
+  // Calculate volume using scalar triple product
+  const volume = Math.abs(
+    a_vec[0] * (b_vec[1] * c_vec[2] - b_vec[2] * c_vec[1]) +
+      a_vec[1] * (b_vec[2] * c_vec[0] - b_vec[0] * c_vec[2]) +
+      a_vec[2] * (b_vec[0] * c_vec[1] - b_vec[1] * c_vec[0]),
+  )
+
+  // Calculate dot products for angles (only once each)
+  const dot_ab = a_vec[0] * b_vec[0] + a_vec[1] * b_vec[1] + a_vec[2] * b_vec[2]
+  const dot_ac = a_vec[0] * c_vec[0] + a_vec[1] * c_vec[1] + a_vec[2] * c_vec[2]
+  const dot_bc = b_vec[0] * c_vec[0] + b_vec[1] * c_vec[1] + b_vec[2] * c_vec[2]
+
+  // Convert to angles in degrees
+  const rad_to_deg = 180 / Math.PI
+  const alpha = Math.acos(dot_bc / (b * c)) * rad_to_deg
+  const beta = Math.acos(dot_ac / (a * c)) * rad_to_deg
+  const gamma = Math.acos(dot_ab / (a * b)) * rad_to_deg
+
+  return { a, b, c, alpha, beta, gamma, volume }
+}
 
 export function norm(vec: NdVector): number {
   return Math.sqrt(vec.reduce((acc, val) => acc + val ** 2, 0))
@@ -44,7 +78,7 @@ export function pbc_dist(
   return norm(cart_diff)
 }
 
-function matrix_inverse_3x3(
+export function matrix_inverse_3x3(
   matrix: [Vector, Vector, Vector],
 ): [Vector, Vector, Vector] {
   /** Calculate the inverse of a 3x3 matrix */
@@ -77,7 +111,7 @@ function matrix_inverse_3x3(
   ]
 }
 
-function matrix_vector_multiply(
+export function matrix_vector_multiply(
   matrix: [Vector, Vector, Vector],
   vector: Vector,
 ): Vector {

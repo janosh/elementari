@@ -1,135 +1,145 @@
 import type { NdVector, Vector } from '$lib'
-import { add, dot, euclidean_dist, norm, pbc_dist, scale } from '$lib'
+import {
+  add,
+  calc_lattice_params,
+  dot,
+  euclidean_dist,
+  norm,
+  pbc_dist,
+  scale,
+} from '$lib'
 import { expect, test } from 'vitest'
 
 test(`norm of vector`, () => {
-  const vec: NdVector = [3, 4]
-  const expected = 5
-  expect(norm(vec)).toEqual(expected)
+  expect(norm([3, 4])).toEqual(5)
 })
 
 test(`scale vector`, () => {
-  const vec: NdVector = [1, 2, 3]
-  const factor = 3
-  const expected: NdVector = [3, 6, 9]
-  expect(scale(vec, factor)).toEqual(expected)
+  expect(scale([1, 2, 3], 3)).toEqual([3, 6, 9])
 })
 
-test(`euclidean_dist between two vectors/points`, () => {
-  const vec1: Vector = [1, 2, 3]
-  const vec2: Vector = [4, 5, 6]
-  expect(euclidean_dist(vec1, vec2)).toEqual(Math.sqrt(27)) // sqrt((4-1)^2 + (5-2)^2 + (6-3)^2)
+test(`euclidean_dist between two vectors`, () => {
+  expect(euclidean_dist([1, 2, 3], [4, 5, 6])).toEqual(Math.sqrt(27))
 })
 
 test.each([
-  [
-    [1, 2],
-    [3, 4],
-    [4, 6],
-  ],
-  [
-    [1, 2, 3],
-    [4, 5, 6],
-    [5, 7, 9],
-  ],
-  [
-    [1, 2, 3, 4, 5, 6],
-    [7, 8, 9, 10, 11, 12],
-    [8, 10, 12, 14, 16, 18],
-  ],
-])(`add`, (vec1, vec2, expected) => {
+  [[1, 2], [3, 4], [4, 6]],
+  [[1, 2, 3], [4, 5, 6], [5, 7, 9]],
+  [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12], [8, 10, 12, 14, 16, 18]],
+])(`add vectors`, (vec1, vec2, expected) => {
   expect(add(vec1, vec2)).toEqual(expected)
-  // test more than 2 inputs and self-consistency (of add, scale, and norm)
   expect(norm(add(vec1, vec2, scale(expected, -1)))).toEqual(0)
 })
 
 test.each([
   [[1, 2], [3, 4], 11],
   [[1, 2, 3], [4, 5, 6], 32],
-])(`add`, (vec1, vec2, expected) => {
+])(`dot product`, (vec1, vec2, expected) => {
   expect(dot(vec1, vec2)).toEqual(expected)
 })
 
-test(`dot`, () => {
-  const matrix: number[][] = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-  ]
+test(`dot matrix operations`, () => {
+  const matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] as unknown as NdVector
   const vector: NdVector = [2, 3, 4]
-  const expected: number[] = [20, 47, 74] // [1*2 + 2*3 + 3*4, 4*2 + 5*3 + 6*4, 7*2 + 8*3 + 9*4]
-  expect(dot(matrix, vector)).toEqual(expected)
+  expect(dot(matrix, vector)).toEqual([20, 47, 74])
+
+  const matrix1 = [[1, 2, 3], [4, 5, 6]] as unknown as NdVector
+  const matrix2 = [[7, 8], [9, 10], [11, 12]] as unknown as NdVector
+  expect(dot(matrix1, matrix2)).toEqual([[58, 64], [139, 154]])
 })
 
-test(`dot`, () => {
-  const matrix1: number[][] = [
-    [1, 2, 3],
-    [4, 5, 6],
-  ]
-  const matrix2: number[][] = [
-    [7, 8],
-    [9, 10],
-    [11, 12],
-  ]
-  const expected: number[][] = [
-    [58, 64], // [1*7 + 2*9 + 3*11, 1*8 + 2*10 + 3*12]
-    [139, 154], // [4*7 + 5*9 + 6*11, 4*8 + 5*10 + 6*12]
-  ]
-  expect(dot(matrix1, matrix2)).toEqual(expected)
+test.each([
+  // Cubic lattices
+  [[[5, 0, 0], [0, 5, 0], [0, 0, 5]], {
+    a: 5,
+    b: 5,
+    c: 5,
+    alpha: 90,
+    beta: 90,
+    gamma: 90,
+    volume: 125,
+  }],
+  [[[1, 0, 0], [0, 1, 0], [0, 0, 1]], {
+    a: 1,
+    b: 1,
+    c: 1,
+    alpha: 90,
+    beta: 90,
+    gamma: 90,
+    volume: 1,
+  }],
+  // Tetragonal
+  [[[3, 0, 0], [0, 3, 0], [0, 0, 6]], {
+    a: 3,
+    b: 3,
+    c: 6,
+    alpha: 90,
+    beta: 90,
+    gamma: 90,
+    volume: 54,
+  }],
+  // Orthorhombic
+  [[[4, 0, 0], [0, 5, 0], [0, 0, 6]], {
+    a: 4,
+    b: 5,
+    c: 6,
+    alpha: 90,
+    beta: 90,
+    gamma: 90,
+    volume: 120,
+  }],
+  // Hexagonal (60° angle)
+  [[[4, 0, 0], [2, 2 * Math.sqrt(3), 0], [0, 0, 8]], {
+    a: 4,
+    b: 4,
+    c: 8,
+    alpha: 90,
+    beta: 90,
+    gamma: 60,
+    volume: 110.85,
+  }],
+  // Triclinic
+  [[[3, 0, 0], [1, 2, 0], [0.5, 1, 2]], {
+    a: 3,
+    b: Math.sqrt(5),
+    c: Math.sqrt(5.25),
+    alpha: 60.79,
+    beta: 77.40,
+    gamma: 63.43,
+    volume: 12,
+  }],
+])(`calc_lattice_params`, (matrix, expected) => {
+  const result = calc_lattice_params(matrix as [Vector, Vector, Vector])
+  expect(result.a).toBeCloseTo(expected.a, 2)
+  expect(result.b).toBeCloseTo(expected.b, 2)
+  expect(result.c).toBeCloseTo(expected.c, 2)
+  expect(result.alpha).toBeCloseTo(expected.alpha, 1)
+  expect(result.beta).toBeCloseTo(expected.beta, 1)
+  expect(result.gamma).toBeCloseTo(expected.gamma, 1)
+  expect(result.volume).toBeCloseTo(expected.volume, 1)
 })
 
 test(`pbc_dist`, () => {
-  // Test case 1: Simple cubic lattice - atoms at opposite corners should be close via PBC
-  const cubic_lattice: [Vector, Vector, Vector] = [
-    [10, 0, 0], // a vector
-    [0, 10, 0], // b vector
-    [0, 0, 10], // c vector
-  ]
+  const cubic_lattice: [Vector, Vector, Vector] = [[10, 0, 0], [0, 10, 0], [0, 0, 10]]
 
-  // Atoms at (1, 1, 1) and (9, 9, 9) - PBC distance should be 2*sqrt(3) ≈ 3.464
-  const pos1: Vector = [1, 1, 1]
-  const pos2: Vector = [9, 9, 9]
-  const direct_distance = euclidean_dist(pos1, pos2)
-  const pbc_distance_1 = pbc_dist(pos1, pos2, cubic_lattice)
+  // Opposite corners via PBC
+  expect(pbc_dist([1, 1, 1], [9, 9, 9], cubic_lattice)).toBeCloseTo(Math.sqrt(12), 3)
+  expect(euclidean_dist([1, 1, 1], [9, 9, 9])).toBeCloseTo(13.856, 3)
 
-  expect(pbc_distance_1).toBeCloseTo(Math.sqrt(12), 3) // sqrt((2)^2 + (2)^2 + (2)^2)
-  expect(direct_distance).toBeCloseTo(13.856, 3) // sqrt((8)^2 + (8)^2 + (8)^2)
+  // Extreme PBC case
+  expect(pbc_dist([0.5, 0.5, 0.5], [9.7, 9.7, 9.7], cubic_lattice)).toBeCloseTo(1.386, 3)
 
-  // Test case 2: Extreme PBC case - should be sqrt(0.8^2 * 3) ≈ 1.386
-  const extreme_pos1: Vector = [0.5, 0.5, 0.5]
-  const extreme_pos2: Vector = [9.7, 9.7, 9.7]
-  const extreme_pbc = pbc_dist(extreme_pos1, extreme_pos2, cubic_lattice)
+  // Close points
+  const close_direct = euclidean_dist([2, 2, 2], [3, 3, 3])
+  const close_pbc = pbc_dist([2, 2, 2], [3, 3, 3], cubic_lattice)
+  expect(close_pbc).toBeCloseTo(close_direct, 5)
+  expect(close_pbc).toBeCloseTo(1.732, 3)
 
-  expect(extreme_pbc).toBeCloseTo(1.386, 3) // sqrt(1.92)
+  // 1D PBC
+  expect(pbc_dist([0.5, 5, 5], [9.7, 5, 5], cubic_lattice)).toBeCloseTo(0.8, 5)
 
-  // Test case 3: Points already close - PBC shouldn't change distance much
-  const close_pos1: Vector = [2, 2, 2]
-  const close_pos2: Vector = [3, 3, 3]
-  const close_direct = euclidean_dist(close_pos1, close_pos2)
-  const close_pbc = pbc_dist(close_pos1, close_pos2, cubic_lattice)
-
-  expect(close_pbc).toBeCloseTo(close_direct, 5) // should be essentially identical
-  expect(close_pbc).toBeCloseTo(1.732, 3) // sqrt(3)
-
-  // Test case 4: One-dimensional PBC test - should be exactly 0.8
-  const pos_1d_1: Vector = [0.5, 5, 5]
-  const pos_1d_2: Vector = [9.7, 5, 5]
-  const pbc_1d = pbc_dist(pos_1d_1, pos_1d_2, cubic_lattice)
-
-  expect(pbc_1d).toBeCloseTo(0.8, 5)
-
-  // Test case 5: Non-cubic lattice with specific expected value
-  const hexagonal_lattice: [Vector, Vector, Vector] = [
-    [4, 0, 0], // a vector
-    [2, 3.464, 0], // b vector (60 degree angle)
-    [0, 0, 8], // c vector
-  ]
-
-  const hex_pos1: Vector = [0.2, 0.2, 1]
-  const hex_pos2: Vector = [3.8, 3.264, 7]
-  const hex_direct = euclidean_dist(hex_pos1, hex_pos2)
-  const hex_pbc = pbc_dist(hex_pos1, hex_pos2, hexagonal_lattice)
-
-  expect(hex_direct).toBeCloseTo(7.639, 3)
-  expect(hex_pbc).toBeCloseTo(2.3, 3) // actual computed value
+  // Hexagonal lattice
+  const hex_lattice: [Vector, Vector, Vector] = [[4, 0, 0], [2, 3.464, 0], [0, 0, 8]]
+  expect(euclidean_dist([0.2, 0.2, 1], [3.8, 3.264, 7])).toBeCloseTo(7.639, 3)
+  expect(pbc_dist([0.2, 0.2, 1], [3.8, 3.264, 7], hex_lattice)).toBeCloseTo(2.3, 3)
 })

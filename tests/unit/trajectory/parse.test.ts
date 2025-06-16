@@ -295,6 +295,77 @@ H  1.1  0.0  0.0`
     expect(trajectory.frames[1].step).toBe(10)
   })
 
+  describe(`Property Aliases Extraction`, () => {
+    it.each([
+      [`energy`, `energy=-123.45`, -123.45],
+      [`energy`, `E=-50.0`, -50.0],
+      [`energy`, `total_energy=10.5`, 10.5],
+      [`energy`, `etot=-0.001`, -0.001],
+      [`energy_per_atom`, `e_per_atom=-3.1`, -3.1],
+      [`energy_per_atom`, `energy/atom=-2.5`, -2.5],
+      [`volume`, `vol=500.0`, 500.0],
+      [`volume`, `V=250.25`, 250.25],
+      [`pressure`, `P=0.05`, 0.05],
+      [`pressure`, `press=1.5`, 1.5],
+      [`temperature`, `temp=273.15`, 273.15],
+      [`temperature`, `T=500`, 500],
+      [`bandgap`, `E_gap=1.5`, 1.5],
+      [`bandgap`, `gap=3.2`, 3.2],
+      [`bandgap`, `bg=1.2`, 1.2],
+    ])(`should extract %s from %s`, (property, comment, expected) => {
+      const trajectory = parse_xyz_trajectory(`1\n${comment}\nH 0.0 0.0 0.0`)
+      expect(trajectory.frames[0].metadata?.[property]).toBe(expected)
+    })
+
+    it(`should handle multiple properties and various formats`, () => {
+      const test_cases = [
+        {
+          comment: `energy=-123.45 temp=300 pressure=0.1 vol=1000 E_gap=2.1`,
+          expected: {
+            energy: -123.45,
+            temperature: 300,
+            pressure: 0.1,
+            volume: 1000,
+            bandgap: 2.1,
+          },
+        },
+        {
+          comment: `energy = -123.45`,
+          expected: { energy: -123.45 },
+        },
+        {
+          comment: `energy: -123.45`,
+          expected: { energy: -123.45 },
+        },
+        {
+          comment: `energy=1.23e-5`,
+          expected: { energy: 1.23e-5 },
+        },
+        {
+          comment: `ENERGY=-123.45`,
+          expected: { energy: -123.45 },
+        },
+        {
+          comment: `energy=-10.0 E=-20.0`,
+          expected: { energy: -10.0 }, // First match wins
+        },
+      ]
+
+      for (const { comment, expected } of test_cases) {
+        const trajectory = parse_xyz_trajectory(`1\n${comment}\nH 0.0 0.0 0.0`)
+        const metadata = trajectory.frames[0].metadata
+
+        for (const [key, value] of Object.entries(expected)) {
+          if (typeof value === `number` && value < 1e-4) {
+            expect(metadata?.[key]).toBeCloseTo(value, 10)
+          } else {
+            expect(metadata?.[key]).toBe(value)
+          }
+        }
+      }
+    })
+  })
+
   it(`should throw error for invalid XYZ content`, () => {
     expect(() => parse_xyz_trajectory(`invalid content`)).toThrow()
     expect(() => parse_xyz_trajectory(`2\ncomment\nH 0 0`)).toThrow() // insufficient coordinates
