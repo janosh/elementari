@@ -507,6 +507,61 @@
     // Don't close if clicking on sidebar or info button
     if (!sidebar && !info_button) sidebar_open = false
   }
+
+  // Handle keyboard shortcuts
+  function handle_keyboard_shortcuts(event: KeyboardEvent) {
+    if (!trajectory) return
+
+    // Don't handle shortcuts if user is typing in an input field (but allow if it's our step input and not focused)
+    const target = event.target as Element
+    const is_step_input = target.classList.contains(`step-input`)
+    const is_input_focused = target.tagName === `INPUT` ||
+      target.tagName === `TEXTAREA`
+
+    // Skip if typing in an input that's not our step input
+    if (is_input_focused && !is_step_input) return
+
+    const total_frames = trajectory.frames.length
+    const is_cmd_or_ctrl = event.metaKey || event.ctrlKey
+    event.preventDefault()
+
+    // Navigation shortcuts
+    if (event.key === ` `) toggle_play()
+    else if (event.key === `ArrowLeft`) {
+      if (is_cmd_or_ctrl) go_to_step(0)
+      else prev_step()
+    } else if (event.key === `ArrowRight`) {
+      if (is_cmd_or_ctrl) go_to_step(total_frames - 1)
+      else next_step()
+    } else if (event.key === `Home`) go_to_step(0)
+    else if (event.key === `End`) go_to_step(total_frames - 1)
+    else if (event.key === `j`) {
+      go_to_step(Math.max(0, current_step_idx - 10))
+    } else if (event.key === `l`) {
+      go_to_step(Math.min(total_frames - 1, current_step_idx + 10))
+    } else if (event.key === `PageUp`) {
+      go_to_step(Math.max(0, current_step_idx - 25))
+    } else if (event.key === `PageDown`) {
+      go_to_step(Math.min(total_frames - 1, current_step_idx + 25))
+    } // Interface shortcuts
+    else if (event.key === `f`) toggle_fullscreen()
+    else if (event.key === `i`) sidebar_open = !sidebar_open
+    else if (event.key === `d` && plot_series.length > 0) {
+      cycle_display_mode()
+    } // Playback speed shortcuts (only when playing)
+    else if ((event.key === `=` || event.key === `+`) && is_playing) {
+      frame_rate_fps = Math.min(5, frame_rate_fps + 0.2)
+    } else if (event.key === `-` && is_playing) {
+      frame_rate_fps = Math.max(0.2, frame_rate_fps - 0.2)
+    } // System shortcuts
+    else if (event.key === `Escape`) {
+      if (document.fullscreenElement) document.exitFullscreen()
+      else sidebar_open = false
+    } // Number keys 0-9 - jump to percentage of trajectory
+    else if (event.key >= `0` && event.key <= `9`) {
+      go_to_step(Math.floor((parseInt(event.key, 10) / 10) * (total_frames - 1)))
+    }
+  }
 </script>
 
 <div
@@ -530,6 +585,10 @@
   }}
   onclick={handle_click_outside}
   onkeydown={(event) => {
+    // Handle keyboard shortcuts
+    handle_keyboard_shortcuts(event)
+
+    // Legacy escape handling for sidebar
     if (event.key === `Escape` && sidebar_open) {
       event.stopPropagation()
       sidebar_open = false
@@ -608,22 +667,7 @@
               type="number"
               min="0"
               max={trajectory.frames.length - 1}
-              value={current_step_idx}
-              onchange={(event) => {
-                const target = event.target as HTMLInputElement
-                const step_num = parseInt(target.value, 10)
-                if (
-                  !isNaN(step_num) &&
-                  step_num >= 0 &&
-                  trajectory &&
-                  step_num <= trajectory.frames.length - 1
-                ) {
-                  current_step_idx = step_num
-                } else {
-                  // Reset to current value if invalid
-                  target.value = String(current_step_idx)
-                }
-              }}
+              bind:value={current_step_idx}
               oninput={(event) => {
                 const target = event.target as HTMLInputElement
                 const width = Math.max(25, Math.min(80, target.value.length * 8 + 6))
