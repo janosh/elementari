@@ -604,7 +604,6 @@
 
           <!-- Frame slider and counter -->
           <div class="step-section">
-            <!-- deno-fmt-ignore -->
             <input
               type="number"
               min="0"
@@ -630,7 +629,7 @@
                 const width = Math.max(25, Math.min(80, target.value.length * 8 + 6))
                 target.style.width = `${width}px`
               }}
-              style="width: {input_width}px;"
+              style:width="{input_width}px"
               class="step-input"
               title="Enter step number to jump to"
             />
@@ -645,15 +644,13 @@
                 title="Drag to navigate steps"
               />
               {#if step_label_positions.length > 0}
-                <!-- deno-fmt-ignore -->
                 <div class="step-labels">
                   {#each step_label_positions as step_idx (step_idx)}
-                    {@const position_percent =
-                      (step_idx / (trajectory.frames.length - 1)) * 100}
-                    {@const adjusted_position =
-                      1.5 + (position_percent * (100 - 2)) / 100}
-                    <div class="step-tick" style="left: {adjusted_position}%;"></div>
-                    <div class="step-label" style="left: {adjusted_position}%;">
+                    {@const position_percent = (step_idx / (trajectory.frames.length - 1)) *
+              100}
+                    {@const adjusted_position = 1.5 + (position_percent * (100 - 2)) / 100}
+                    <div class="step-tick" style:left="{adjusted_position}%"></div>
+                    <div class="step-label" style:left="{adjusted_position}%">
                       {step_idx}
                     </div>
                   {/each}

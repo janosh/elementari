@@ -18,7 +18,6 @@
     show_number?: boolean
     show_name?: boolean
     value?: number | number[] | string | string[] | false | undefined
-    style?: string
     symbol_style?: string
     active?: boolean
     href?: string | null
@@ -42,7 +41,6 @@
     show_number = undefined, // auto-determine based on multi-value splits
     show_name = true,
     value = undefined,
-    style = ``,
     symbol_style = ``,
     active = false,
     href = null,
@@ -201,7 +199,6 @@
   style:background-color={Array.isArray(value) && bg_colors?.length > 1 ? `transparent` : fallback_bg_color}
   style:color={text_color ??
   choose_bw_for_contrast(node, contrast_bg_color, text_color_threshold)}
-  {style}
   role="link"
   tabindex="0"
   {...rest}

@@ -37,7 +37,7 @@
     >
       <label
         bind:this={labels[idx]}
-        style="background-color: {colors.element[elem]}"
+        style:background-color={colors.element[elem]}
         ondblclick={(event) => {
           event.preventDefault()
           colors.element[elem] = default_element_colors[elem]
@@ -71,7 +71,8 @@
       the active atom (with PBC and direct).
     </p>
     <p>
-      Hold <kbd>shift</kbd> or <kbd>cmd</kbd> or <kbd>ctrl</kbd> and drag to pan the scene.
+      Hold <kbd>shift</kbd> or <kbd>cmd</kbd> or <kbd>ctrl</kbd> and drag to pan the
+      scene.
     </p>
     <p>
       Click on an element label in the color legend to change its color. Double click to

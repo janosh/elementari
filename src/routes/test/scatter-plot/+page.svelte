@@ -1,11 +1,11 @@
 <script lang="ts">
   import { ScatterPlot } from '$lib'
   import type {
-    DataSeries,
-    InternalPoint,
-    LabelStyle,
-    PointStyle,
-    ScaleType,
+      DataSeries,
+      InternalPoint,
+      LabelStyle,
+      PointStyle,
+      ScaleType,
   } from '$lib/plot'
   import { LOG_MIN_EPS, symbol_names } from '$lib/plot'
 
@@ -662,7 +662,12 @@
     <div
       style="display: grid; grid-template-columns: repeat(2, max-content); gap: 1.5em; place-items: center; place-content: center; margin-bottom: 1em;"
     >
-      {#each [[`top_left`, `Top Left`], [`top_right`, `Top Right`], [`bottom_left`, `Bottom Left`], [`bottom_right`, `Bottom Right`]] as const as [quadrant, label] (label)}
+      {#each [
+        [`top_left`, `Top Left`],
+        [`top_right`, `Top Right`],
+        [`bottom_left`, `Bottom Left`],
+        [`bottom_right`, `Bottom Right`],
+      ] as const as [quadrant, label] (label)}
         <label>
           {label}: {auto_placement_density[quadrant]}
           <input

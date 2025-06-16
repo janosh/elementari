@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { format_num, type CompositionType, type ElementSymbol } from '$lib'
+  import { type CompositionType, type ElementSymbol, format_num } from '$lib'
   import { element_color_schemes } from '$lib/colors'
   import { choose_bw_for_contrast } from '$lib/labels'
   import type { Snippet } from 'svelte'
@@ -116,8 +116,9 @@
       // Balance labels above and below for better visual distribution
       let external_label_position: `above` | `below` | null = null
       if (needs_external_label) {
-        external_label_position =
-          above_labels <= below_labels ? (`above` as const) : (`below` as const)
+        external_label_position = above_labels <= below_labels
+          ? (`above` as const)
+          : (`below` as const)
         if (external_label_position === `above`) above_labels++
         else below_labels++
       }
@@ -142,13 +143,14 @@
 </script>
 
 {#snippet label_content(segment: SegmentData)}
-  <span class="element-symbol" style="font-size: {10 * segment.font_scale}px"
-    >{segment.element}</span
-  >{#if show_amounts}<sub class="amount" style="font-size: {8 * segment.font_scale}px"
-      >{segment.amount}</sub
-    >{/if}
+  <span class="element-symbol" style:font-size="{10 * segment.font_scale}px">{
+    segment.element
+  }</span>{#if show_amounts}<sub
+      class="amount"
+      style:font-size="{8 * segment.font_scale}px"
+    >{segment.amount}</sub>{/if}
   {#if show_percentages}
-    <sub class="percentage" style="font-size: {8 * segment.font_scale}px">
+    <sub class="percentage" style:font-size="{8 * segment.font_scale}px">
       {format_num(segment.percentage, 1)}%
     </sub>
   {/if}
@@ -156,32 +158,29 @@
 
 <div
   class="stacked-bar-chart-container {class_name}"
-  style="
-    --bar-max-width: {width}px;
-    --bar-height: {height}px;
-    --segment-gap: {segment_gap}px;
-    --border-radius: {border_radius}px;
-    {style}
-  "
+  style:--bar-max-width="{width}px"
+  style:--bar-height="{height}px"
+  style:--segment-gap="{segment_gap}px"
+  style:--border-radius="{border_radius}px"
+  {style}
   {...rest}
 >
   <!-- External labels above the bar -->
   <div class="external-labels-above">
     {#each segments as segment (segment.element)}
-      {#if show_labels && segment.needs_external_label && segment.external_label_position === `above`}
+      {#if show_labels && segment.needs_external_label &&
+        segment.external_label_position === `above`}
         <div
           class="external-label"
           class:hovered={hovered_element === segment.element}
-          style="
-            color: {segment.color};
-            font-size: {7 * segment.font_scale}px;
-            flex: {segment.width_percent};
-          "
+          style:color={segment.color}
+          style:font-size="{7 * segment.font_scale}px"
+          style:flex={segment.width_percent}
         >
           {@render label_content(segment)}
         </div>
       {:else}
-        <div style="flex: {segment.width_percent};"></div>
+        <div style:flex={segment.width_percent}></div>
       {/if}
     {/each}
   </div>
@@ -192,16 +191,16 @@
         class="bar-segment"
         class:interactive
         class:hovered={hovered_element === segment.element}
-        style="
-          background-color: {segment.color};
-          flex: {segment.width_percent};
-        "
+        style:background-color={segment.color}
+        style:flex={segment.width_percent}
         onmouseenter={() => interactive && (hovered_element = segment.element)}
         onmouseleave={() => interactive && (hovered_element = null)}
         {...interactive && {
           role: `button`,
           tabindex: 0,
-          'aria-label': `${segment.element}: ${segment.amount} ${segment.amount === 1 ? `atom` : `atoms`} (${segment.percentage.toFixed(1)}%)`,
+          'aria-label': `${segment.element}: ${segment.amount} ${
+            segment.amount === 1 ? `atom` : `atoms`
+          } (${segment.percentage.toFixed(1)}%)`,
         }}
         title="{segment.element}: {segment.amount} {segment.amount === 1
           ? `atom`
@@ -210,7 +209,8 @@
         {#if show_labels && segment.can_show_label && !segment.needs_external_label}
           <div
             class="bar-label"
-            style="color: {segment.text_color}; font-size: {7 * segment.font_scale}px;"
+            style:color={segment.text_color}
+            style:font-size="{7 * segment.font_scale}px"
           >
             {@render label_content(segment)}
           </div>
@@ -226,20 +226,19 @@
   <!-- External labels below the bar -->
   <div class="external-labels-below">
     {#each segments as segment (segment.element)}
-      {#if show_labels && segment.needs_external_label && segment.external_label_position === `below`}
+      {#if show_labels && segment.needs_external_label &&
+        segment.external_label_position === `below`}
         <div
           class="external-label"
           class:hovered={hovered_element === segment.element}
-          style="
-            color: {segment.color};
-            font-size: {7 * segment.font_scale}px;
-            flex: {segment.width_percent};
-          "
+          style:color={segment.color}
+          style:font-size="{7 * segment.font_scale}px"
+          style:flex={segment.width_percent}
         >
           {@render label_content(segment)}
         </div>
       {:else}
-        <div style="flex: {segment.width_percent};"></div>
+        <div style:flex={segment.width_percent}></div>
       {/if}
     {/each}
   </div>
