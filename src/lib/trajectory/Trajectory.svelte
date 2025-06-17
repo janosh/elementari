@@ -88,7 +88,7 @@
     allow_file_drop = true,
     on_file_drop = handle_trajectory_file_drop,
     layout = `horizontal`,
-    structure_props = { show_image_atoms: false },
+    structure_props = {},
     plot_props = {},
     spinner_props = {},
     trajectory_controls,
@@ -788,7 +788,7 @@
           style="height: 100%; border-radius: 0"
           enable_tips={false}
           fullscreen_toggle={false}
-          {...structure_props}
+          {...{ show_image_atoms: false, ...structure_props }}
         />
       {/if}
 

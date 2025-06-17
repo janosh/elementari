@@ -745,6 +745,8 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       pressure: [`pressure`, `P`, `press`],
       temperature: [`temperature`, `temp`, `T`, `kelvin`],
       bandgap: [`bandgap`, `E_gap`, `gap`, `band_gap`, `egap`, `bg`],
+      force_max: [`max_force`, `force_max`, `fmax`, `maximum_force`],
+      stress_max: [`max_stress`, `stress_max`, `maximum_stress`],
     }
 
     for (const [canonical_name, aliases] of Object.entries(property_aliases)) {
@@ -877,36 +879,69 @@ export function is_xyz_trajectory(content: string, filename?: string): boolean {
   if (filename) {
     const basename = filename.toLowerCase().split(`/`).pop() || ``
     if (basename.endsWith(`.xyz`) || basename.endsWith(`.extxyz`)) {
-      // Check if it's a multi-frame XYZ by looking for multiple atom count lines
+      // Check if it's a multi-frame XYZ by simulating the parsing process
       const lines = content.trim().split(/\r?\n/)
-      let atom_count_lines = 0
+      let line_idx = 0
+      let frame_count = 0
 
-      for (let i = 0; i < Math.min(lines.length, 100); i++) {
-        const line = lines[i]?.trim()
-        if (line && !isNaN(parseInt(line)) && parseInt(line) > 0) {
-          // Check if this looks like it could be followed by XYZ data
-          const potential_atoms = parseInt(line)
-          if (i + potential_atoms + 1 < lines.length) {
-            // Check if the line after comment looks like coordinates
-            const coord_line = lines[i + 2]?.trim()
-            if (coord_line) {
-              const parts = coord_line.split(/\s+/)
-              if (parts.length >= 4) {
-                const first_token = parts[0]
-                const coords = parts.slice(1, 4)
-                const is_element = isNaN(parseInt(first_token)) && first_token.length <= 3
-                const are_coords = coords.every(
-                  (coord) => !isNaN(parseFloat(coord)),
-                )
-                if (is_element && are_coords) {
-                  atom_count_lines++
-                  if (atom_count_lines >= 2) return true // Multi-frame detected
-                }
+      while (line_idx < lines.length && frame_count < 10) {
+        // Skip empty lines
+        if (!lines[line_idx] || lines[line_idx].trim() === ``) {
+          line_idx++
+          continue
+        }
+
+        // Try to parse atom count
+        const num_atoms_line = lines[line_idx]?.trim()
+        const num_atoms = parseInt(num_atoms_line, 10)
+
+        if (isNaN(num_atoms) || num_atoms <= 0) {
+          line_idx++
+          continue
+        }
+
+        // Check if we have enough lines for this frame
+        if (line_idx + num_atoms + 1 >= lines.length) {
+          break
+        }
+
+        // Skip comment line
+        line_idx++
+
+        // Check if the coordinate lines look valid
+        let valid_coordinates = 0
+        for (let atom_idx = 0; atom_idx < Math.min(num_atoms, 5); atom_idx++) {
+          line_idx++
+          if (line_idx >= lines.length) break
+
+          const coord_line = lines[line_idx]?.trim()
+          if (coord_line) {
+            const parts = coord_line.split(/\s+/)
+            if (parts.length >= 4) {
+              const first_token = parts[0]
+              const coords = parts.slice(1, 4)
+              const is_element = isNaN(parseInt(first_token)) && first_token.length <= 3
+              const are_coords = coords.every((coord) => !isNaN(parseFloat(coord)))
+              if (is_element && are_coords) {
+                valid_coordinates++
               }
             }
           }
         }
+
+        // If we found valid coordinates, count this as a frame
+        if (valid_coordinates >= Math.min(num_atoms, 3)) {
+          frame_count++
+
+          // Skip remaining atoms in this frame
+          line_idx += num_atoms - Math.min(num_atoms, 5)
+        } else {
+          line_idx++
+        }
       }
+
+      // Return true if we found at least 2 valid frames
+      return frame_count >= 2
     }
   }
 

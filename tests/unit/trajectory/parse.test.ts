@@ -312,6 +312,11 @@ H  1.1  0.0  0.0`
       [`bandgap`, `E_gap=1.5`, 1.5],
       [`bandgap`, `gap=3.2`, 3.2],
       [`bandgap`, `bg=1.2`, 1.2],
+      [`force_max`, `max_force=0.001`, 0.001],
+      [`force_max`, `force_max=0.005`, 0.005],
+      [`force_max`, `fmax=0.0001`, 0.0001],
+      [`stress_max`, `max_stress=15.5`, 15.5],
+      [`stress_max`, `stress_max=10.2`, 10.2],
     ])(`should extract %s from %s`, (property, comment, expected) => {
       const trajectory = parse_xyz_trajectory(`1\n${comment}\nH 0.0 0.0 0.0`)
       expect(trajectory.frames[0].metadata?.[property]).toBe(expected)
@@ -369,6 +374,68 @@ H  1.1  0.0  0.0`
   it(`should throw error for invalid XYZ content`, () => {
     expect(() => parse_xyz_trajectory(`invalid content`)).toThrow()
     expect(() => parse_xyz_trajectory(`2\ncomment\nH 0 0`)).toThrow() // insufficient coordinates
+  })
+
+  it(`should parse real-world extended XYZ with lattice and properties`, () => {
+    // This is a simplified version of the user's V8_Ta12_W71_Re8-mace-omat file
+    const real_extxyz = `99
+Lattice="-4.039723298286767 4.039723298286767 4.039723298286767 4.039723298286767 -4.039723298286767 4.039723298286767 14.812318760384814 14.812318760384814 -14.812318760384814" Properties=species:S:1:pos:R:3 energy=-701.3836929723975 max_force=7.87217977469913e-05 pbc="T T T"
+Re       0.00482629       0.01191940      -0.03807456
+W        1.35714257       1.36052711      -1.35818985
+W        2.72819238       2.69423255      -2.71014460
+W        4.05649345       4.06188519      -4.04314859
+W        5.41714572       5.43842926      -5.35604789
+Ta       6.77315609       6.78751640      -6.68088406
+Re       8.09747446       8.04851012      -8.08613278
+W        9.39590882       9.41221427      -9.42864515
+Re      10.76166754      10.75106283     -10.77658179
+W       12.10802609      12.11796727     -12.12239784
+${
+      Array.from(
+        { length: 89 },
+        (_, i) => `W        1${i}.0       1${i}.0       -1${i}.0`,
+      ).join(`\n`)
+    }
+99
+Lattice="-4.27735408053893 4.27735408053893 4.27735408053893 4.27735408053893 -4.27735408053893 4.27735408053893 15.683631628642745 15.683631628642745 -15.683631628642745" Properties=species:S:1:pos:R:3 energy=-701.3839091019137 max_force=0.0001628999252425785 pbc="T T T"
+Re       0.00358536       0.01099639      -0.02518610
+W        1.42918631       1.44113518      -1.42684861
+W        2.87919847       2.85643202      -2.86709324
+W        4.29294813       4.28705754      -4.27717706
+W        5.72058576       5.72569671      -5.67827983
+Ta       7.15979138       7.15013886      -7.09687177
+Re       8.56928990       8.53489846      -8.55926436
+W        9.95475821       9.98028271      -9.97532489
+Re      11.38749333      11.39753017     -11.41219393
+W       12.82068623      12.82525376     -12.83205955
+${
+      Array.from(
+        { length: 89 },
+        (_, i) => `W        2${i}.0       2${i}.0       -2${i}.0`,
+      ).join(`\n`)
+    }`
+
+    expect(is_xyz_trajectory(real_extxyz, `test.extxyz`)).toBe(true)
+
+    const trajectory = parse_xyz_trajectory(real_extxyz)
+    expect(trajectory.frames).toHaveLength(2)
+    expect(trajectory.metadata?.source_format).toBe(`xyz_trajectory`)
+
+    // Check first frame
+    const frame1 = trajectory.frames[0]
+    expect(frame1.structure.sites).toHaveLength(99)
+    expect(frame1.metadata?.energy).toBeCloseTo(-701.3836929723975)
+    expect(frame1.metadata?.force_max).toBeCloseTo(7.87217977469913e-05)
+    expect(frame1.structure.lattice).toBeDefined()
+    expect(frame1.structure.lattice?.volume).toBeGreaterThan(0)
+
+    // Check second frame
+    const frame2 = trajectory.frames[1]
+    expect(frame2.structure.sites).toHaveLength(99)
+    expect(frame2.metadata?.energy).toBeCloseTo(-701.3839091019137)
+    expect(frame2.metadata?.force_max).toBeCloseTo(0.0001628999252425785)
+    expect(frame2.structure.lattice).toBeDefined()
+    expect(frame2.structure.lattice?.volume).toBeGreaterThan(0)
   })
 })
 
