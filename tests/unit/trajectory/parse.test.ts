@@ -44,17 +44,21 @@ function read_binary_test_file(filename: string): ArrayBuffer {
 describe(`VASP XDATCAR Parser`, () => {
   const xdatcar_content = read_test_file(`vasp-XDATCAR.MD.gz`)
 
-  it(`should detect XDATCAR format by filename`, () => {
-    expect(is_vasp_xdatcar(``, `XDATCAR`)).toBe(true)
-    expect(is_vasp_xdatcar(``, `XDATCAR.MD`)).toBe(true)
-    expect(is_vasp_xdatcar(``, `xdatcar`)).toBe(true)
-    expect(is_vasp_xdatcar(``, `some_file.json`)).toBe(false)
+  it.each([
+    [`XDATCAR`, true],
+    [`XDATCAR.MD`, true],
+    [`xdatcar`, true],
+    [`some_file.json`, false],
+  ])(`should detect XDATCAR format by filename: %s -> %s`, (filename, expected) => {
+    expect(is_vasp_xdatcar(``, filename)).toBe(expected)
   })
 
-  it(`should detect XDATCAR format by content`, () => {
-    expect(is_vasp_xdatcar(xdatcar_content)).toBe(true)
-    expect(is_vasp_xdatcar(`{"frames": []}`)).toBe(false)
-    expect(is_vasp_xdatcar(`random text`)).toBe(false)
+  it.each([
+    [`valid XDATCAR content`, xdatcar_content, true],
+    [`JSON content`, `{"frames": []}`, false],
+    [`random text`, `random text`, false],
+  ])(`should detect XDATCAR format by content: %s`, (_, content, expected) => {
+    expect(is_vasp_xdatcar(content)).toBe(expected)
   })
 
   it(`should parse XDATCAR file correctly`, () => {
@@ -240,10 +244,12 @@ H  0.000  0.000  0.000
 H  0.000  0.000  1.000
 O  0.000  1.000  0.000`
 
-  it(`should detect multi-frame XYZ format`, () => {
-    expect(is_xyz_trajectory(multi_frame_xyz, `trajectory.xyz`)).toBe(true)
-    expect(is_xyz_trajectory(single_frame_xyz, `single.xyz`)).toBe(false)
-    expect(is_xyz_trajectory(`random text`, `test.xyz`)).toBe(false)
+  it.each([
+    [`multi-frame XYZ`, multi_frame_xyz, `trajectory.xyz`, true],
+    [`single-frame XYZ`, single_frame_xyz, `single.xyz`, false],
+    [`random text`, `random text`, `test.xyz`, false],
+  ])(`should detect XYZ trajectory format: %s`, (_, content, filename, expected) => {
+    expect(is_xyz_trajectory(content, filename)).toBe(expected)
   })
 
   it(`should parse multi-frame XYZ trajectory correctly`, () => {
