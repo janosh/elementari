@@ -86,8 +86,8 @@
     y_format?: string
     tooltip?: Snippet<[PlotPoint & TooltipProps]>
     change?: (data: (Point & { series: DataSeries }) | null) => void
-    x_ticks?: number | TimeInterval // tick count or string (day/month/year). Negative number: interval.
-    y_ticks?: number // tick count. Negative number: interval.
+    x_ticks?: number | TimeInterval | number[] // tick count or string (day/month/year). Negative number: interval.
+    y_ticks?: number | number[] // tick count or array of tick values. Negative number: interval.
     x_scale_type?: ScaleType // Type of scale for x-axis
     y_scale_type?: ScaleType // Type of scale for y-axis
     show_zero_lines?: boolean
@@ -948,8 +948,10 @@
   function generate_log_ticks(
     min: number,
     max: number,
-    ticks_option?: number | TimeInterval,
+    ticks_option?: number | TimeInterval | number[],
   ): number[] {
+    // If ticks_option is already an array, use it directly
+    if (Array.isArray(ticks_option)) return ticks_option
     min = Math.max(min, 1e-10)
 
     const min_power = Math.floor(Math.log10(min))
@@ -987,6 +989,9 @@
   // Generate axis ticks
   let x_tick_values = $derived.by(() => {
     if (!width || !height) return []
+
+    // If x_ticks is already an array, use it directly
+    if (Array.isArray(x_ticks)) return x_ticks
 
     // Time-based ticks
     if (x_format?.startsWith(`%`)) {
@@ -1034,6 +1039,9 @@
 
   let y_tick_values = $derived.by(() => {
     if (!width || !height) return []
+
+    // If y_ticks is already an array, use it directly
+    if (Array.isArray(y_ticks)) return y_ticks
 
     if (y_scale_type === `log`) return generate_log_ticks(y_min, y_max, y_ticks)
 

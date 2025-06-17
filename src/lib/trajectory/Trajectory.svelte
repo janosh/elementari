@@ -4,6 +4,7 @@
   import { format_num, trajectory_labels } from '$lib/labels'
   import type { DataSeries, Point } from '$lib/plot'
   import { ScatterPlot } from '$lib/plot'
+  import { scaleLinear } from 'd3-scale'
   import type { ComponentProps, Snippet } from 'svelte'
   import { untrack } from 'svelte'
   import { titles_as_tooltips } from 'svelte-zoo'
@@ -132,7 +133,7 @@
       : undefined,
   )
 
-  // Calculate step label positions based on step_labels prop
+  // Calculate step label positions using D3's pretty ticks for even distribution
   let step_label_positions = $derived.by((): number[] => {
     if (!trajectory || !step_labels) return []
 
@@ -146,16 +147,14 @@
 
     if (typeof step_labels === `number`) {
       if (step_labels > 0) {
-        // Positive number: evenly spaced ticks
-        const tick_count = Math.min(step_labels, total_frames)
-        if (tick_count <= 1) return [0]
-
-        const positions: number[] = []
-        for (let idx = 0; idx < tick_count; idx++) {
-          const position = Math.round((idx * (total_frames - 1)) / (tick_count - 1))
-          positions.push(position)
-        }
-        return positions
+        // Use D3's pretty ticks for even distribution
+        const scale = scaleLinear().domain([0, total_frames - 1])
+        const ticks = scale.nice().ticks(Math.min(step_labels, total_frames))
+        // Round and filter to valid frame indices
+        return ticks
+          .map((t) => Math.round(t))
+          .filter((t) => t >= 0 && t < total_frames)
+          .filter((t, idx, arr) => arr.indexOf(t) === idx) // Remove duplicates
       } else if (step_labels < 0) {
         // Negative number: spacing between ticks
         const spacing = Math.abs(step_labels)
@@ -805,11 +804,7 @@
           current_x_value={current_step_idx}
           change={handle_plot_change}
           markers="line"
-          x_ticks={step_label_positions.length > 1
-          ? -(step_label_positions[1] - step_label_positions[0])
-          : trajectory && trajectory.frames.length <= 10
-          ? -1
-          : undefined}
+          x_ticks={step_label_positions}
           legend={{
             responsive: true,
             layout: `horizontal`,
