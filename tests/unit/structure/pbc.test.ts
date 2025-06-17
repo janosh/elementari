@@ -7,10 +7,11 @@ import {
 } from '$lib/structure'
 import { parse_xyz_trajectory } from '$lib/trajectory/parse'
 import extended_xyz_quartz from '$site/structures/extended-xyz-quartz.xyz?raw'
-import mp1_json from '$site/structures/mp-1.json?raw' with { type: 'json' }
-import mp2_json from '$site/structures/mp-2.json?raw' with { type: 'json' }
+import mp1_json from '$site/structures/mp-1.json' with { type: 'json' }
+import mp2_json from '$site/structures/mp-2.json' with { type: 'json' }
 import nacl_poscar from '$site/structures/NaCl-cubic.poscar?raw'
 import quartz_cif from '$site/structures/quartz-alpha.cif?raw'
+import refractory_alloy from '$site/trajectories/V8_Ta12_W71_Re8-mace-omat.xyz?raw'
 import { expect, test } from 'vitest'
 
 test(`pbc_dist basic functionality`, () => {
@@ -354,13 +355,9 @@ test(`pbc_dist optimization advanced scenarios`, () => {
   }
 })
 
-test(`find_image_atoms handles trajectory structures correctly`, async () => {
-  // Load the actual problematic trajectory file that revealed the bug
-  const response = await fetch(`/static/trajectories/V8_Ta12_W71_Re8-mace-omat.xyz`)
-  const trajectory_content = await response.text()
-
+test(`find_image_atoms handles trajectory structures correctly`, () => {
   // Parse the trajectory
-  const trajectory = parse_xyz_trajectory(trajectory_content)
+  const trajectory = parse_xyz_trajectory(refractory_alloy)
   const structure = trajectory.frames[0].structure
 
   // Test that the structure has lattice information
@@ -496,7 +493,7 @@ test.each([
     let structure: PymatgenStructure
 
     if (filename.endsWith(`.json`)) {
-      structure = content as PymatgenStructure
+      structure = content
     } else {
       const parsed = parse_structure_file(content as string, filename)
       if (!parsed || !parsed.lattice) {
@@ -749,7 +746,7 @@ test.each([
 test(`all image atoms should be positioned at unit cell boundaries`, () => {
   // Test multiple structures
   for (const content of [mp1_json, mp2_json]) {
-    const structure = JSON.parse(content as unknown as string) as PymatgenStructure
+    const structure = content as unknown as PymatgenStructure
 
     const image_atoms = find_image_atoms(structure)
 
@@ -857,7 +854,7 @@ test(`image atoms should have fractional coordinates at cell boundaries`, () => 
 
 // Test comprehensive validation of image atom properties
 test(`comprehensive image atom validation`, () => {
-  const structure = JSON.parse(mp1_json) as PymatgenStructure
+  const structure = mp1_json as unknown as PymatgenStructure
   const image_atoms = find_image_atoms(structure)
 
   expect(image_atoms.length).toBeGreaterThan(0)
@@ -897,7 +894,7 @@ test(`comprehensive image atom validation`, () => {
 
 // Test that no duplicate image atoms are created
 test(`image atom generation should not create duplicates`, () => {
-  const structure = JSON.parse(mp1_json) as PymatgenStructure
+  const structure = mp1_json as unknown as PymatgenStructure
   const image_atoms = find_image_atoms(structure)
 
   // Check for duplicate image positions (within tolerance)

@@ -353,17 +353,12 @@
     if (playing) {
       // Clear existing interval if it exists - use untrack to avoid circular dependency
       const current_interval = untrack(() => play_interval)
-      if (current_interval !== undefined) {
-        clearInterval(current_interval)
-      }
+      if (current_interval !== undefined) clearInterval(current_interval)
 
       // Create new interval with current frame rate
       play_interval = setInterval(() => {
-        if (current_step_idx >= trajectory!.frames.length - 1) {
-          pause_playback()
-        } else {
-          next_step()
-        }
+        if (current_step_idx >= trajectory!.frames.length - 1) go_to_step(0) // Loop back to 1st step
+        else next_step()
       }, rate_ms)
     } else {
       // Clear interval when not playing - use untrack to avoid circular dependency

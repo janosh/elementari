@@ -106,6 +106,13 @@
       (typeof reveal_buttons == `number` && reveal_buttons < width),
   )
 
+  // Derived structure for scene - only updates when structure or show_image_atoms change
+  let scene_structure = $derived(
+    show_image_atoms && structure && `lattice` in structure
+      ? get_pbc_image_sites(structure)
+      : structure,
+  )
+
   // Track if camera has ever been moved from initial position
   let camera_has_moved = $state(false)
   let camera_is_moving = $state(false)
@@ -291,9 +298,7 @@
       }}
     >
       <StructureScene
-        structure={show_image_atoms && structure && `lattice` in structure
-        ? get_pbc_image_sites(structure)
-        : structure}
+        structure={scene_structure}
         {...scene_props}
         {show_site_labels}
         {lattice_props}

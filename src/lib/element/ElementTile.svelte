@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChemicalElement, PeriodicTableEvents } from '$lib'
+  import type { ChemicalElement } from '$lib'
   import { choose_bw_for_contrast, format_num } from '$lib'
   import { default_category_colors, is_color } from '$lib/colors'
   import { selected } from '$lib/state.svelte'
@@ -54,9 +54,6 @@
     split_layout = undefined, // auto-determine based on value count if not specified
     ...rest
   }: Props = $props()
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type $$Events = PeriodicTableEvents // for type-safe event listening on this component
 
   let category = $derived(element.category.replaceAll(` `, `-`))
   // background color defaults to category color (initialized in colors/index.ts, user editable in PeriodicTableControls.svelte)

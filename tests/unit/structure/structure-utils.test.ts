@@ -1,5 +1,5 @@
 import * as struct_utils from '$lib/structure'
-import { structures } from '$site'
+import { structures } from '$site/structures'
 import { describe, expect, test } from 'vitest'
 
 type StructureId = string

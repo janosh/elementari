@@ -43,6 +43,8 @@
     <button
       bind:this={toggle_controls_btn}
       onclick={toggle_controls}
+      aria-expanded={controls_open}
+      aria-controls="controls-panel"
       title={toggle_button.title ?? (controls_open ? `Close controls` : `Open controls`)}
       {...toggle_button}
       class="controls-toggle {toggle_button.class ?? ``}"

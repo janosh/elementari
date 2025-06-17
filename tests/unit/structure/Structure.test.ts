@@ -1,10 +1,10 @@
 import type { Vector } from '$lib'
 import { Structure } from '$lib'
 import { euclidean_dist, pbc_dist } from '$lib/math'
-import { structures } from '$site'
+import { structures } from '$site/structures'
 import { mount, tick } from 'svelte'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { doc_query } from '..'
+import { doc_query } from '../index'
 
 const structure = structures[0]
 

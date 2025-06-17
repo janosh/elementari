@@ -1557,7 +1557,7 @@
             x={pad.l}
             y={pad.t}
             width={width - pad.l - pad.r}
-            height={height + pad.b}
+            height={height - pad.t - pad.b}
           />
         </clipPath>
       </defs>
@@ -1674,6 +1674,10 @@
                       ? point_stroke_color ??
                         point.point_style?.stroke ?? `#000`
                       : point.point_style?.stroke ?? `#000`,
+                    stroke_opacity: apply_controls
+                      ? point_stroke_opacity ??
+                        point.point_style?.stroke_opacity ?? 1
+                      : point.point_style?.stroke_opacity ?? 1,
                     fill_opacity: apply_controls
                       ? point_opacity ??
                         point.point_style?.fill_opacity ?? 1

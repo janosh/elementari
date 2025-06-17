@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import type { Category, ChemicalElement, PeriodicTableEvents, XyObj } from '$lib'
+  import type { Category, ChemicalElement, XyObj } from '$lib'
   import { elem_symbols, ElementPhoto, type ElementSymbol, ElementTile } from '$lib'
   import { is_color } from '$lib/colors'
   import element_data from '$lib/element/data'
@@ -94,9 +94,6 @@
     children,
     ...rest
   }: Props = $props()
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type $$Events = PeriodicTableEvents // for type-safe event listening on this component
 
   let heat_values = $derived.by(() => {
     if (Array.isArray(heatmap_values)) {
