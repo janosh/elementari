@@ -253,7 +253,6 @@
     min-width: var(--bar-min-width, 100px);
     gap: 2px;
   }
-
   .external-labels-above,
   .external-labels-below {
     display: flex;
@@ -261,7 +260,6 @@
     gap: var(--segment-gap);
     min-height: 20px;
   }
-
   .external-label {
     display: flex;
     align-items: center;
@@ -272,11 +270,9 @@
     pointer-events: none;
     transition: all 0.2s ease;
   }
-
   .external-label.hovered {
     font-weight: 700;
   }
-
   .bar-segments {
     display: flex;
     width: 100%;
@@ -286,21 +282,17 @@
     border-radius: var(--border-radius);
     overflow: hidden;
   }
-
   .bar-segments:not(.outer-corners-only) .bar-segment {
     border-radius: var(--border-radius);
   }
-
   .bar-segments.outer-corners-only .bar-segment:first-child {
     border-top-left-radius: var(--border-radius);
     border-bottom-left-radius: var(--border-radius);
   }
-
   .bar-segments.outer-corners-only .bar-segment:last-child {
     border-top-right-radius: var(--border-radius);
     border-bottom-right-radius: var(--border-radius);
   }
-
   .bar-segment {
     position: relative;
     display: flex;
@@ -309,22 +301,18 @@
     transition: all 0.2s ease;
     min-width: 0; /* Allow flex items to shrink */
   }
-
   .bar-segment.interactive {
     cursor: pointer;
   }
-
   .bar-segment.interactive:hover,
   .bar-segment.hovered {
     filter: brightness(1.1);
     transform: scaleY(1.05);
   }
-
   .bar-segment.interactive:focus {
     outline: 2px solid var(--focus-color, #0066cc);
     outline-offset: 2px;
   }
-
   .bar-label {
     display: flex;
     align-items: center;
@@ -335,25 +323,20 @@
     pointer-events: none;
     transition: all 0.2s ease;
   }
-
   .bar-segment.hovered .bar-label {
     font-weight: 700;
   }
-
   .element-symbol {
     font-weight: 700;
   }
-
   .amount,
   .percentage {
     margin-left: 1px;
     transform: translateY(5px);
   }
-
   .amount {
     font-weight: 500;
   }
-
   .percentage {
     font-weight: 400;
   }

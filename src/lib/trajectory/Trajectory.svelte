@@ -121,6 +121,7 @@
   let current_filename = $state<string | null>(null)
   let current_file_path = $state<string | null>(null)
   let file_size = $state<number | null>(null)
+  let file_object = $state<File | null>(null)
   let wrapper = $state<HTMLDivElement | undefined>(undefined)
   let sidebar_open = $state(false)
 
@@ -266,6 +267,7 @@
     loading = true
     file_size = file.size // Capture file size
     current_file_path = file.webkitRelativePath || file.name // Capture full path if available
+    file_object = file
     try {
       // Check if this is an HDF5 file (handle as binary)
       if (
@@ -859,6 +861,7 @@
       {current_filename}
       {current_file_path}
       {file_size}
+      {file_object}
       is_open={sidebar_open}
       onclose={() => (sidebar_open = false)}
     />

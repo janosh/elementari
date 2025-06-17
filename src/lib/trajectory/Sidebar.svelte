@@ -20,16 +20,17 @@
     current_filename?: string | null
     current_file_path?: string | null
     file_size?: number | null
+    file_object?: File | null
     is_open?: boolean
     onclose?: () => void
   }
-
   let {
     trajectory,
     current_step_idx,
     current_filename,
     current_file_path,
     file_size,
+    file_object,
     is_open = false,
     onclose = () => {},
   }: Props = $props()
@@ -45,7 +46,8 @@
 
     // File Information Section
     if (
-      current_filename || file_size !== null || trajectory.metadata?.source_format
+      current_filename || file_size !== null || trajectory.metadata?.source_format ||
+      file_object
     ) {
       const file_info = []
       if (current_filename) {
@@ -67,8 +69,21 @@
           file_info.push({ label: `Size (bytes)`, value: bytes_str })
         }
       }
+
+      // Add file timestamps if available
+      if (file_object) {
+        file_info.push({
+          label: `Last Modified`,
+          value: file_object.lastModified.toLocaleString(),
+          tooltip: `File system last modified time`,
+        })
+      }
+
       if (trajectory.metadata?.source_format) {
-        file_info.push({ label: `Format`, value: trajectory.metadata.source_format })
+        file_info.push({
+          label: `Format`,
+          value: String(trajectory.metadata.source_format),
+        })
       }
 
       // Add total atoms across all frames if it varies
@@ -82,15 +97,13 @@
         })
       }
 
-      // Add creation/modification time if available from file metadata
-      if (
-        trajectory.metadata?.created_at &&
-        typeof trajectory.metadata.created_at === `string`
-      ) {
+      // Add creation/modification time if available from trajectory metadata
+      if (typeof trajectory?.metadata?.created_at === `string`) {
         const date = new Date(trajectory.metadata.created_at)
         file_info.push({
-          label: `Created`,
+          label: `Created (metadata)`,
           value: date.toLocaleDateString(),
+          tooltip: `Creation time from file metadata`,
         })
       }
 

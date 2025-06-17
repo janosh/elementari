@@ -331,7 +331,7 @@ test.describe(`Trajectory Component`, () => {
       await expect(info_button).toBeEnabled()
     })
 
-    test(`comprehensive keyboard shortcuts work`, async ({ page }) => {
+    test(`keyboard shortcuts work`, async ({ page }) => {
       const trajectory = page.locator(`#loaded-trajectory .trajectory-viewer`)
       const step_input = trajectory.locator(`.step-input`)
       const step_slider = trajectory.locator(`.step-slider`)
