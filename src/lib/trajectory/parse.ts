@@ -747,6 +747,7 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       bandgap: [`bandgap`, `E_gap`, `gap`, `band_gap`, `egap`, `bg`],
       force_max: [`max_force`, `force_max`, `fmax`, `maximum_force`],
       stress_max: [`max_stress`, `stress_max`, `maximum_stress`],
+      stress_frobenius: [`stress_frobenius`, `frobenius_stress`, `stress_frob`],
     }
 
     for (const [canonical_name, aliases] of Object.entries(property_aliases)) {
@@ -767,6 +768,42 @@ export function parse_xyz_trajectory(content: string): Trajectory {
 
       if (found_value !== undefined) {
         frame_metadata[canonical_name] = found_value
+      }
+    }
+
+    // Parse stress tensor if present (for extended XYZ format)
+    const stress_match = comment_line.match(/stress\s*=\s*"([^"]+)"/i)
+    if (stress_match) {
+      const stress_values = stress_match[1].split(/\s+/).map(Number)
+      if (stress_values.length === 9) {
+        // Convert flat array to 3x3 stress tensor
+        const stress_tensor = [
+          [stress_values[0], stress_values[1], stress_values[2]],
+          [stress_values[3], stress_values[4], stress_values[5]],
+          [stress_values[6], stress_values[7], stress_values[8]],
+        ]
+
+        // Store the full stress tensor
+        frame_metadata.stress = stress_tensor
+
+        // Calculate stress-related properties
+        const [s11, s22, s33, s12, s13, s23] = [0, 4, 8, 1, 2, 5].map((i) =>
+          stress_values[i]
+        )
+
+        // Calculate von Mises stress (stress_max equivalent)
+        frame_metadata.stress_max = Math.sqrt(
+          0.5 * ((s11 - s22) ** 2 + (s22 - s33) ** 2 + (s33 - s11) ** 2) +
+            3 * (s12 ** 2 + s13 ** 2 + s23 ** 2),
+        )
+
+        // Calculate Frobenius norm of stress tensor
+        frame_metadata.stress_frobenius = Math.sqrt(
+          stress_values.reduce((sum, val) => sum + val ** 2, 0),
+        )
+
+        // Calculate pressure (negative trace/3)
+        frame_metadata.pressure = -(s11 + s22 + s33) / 3
       }
     }
 

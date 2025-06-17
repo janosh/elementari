@@ -317,6 +317,7 @@ H  1.1  0.0  0.0`
       [`force_max`, `fmax=0.0001`, 0.0001],
       [`stress_max`, `max_stress=15.5`, 15.5],
       [`stress_max`, `stress_max=10.2`, 10.2],
+      [`stress_frobenius`, `stress_frobenius=5.5`, 5.5],
     ])(`should extract %s from %s`, (property, comment, expected) => {
       const trajectory = parse_xyz_trajectory(`1\n${comment}\nH 0.0 0.0 0.0`)
       expect(trajectory.frames[0].metadata?.[property]).toBe(expected)
@@ -426,16 +427,85 @@ ${
     expect(frame1.structure.sites).toHaveLength(99)
     expect(frame1.metadata?.energy).toBeCloseTo(-701.3836929723975)
     expect(frame1.metadata?.force_max).toBeCloseTo(7.87217977469913e-05)
-    expect(frame1.structure.lattice).toBeDefined()
-    expect(frame1.structure.lattice?.volume).toBeGreaterThan(0)
+    expect(`lattice` in frame1.structure).toBe(true)
+    if (`lattice` in frame1.structure) {
+      expect(frame1.structure.lattice?.volume).toBeGreaterThan(0)
+    }
 
     // Check second frame
     const frame2 = trajectory.frames[1]
     expect(frame2.structure.sites).toHaveLength(99)
     expect(frame2.metadata?.energy).toBeCloseTo(-701.3839091019137)
     expect(frame2.metadata?.force_max).toBeCloseTo(0.0001628999252425785)
-    expect(frame2.structure.lattice).toBeDefined()
-    expect(frame2.structure.lattice?.volume).toBeGreaterThan(0)
+    expect(`lattice` in frame2.structure).toBe(true)
+    if (`lattice` in frame2.structure) {
+      expect(frame2.structure.lattice?.volume).toBeGreaterThan(0)
+    }
+  })
+
+  it(`should parse stress tensor and calculate Frobenius norm`, () => {
+    const stress_xyz = `2
+stress="1.0 0.5 0.2 0.5 2.0 0.3 0.2 0.3 1.5" energy=-10.0
+H  0.0  0.0  0.0
+H  1.0  0.0  0.0`
+
+    const trajectory = parse_xyz_trajectory(stress_xyz)
+    const frame = trajectory.frames[0]
+
+    // Check that stress tensor is parsed
+    expect(frame.metadata?.stress).toBeDefined()
+    expect(Array.isArray(frame.metadata?.stress)).toBe(true)
+
+    // Check calculated stress properties
+    expect(frame.metadata?.stress_frobenius).toBeDefined()
+    expect(frame.metadata?.stress_max).toBeDefined()
+    expect(frame.metadata?.pressure).toBeDefined()
+
+    // Verify Frobenius norm calculation: sqrt(1^2 + 0.5^2 + 0.2^2 + 0.5^2 + 2^2 + 0.3^2 + 0.2^2 + 0.3^2 + 1.5^2)
+    const expected_frobenius = Math.sqrt(
+      1 ** 2 + 0.5 ** 2 + 0.2 ** 2 + 0.5 ** 2 + 2 ** 2 + 0.3 ** 2 + 0.2 ** 2 + 0.3 ** 2 +
+        1.5 ** 2,
+    )
+    expect(frame.metadata?.stress_frobenius).toBeCloseTo(expected_frobenius)
+
+    // Verify pressure calculation: -(1.0 + 2.0 + 1.5)/3
+    const expected_pressure = -(1.0 + 2.0 + 1.5) / 3
+    expect(frame.metadata?.pressure).toBeCloseTo(expected_pressure)
+  })
+
+  it(`should parse real stress tensor from user file format`, () => {
+    const user_stress_xyz = `2
+stress="0.011280142298528788 -0.0 -0.0 -0.0 0.011280142298528788 0.0 -0.0 -0.0 0.011280142298528788" energy=-38.06523566
+H  0.0  0.0  0.0
+H  1.0  0.0  0.0`
+
+    const trajectory = parse_xyz_trajectory(user_stress_xyz)
+    const frame = trajectory.frames[0]
+
+    // Check that stress tensor is parsed correctly
+    expect(frame.metadata?.stress).toBeDefined()
+    expect(Array.isArray(frame.metadata?.stress)).toBe(true)
+
+    // Check calculated stress properties
+    expect(frame.metadata?.stress_frobenius).toBeDefined()
+    expect(frame.metadata?.stress_max).toBeDefined()
+    expect(frame.metadata?.pressure).toBeDefined()
+
+    // Verify Frobenius norm for the diagonal tensor
+    const stress_val = 0.011280142298528788
+    const expected_frobenius = Math.sqrt(3 * stress_val ** 2) // 3 diagonal elements
+    expect(frame.metadata?.stress_frobenius).toBeCloseTo(expected_frobenius)
+
+    // Verify pressure for diagonal tensor: -(3 * stress_val)/3 = -stress_val
+    expect(frame.metadata?.pressure).toBeCloseTo(-stress_val)
+
+    // Von Mises stress should be 0 for hydrostatic stress (all diagonal elements equal)
+    expect(frame.metadata?.stress_max).toBeCloseTo(0, 10)
+  })
+
+  it(`should throw error for invalid XYZ content`, () => {
+    expect(() => parse_xyz_trajectory(`invalid content`)).toThrow()
+    expect(() => parse_xyz_trajectory(`2\ncomment\nH 0 0`)).toThrow() // insufficient coordinates
   })
 })
 

@@ -155,17 +155,23 @@ describe(`generate_plot_series`, () => {
   })
 
   describe(`visibility and options`, () => {
-    it(`should make energy visible by default, others hidden`, () => {
+    it(`should make energy, force_max, and stress_frobenius visible by default`, () => {
       const trajectory = create_trajectory([
-        { energy: -10.0, other_prop: 1.0 },
-        { energy: -10.5, other_prop: 2.0 },
+        { energy: -10.0, force_max: 0.01, stress_frobenius: 5.2, other_prop: 1.0 },
+        { energy: -10.5, force_max: 0.02, stress_frobenius: 5.5, other_prop: 2.0 },
       ])
 
       const series = generate_plot_series(trajectory, test_extractor)
+
+      // Check that the high-priority properties are visible
       const energy_series = series.find((s) => s.label === `Energy`)
+      const force_max_series = series.find((s) => s.label === `F<sub>max</sub>`)
+      const stress_frobenius_series = series.find((s) => s.label === `σ<sub>F</sub>`)
       const other_series = series.find((s) => s.label === `Other_prop`)
 
       expect(energy_series?.visible).toBe(true)
+      expect(force_max_series?.visible).toBe(true)
+      expect(stress_frobenius_series?.visible).toBe(true)
       expect(other_series?.visible).toBe(false)
     })
 

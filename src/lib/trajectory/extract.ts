@@ -79,7 +79,12 @@ export const force_stress_data_extractor: TrajectoryDataExtractor = (
     }
 
     // Extract other stress and pressure properties (no duplicates expected)
-    const other_stress_fields = [`stress_max`, `stress_trace`, `pressure`]
+    const other_stress_fields = [
+      `stress_max`,
+      `stress_frobenius`,
+      `stress_trace`,
+      `pressure`,
+    ]
     for (const field of other_stress_fields) {
       if (
         field in frame.metadata &&

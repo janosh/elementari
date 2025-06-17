@@ -9,6 +9,7 @@ export const Y2_PROPERTIES = new Set([
   `force_max`,
   `force_norm`,
   `stress_max`,
+  `stress_frobenius`,
   `volume`,
   `density`,
   `pressure`,
@@ -36,7 +37,7 @@ export function generate_plot_series(
     units,
     colors = plot_colors,
     y2_properties = Y2_PROPERTIES,
-    default_visible_properties = new Set([`energy`, `force_max`]),
+    default_visible_properties = new Set([`energy`, `force_max`, `stress_frobenius`]),
   } = options
 
   // Single pass: extract data and detect constants simultaneously
