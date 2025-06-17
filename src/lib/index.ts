@@ -2,6 +2,7 @@ import type { categories, elem_symbols } from './labels'
 
 export { default as BohrAtom } from './BohrAtom.svelte'
 export * from './composition'
+export { default as ControlPanel } from './ControlPanel.svelte'
 export * from './element'
 export { default as element_data } from './element/data'
 export { default as Icon } from './Icon.svelte'

@@ -461,6 +461,7 @@
         x_label="X Axis"
         y_label="Y Axis"
         markers="line+points"
+        show_controls
       />
     </div>
   </section>
@@ -717,7 +718,7 @@
       </div>
       <div id="legend-multi-default" class="plot-container">
         <h3>Multi Series (Default Legend) - Legend Expected</h3>
-        <ScatterPlot series={legend_multi_series} legend={{ draggable: true }} />
+        <ScatterPlot series={legend_multi_series} legend={{ draggable: true }} show_controls />
       </div>
       <div id="legend-zero" class="plot-container">
         <h3>Zero Series - No Legend Expected</h3>

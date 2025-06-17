@@ -798,7 +798,10 @@
           x_label="Step"
           y_label={y_axis_labels.y1}
           y_label_shift={{ y: 20 }}
+          y_format=".1~s"
+          y2_format=".1~s"
           y2_label={y_axis_labels.y2}
+          y2_label_shift={{ y: 80 }}
           current_x_value={current_step_idx}
           change={handle_plot_change}
           markers="line"
@@ -814,7 +817,7 @@
             item_gap: 0,
             padding: { t: 5, b: 5, l: 5, r: 5 },
           }}
-          padding={{ t: 20, b: 60, l: 100, r: has_y2_series ? 80 : 20 }}
+          padding={{ t: 20, b: 60, l: 100, r: has_y2_series ? 100 : 20 }}
           range_padding={0}
           style="height: 100%"
           {...plot_props}

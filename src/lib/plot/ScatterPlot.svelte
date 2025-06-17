@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cells_3x3, ColorBar, corner_cells, Line, symbol_names } from '$lib'
+  import { cells_3x3, corner_cells, Line, symbol_names } from '$lib'
   import type { D3ColorSchemeName, D3InterpolateName } from '$lib/colors'
   import { luminance } from '$lib/labels'
   import type {
@@ -22,7 +22,13 @@
     TooltipProps,
     XyObj,
   } from '$lib/plot'
-  import { LOG_MIN_EPS, PlotLegend, ScatterPoint } from '$lib/plot'
+  import {
+    ColorBar,
+    LOG_MIN_EPS,
+    PlotLegend,
+    ScatterPlotControls,
+    ScatterPoint,
+  } from '$lib/plot'
   import { extent, range } from 'd3-array'
   import { forceCollide, forceLink, forceSimulation } from 'd3-force'
   import { format } from 'd3-format'
@@ -116,6 +122,24 @@
       string,
       (payload: { point: InternalPoint; event: Event }) => void
     >
+    // Control panel props
+    show_controls?: boolean // Whether to show the control panel
+    controls_open?: boolean // Whether the control panel is open
+    plot_controls?: Snippet<[]> // Custom content for the control panel
+    // Style control props
+    point_size?: number
+    point_color?: string
+    point_opacity?: number
+    point_stroke_width?: number
+    point_stroke_color?: string
+    point_stroke_opacity?: number
+    line_width?: number
+    line_color?: string
+    line_opacity?: number
+    line_dash?: string | undefined
+    show_points?: boolean
+    show_lines?: boolean
+    selected_series_idx?: number
   }
   let {
     series = [],
@@ -171,12 +195,32 @@
     point_tween,
     line_tween,
     point_events,
+    show_controls = false,
+    controls_open = $bindable(false),
+    plot_controls,
+    // Style control props
+    point_size = $bindable(4),
+    point_color = $bindable(`#4682b4`),
+    point_opacity = $bindable(1),
+    point_stroke_width = $bindable(1),
+    point_stroke_color = $bindable(`#000000`),
+    point_stroke_opacity = $bindable(1),
+    line_width = $bindable(2),
+    line_color = $bindable(`#4682b4`),
+    line_opacity = $bindable(1),
+    line_dash = $bindable(undefined),
+    show_points = $bindable(true),
+    show_lines = $bindable(true),
+    selected_series_idx = $bindable(0),
   }: Props = $props()
 
   let width = $state(0)
   let height = $state(0)
   let svg_element: SVGElement | null = $state(null) // Bind the SVG element
   let svg_bounding_box: DOMRect | null = $state(null) // Store SVG bounds during drag
+
+  // Controls component reference to access internal states
+  let controls_component: ScatterPlotControls | undefined = $state(undefined)
 
   // State for rectangle zoom selection
   let drag_start_coords = $state<XyObj | null>(null)
@@ -1446,6 +1490,9 @@
 
     return [screen_x, screen_y]
   }
+
+  let using_controls = $derived(show_controls && controls_component != null)
+  let has_multiple_series = $derived(series.filter(Boolean).length > 1)
 </script>
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
@@ -1517,11 +1564,6 @@
           {@const series_markers = series_data.markers ?? markers}
           <g data-series-idx={series_idx} clip-path="url(#plot-area-clip)">
             {#if series_markers?.includes(`line`)}
-              {@const first_color_value = series_data.color_values?.[0]}
-              {@const first_point_style = Array.isArray(series_data.point_style)
-          ? series_data.point_style[0]
-          : series_data.point_style}
-              {@const line_style = series_data.line_style ?? {}}
               {@const all_line_points = series_data.x.map((x, idx) => ({
           x,
           y: series_data.y[idx],
@@ -1529,6 +1571,9 @@
               {@const finite_screen_points = all_line_points
           .map((point) => get_screen_coords(point, series_data))
           .filter(([sx, sy]) => isFinite(sx) && isFinite(sy))}
+              {@const apply_line_controls = using_controls &&
+          (!has_multiple_series ||
+            series_idx === selected_series_idx)}
               <Line
                 points={finite_screen_points}
                 origin={[
@@ -1537,13 +1582,19 @@
                     : x_scale_fn(x_min),
                   series_data.y_axis === `y2` ? y2_scale_fn(y2_min) : y_scale_fn(y_min),
                 ]}
-                line_color={line_style.stroke ??
-                first_point_style?.fill ??
-                (first_color_value != null
-                  ? color_scale_fn(first_color_value)
-                  : `rgba(255, 255, 255, 0.5)`)}
-                line_width={line_style.stroke_width ?? 2}
-                line_dash={line_style.line_dash}
+                line_color={apply_line_controls
+                ? line_color ?? `#4682b4`
+                : series_data.line_style?.stroke ??
+                  (Array.isArray(series_data.point_style)
+                    ? series_data.point_style[0]?.fill
+                    : series_data.point_style?.fill) ??
+                  (series_data.color_values?.[0] != null
+                    ? color_scale_fn(series_data.color_values[0])
+                    : `#4682b4`)}
+                line_width={apply_line_controls
+                ? line_width ?? 2
+                : series_data.line_style?.stroke_width ?? 2}
+                line_dash={apply_line_controls ? line_dash : series_data.line_style?.line_dash}
                 area_color="transparent"
                 {line_tween}
               />
@@ -1589,6 +1640,9 @@
                 {@const screen_y = isFinite(raw_screen_y)
           ? raw_screen_y
           : (series_data.y_axis === `y2` ? y2_scale_fn : y_scale_fn).range()[0]}
+                {@const apply_controls = using_controls &&
+          (!has_multiple_series ||
+            point.series_idx === selected_series_idx)}
                 <ScatterPoint
                   x={screen_x}
                   y={screen_y}
@@ -1596,23 +1650,40 @@
                   point.series_idx === tooltip_point.series_idx &&
                   point.point_idx === tooltip_point.point_idx}
                   style={{
-                    ...(point.point_style ?? {}),
-                    // Override radius if size_value and scale function are available
-                    radius: point.size_value != null
+                    ...point.point_style,
+                    radius: apply_controls
+                      ? point_size ?? (point.size_value != null
+                        ? size_scale_fn(point.size_value)
+                        : point.point_style?.radius ?? 4)
+                      : point.size_value != null
                       ? size_scale_fn(point.size_value)
-                      : point.point_style?.radius,
+                      : point.point_style?.radius ?? 4,
+                    stroke_width: apply_controls
+                      ? point_stroke_width ??
+                        point.point_style?.stroke_width ?? 1
+                      : point.point_style?.stroke_width ?? 1,
+                    stroke: apply_controls
+                      ? point_stroke_color ??
+                        point.point_style?.stroke ?? `#000`
+                      : point.point_style?.stroke ?? `#000`,
+                    fill_opacity: apply_controls
+                      ? point_opacity ??
+                        point.point_style?.fill_opacity ?? 1
+                      : point.point_style?.fill_opacity ?? 1,
                   }}
                   hover={point.point_hover ?? {}}
                   label={final_label}
                   offset={point.point_offset ?? { x: 0, y: 0 }}
                   {point_tween}
                   origin={{ x: plot_center_x, y: plot_center_y }}
-                  --point-fill-color={(point.color_value != null
+                  --point-fill-color={point.color_value != null
                   ? color_scale_fn(point.color_value)
-                  : undefined) ?? point.point_style?.fill}
+                  : apply_controls
+                  ? point_color ?? point.point_style?.fill ??
+                    `#4682b4`
+                  : point.point_style?.fill ?? `#4682b4`}
                   {...point_events &&
                   Object.fromEntries(
-                    // bind the event handler to the point
                     Object.entries(point_events).map(([event_name, handler]) => [
                       event_name,
                       (event: Event) => handler({ point, event }),
@@ -1909,6 +1980,34 @@
         <rect class="zoom-rect" {x} {y} width={rect_width} height={rect_height} />
       {/if}
     </svg>
+
+    <!-- Control Panel positioned in top-right corner -->
+    <ScatterPlotControls
+      bind:this={controls_component}
+      bind:show_controls
+      bind:controls_open
+      bind:markers
+      bind:show_zero_lines
+      bind:x_grid
+      bind:y_grid
+      bind:y2_grid
+      bind:point_size
+      bind:point_color
+      bind:point_opacity
+      bind:point_stroke_width
+      bind:point_stroke_color
+      bind:point_stroke_opacity
+      bind:line_width
+      bind:line_color
+      bind:line_opacity
+      bind:line_dash
+      bind:show_points
+      bind:show_lines
+      bind:selected_series_idx
+      {series}
+      {plot_controls}
+      has_y2_points={y2_points.length > 0}
+    />
 
     <!-- Color Bar -->
     {#if color_bar && all_color_values.length > 0 && color_bar_cell}

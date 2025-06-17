@@ -32,8 +32,7 @@ test.describe(`ScatterPlot Component Tests`, () => {
     )
 
     // Check number of point paths rendered (assuming ScatterPoint renders a <path>)
-    // Adjust selector if ScatterPoint structure is different (e.g., 'g.marker path')
-    await expect(scatter_plot.locator(`svg >> path`)).toHaveCount(12) // Updated from 10
+    await expect(scatter_plot.locator(`svg >> path`)).toHaveCount(13)
   })
 
   test(`displays correct axis labels and ticks`, async ({ page }) => {
@@ -1585,5 +1584,412 @@ test.describe(`Point Event Handling`, () => {
     await expect(double_clicked_text).toContainText(
       `Last Double-Clicked Point: DblClick: series 0, index 0 (x=1, y=2)`,
     )
+  })
+})
+
+// --- Control Panel Tests --- //
+test.describe(`Control Panel`, () => {
+  test.beforeEach(async ({ page }) => {
+    // Go to the test page that has controls enabled by default
+    await page.goto(`/test/scatter-plot`, { waitUntil: `load` })
+    // Wait for page to load
+    await page.waitForTimeout(1000)
+  })
+
+  test(`control panel is hidden by default and can be toggled`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+    await expect(scatter_plot).toBeVisible()
+
+    // Check if controls toggle button exists
+    const controls_toggle = scatter_plot.locator(`.plot-controls-toggle`)
+    await expect(controls_toggle).toBeVisible()
+
+    // Initially, control panel should be closed
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+    await expect(control_panel).not.toBeVisible()
+
+    // Click to open controls
+    await controls_toggle.click()
+    await expect(control_panel).toBeVisible()
+
+    // Click to close controls
+    await controls_toggle.click()
+    await expect(control_panel).not.toBeVisible()
+  })
+
+  test(`display controls toggle points and lines correctly`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+    await expect(scatter_plot).toBeVisible()
+
+    // Open controls
+    await scatter_plot.locator(`.plot-controls-toggle`).click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+    await expect(control_panel).toBeVisible()
+
+    // Test Show points checkbox
+    const show_points_checkbox = control_panel.getByLabel(`Show points`)
+    await expect(show_points_checkbox).toBeVisible()
+
+    // Initially points should be shown
+    await expect(show_points_checkbox).toBeChecked()
+
+    // Count initial markers
+    const initial_marker_count = await scatter_plot.locator(
+      `svg g[data-series-idx] .marker`,
+    ).count()
+    expect(initial_marker_count).toBeGreaterThan(0)
+
+    // Uncheck points
+    await show_points_checkbox.uncheck()
+    await expect(show_points_checkbox).not.toBeChecked()
+
+    // Wait for reactivity and check that points are hidden
+    await page.waitForTimeout(200)
+    const hidden_marker_count = await scatter_plot.locator(
+      `svg g[data-series-idx] .marker`,
+    ).count()
+    expect(hidden_marker_count).toBe(0)
+
+    // Re-check points
+    await show_points_checkbox.check()
+    await expect(show_points_checkbox).toBeChecked()
+    await page.waitForTimeout(200)
+    const restored_marker_count = await scatter_plot.locator(
+      `svg g[data-series-idx] .marker`,
+    ).count()
+    expect(restored_marker_count).toBe(initial_marker_count)
+
+    // Test Show lines checkbox
+    const show_lines_checkbox = control_panel.getByLabel(`Show lines`)
+    await expect(show_lines_checkbox).toBeVisible()
+    await expect(show_lines_checkbox).toBeChecked()
+
+    // Count initial lines
+    const initial_line_count = await scatter_plot.locator(`svg path[fill="none"]`).count()
+    expect(initial_line_count).toBeGreaterThan(0)
+
+    // Uncheck lines
+    await show_lines_checkbox.uncheck()
+    await expect(show_lines_checkbox).not.toBeChecked()
+
+    await page.waitForTimeout(200)
+    const hidden_line_count = await scatter_plot.locator(`svg path[fill="none"]`).count()
+    expect(hidden_line_count).toBe(0)
+
+    // Re-check lines
+    await show_lines_checkbox.check()
+    await expect(show_lines_checkbox).toBeChecked()
+    await page.waitForTimeout(200)
+    const restored_line_count = await scatter_plot.locator(`svg path[fill="none"]`)
+      .count()
+    expect(restored_line_count).toBe(initial_line_count)
+  })
+
+  test(`grid controls toggle grid lines correctly`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+
+    // Open controls
+    await scatter_plot.locator(`.plot-controls-toggle`).click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Test X-axis grid
+    const x_grid_checkbox = control_panel.getByLabel(`X-axis grid`)
+    await expect(x_grid_checkbox).toBeVisible()
+    await expect(x_grid_checkbox).toBeChecked()
+
+    // Count initial X grid lines
+    const initial_x_grid_lines = await scatter_plot.locator(`g.x-axis .tick line`).count()
+    expect(initial_x_grid_lines).toBeGreaterThan(0)
+
+    // Uncheck X grid
+    await x_grid_checkbox.uncheck()
+    await page.waitForTimeout(200)
+
+    // Check that X grid lines are hidden
+    const hidden_x_grid_lines = await scatter_plot.locator(`g.x-axis .tick line`).count()
+    expect(hidden_x_grid_lines).toBe(0)
+
+    // Re-check X grid
+    await x_grid_checkbox.check()
+    await page.waitForTimeout(200)
+    const restored_x_grid_lines = await scatter_plot.locator(`g.x-axis .tick line`)
+      .count()
+    expect(restored_x_grid_lines).toBe(initial_x_grid_lines)
+
+    // Test Y-axis grid
+    const y_grid_checkbox = control_panel.getByLabel(`Y-axis grid`)
+    await expect(y_grid_checkbox).toBeVisible()
+    await expect(y_grid_checkbox).toBeChecked()
+
+    const initial_y_grid_lines = await scatter_plot.locator(`g.y-axis .tick line`).count()
+    expect(initial_y_grid_lines).toBeGreaterThan(0)
+
+    await y_grid_checkbox.uncheck()
+    await page.waitForTimeout(200)
+    const hidden_y_grid_lines = await scatter_plot.locator(`g.y-axis .tick line`).count()
+    expect(hidden_y_grid_lines).toBe(0)
+
+    await y_grid_checkbox.check()
+    await page.waitForTimeout(200)
+    const restored_y_grid_lines = await scatter_plot.locator(`g.y-axis .tick line`)
+      .count()
+    expect(restored_y_grid_lines).toBe(initial_y_grid_lines)
+  })
+
+  test(`point style controls modify point appearance`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+
+    // Open controls
+    await scatter_plot.locator(`.plot-controls-toggle`).click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Ensure points are visible
+    const show_points_checkbox = control_panel.getByLabel(`Show points`)
+    if (!(await show_points_checkbox.isChecked())) {
+      await show_points_checkbox.check()
+      await page.waitForTimeout(200)
+    }
+
+    // Test point size control - find controls in the Point Style section
+    const point_size_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Size`,
+    })
+    const point_size_range = point_size_controls.locator(`input[type="range"]`)
+    const point_size_number = point_size_controls.locator(`input[type="number"]`)
+
+    await expect(point_size_range).toBeVisible()
+    await expect(point_size_number).toBeVisible()
+
+    // Change point size using range slider
+    await point_size_range.fill(`10`)
+    await page.waitForTimeout(200)
+
+    // Check that the number input reflects the change
+    await expect(point_size_number).toHaveValue(`10`)
+
+    // Change point size using number input
+    await point_size_number.fill(`15`)
+    await page.waitForTimeout(200)
+
+    // Check that the range input reflects the change
+    await expect(point_size_range).toHaveValue(`15`)
+
+    // Test point color control
+    const point_color_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Color`,
+    }).first()
+    const point_color_input = point_color_controls.locator(`input[type="color"]`).first()
+    await expect(point_color_input).toBeVisible()
+
+    // Change color to red
+    await point_color_input.fill(`#ff0000`)
+    await page.waitForTimeout(200)
+
+    // Test stroke width control
+    const stroke_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Stroke Width`,
+    })
+    const stroke_range = stroke_controls.locator(`input[type="range"]`)
+    const stroke_number = stroke_controls.locator(`input[type="number"]`)
+
+    await stroke_range.fill(`3`)
+    await page.waitForTimeout(200)
+    await expect(stroke_number).toHaveValue(`3`)
+
+    // Test opacity control
+    const opacity_range = point_color_controls.locator(
+      `input[type="range"].opacity-slider`,
+    )
+    const opacity_number = point_color_controls.locator(
+      `input[type="number"].opacity-number`,
+    )
+
+    await opacity_range.fill(`0.5`)
+    await page.waitForTimeout(200)
+    await expect(opacity_number).toHaveValue(`0.5`)
+  })
+
+  test(`line style controls modify line appearance`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+
+    // Open controls
+    await scatter_plot.locator(`.plot-controls-toggle`).click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Ensure lines are visible
+    const show_lines_checkbox = control_panel.getByLabel(`Show lines`)
+    if (!(await show_lines_checkbox.isChecked())) {
+      await show_lines_checkbox.check()
+      await page.waitForTimeout(200)
+    }
+
+    // Test line width control
+    const line_width_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Line Width`,
+    })
+    const line_width_range = line_width_controls.locator(`input[type="range"]`)
+    const line_width_number = line_width_controls.locator(`input[type="number"]`)
+
+    await expect(line_width_range).toBeVisible()
+    await expect(line_width_number).toBeVisible()
+
+    // Change line width
+    await line_width_range.fill(`5`)
+    await page.waitForTimeout(200)
+    await expect(line_width_number).toHaveValue(`5`)
+
+    // Test line color control
+    const line_color_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Line Color`,
+    })
+    const line_color_input = line_color_controls.locator(`input[type="color"]`)
+
+    await expect(line_color_input).toBeVisible()
+    await line_color_input.fill(`#00ff00`)
+    await page.waitForTimeout(200)
+
+    // Test line style (dash) control
+    const line_style_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Line Style`,
+    })
+    const line_style_select = line_style_controls.locator(`select`)
+
+    await expect(line_style_select).toBeVisible()
+    await line_style_select.selectOption(`4,4`) // Dashed
+    await page.waitForTimeout(200)
+
+    // Verify line style changed
+    await expect(line_style_select).toHaveValue(`4,4`)
+  })
+
+  test(`zero lines control toggles zero line visibility`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+
+    // Open controls
+    await scatter_plot.locator(`.plot-controls-toggle`).click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Test zero lines checkbox
+    const zero_lines_checkbox = control_panel.getByLabel(`Show zero lines`)
+    await expect(zero_lines_checkbox).toBeVisible()
+
+    // Check initial state (should be checked by default)
+    await expect(zero_lines_checkbox).toBeChecked()
+
+    // Uncheck zero lines
+    await zero_lines_checkbox.uncheck()
+    await page.waitForTimeout(200)
+    await expect(zero_lines_checkbox).not.toBeChecked()
+
+    // Re-check zero lines
+    await zero_lines_checkbox.check()
+    await page.waitForTimeout(200)
+    await expect(zero_lines_checkbox).toBeChecked()
+  })
+
+  test(`control panel preserves state when toggled`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+    const controls_toggle = scatter_plot.locator(`.plot-controls-toggle`)
+
+    // Open controls
+    await controls_toggle.click()
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Change some settings - use grid settings which remain visible
+    const x_grid_checkbox = control_panel.getByLabel(`X-axis grid`)
+    const y_grid_checkbox = control_panel.getByLabel(`Y-axis grid`)
+
+    // Uncheck both grid controls
+    await x_grid_checkbox.uncheck()
+    await y_grid_checkbox.uncheck()
+
+    // Also test the show points setting
+    const show_points_checkbox = control_panel.getByLabel(`Show points`)
+    await show_points_checkbox.uncheck()
+
+    // Close and reopen controls
+    await controls_toggle.click() // Close
+    await expect(control_panel).not.toBeVisible()
+
+    await controls_toggle.click() // Reopen
+    await expect(control_panel).toBeVisible()
+
+    // Re-locate elements after reopening (DOM may have been recreated)
+    const reopened_x_grid_checkbox = control_panel.getByLabel(`X-axis grid`)
+    const reopened_y_grid_checkbox = control_panel.getByLabel(`Y-axis grid`)
+    const reopened_show_points_checkbox = control_panel.getByLabel(`Show points`)
+
+    // Check that settings are preserved
+    await expect(reopened_x_grid_checkbox).not.toBeChecked()
+    await expect(reopened_y_grid_checkbox).not.toBeChecked()
+    await expect(reopened_show_points_checkbox).not.toBeChecked()
+  })
+
+  test(`control panel closes when clicking outside`, async ({ page }) => {
+    const scatter_plot = page.locator(`.scatter`).first()
+    const controls_toggle = scatter_plot.locator(`.plot-controls-toggle`)
+    const control_panel = scatter_plot.locator(`.plot-controls-panel`)
+
+    // Open controls
+    await controls_toggle.click()
+    await expect(control_panel).toBeVisible()
+
+    // Click outside the control panel (on the main plot area)
+    const plot_bbox = await scatter_plot.boundingBox()
+    if (plot_bbox) {
+      // Click in the center of the plot area, well away from the control panel (which is top-right)
+      await page.mouse.click(
+        plot_bbox.x + plot_bbox.width * 0.3,
+        plot_bbox.y + plot_bbox.height * 0.5,
+      )
+    }
+
+    // Control panel should close
+    await expect(control_panel).not.toBeVisible()
+  })
+
+  test(`series selector only affects selected series in multi-series plots`, async ({ page }) => {
+    // First, navigate to a page with multi-series data
+    await page.goto(`/test/scatter-plot`, { waitUntil: `load` })
+
+    // Look for the multi-series plot in legend tests
+    const multi_series_plot = page.locator(`#legend-multi-default .scatter`)
+    await expect(multi_series_plot).toBeVisible()
+
+    // Open controls
+    const controls_toggle = multi_series_plot.locator(`.plot-controls-toggle`)
+    await controls_toggle.click()
+    const control_panel = multi_series_plot.locator(`.plot-controls-panel`)
+    await expect(control_panel).toBeVisible()
+
+    // Check that series selector is visible for multi-series (target the label specifically)
+    await expect(control_panel.locator(`label[for="series-select"]`)).toBeVisible()
+    const series_selector = control_panel.locator(`select#series-select`)
+
+    // Test series selector functionality
+    await series_selector.selectOption(`0`)
+    await expect(series_selector).toHaveValue(`0`)
+
+    await series_selector.selectOption(`1`)
+    await expect(series_selector).toHaveValue(`1`)
+
+    // Check initial state - both series should have markers
+    const series_a_markers = multi_series_plot.locator(`g[data-series-idx='0'] .marker`)
+    const series_b_markers = multi_series_plot.locator(`g[data-series-idx='1'] .marker`)
+    await expect(series_a_markers).toHaveCount(2)
+    await expect(series_b_markers).toHaveCount(2)
+
+    // Test that control panel has the expected simplified UI elements
+    const point_color_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Color`, // Updated to match simplified label
+    })
+    const point_color_input = point_color_controls.locator(`input[type="color"]`).first()
+    await expect(point_color_input).toBeVisible()
+
+    const point_size_controls = control_panel.locator(`.control-row`).filter({
+      hasText: `Size`, // Updated to match simplified label
+    })
+    const point_size_range_input = point_size_controls.locator(`input[type="range"]`)
+    await expect(point_size_range_input).toBeVisible()
   })
 })

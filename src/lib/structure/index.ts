@@ -8,6 +8,7 @@ export * as bonding_strategies from './bonding'
 export { default as Lattice } from './Lattice.svelte'
 export { default as Structure } from './Structure.svelte'
 export { default as StructureCard } from './StructureCard.svelte'
+export { default as StructureControls } from './StructureControls.svelte'
 export { default as StructureLegend } from './StructureLegend.svelte'
 export { default as StructureScene } from './StructureScene.svelte'
 

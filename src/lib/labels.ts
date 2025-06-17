@@ -209,9 +209,7 @@ export function get_label_with_unit(
   units?: Record<string, string>,
 ): string {
   // First check if we have an explicit label mapping
-  if (property_labels?.[key]) {
-    return property_labels[key]
-  }
+  if (property_labels?.[key]) return property_labels[key]
 
   // Fallback to old units approach for backward compatibility
   const lower_key = key.toLowerCase()
