@@ -505,7 +505,7 @@
   }
 
   // Handle keyboard shortcuts
-  function handle_keyboard_shortcuts(event: KeyboardEvent) {
+  function onkeydown(event: KeyboardEvent) {
     if (!trajectory) return
 
     // Don't handle shortcuts if user is typing in an input field (but allow if it's our step input and not focused)
@@ -556,6 +556,9 @@
     } // Number keys 0-9 - jump to percentage of trajectory
     else if (event.key >= `0` && event.key <= `9`) {
       go_to_step(Math.floor((parseInt(event.key, 10) / 10) * (total_frames - 1)))
+    } else if (event.key === `Escape` && sidebar_open) { // Escape key to close sidebar
+      event.stopPropagation()
+      sidebar_open = false
     }
   }
 </script>
@@ -580,16 +583,7 @@
     dragover = false
   }}
   onclick={handle_click_outside}
-  onkeydown={(event) => {
-    // Handle keyboard shortcuts
-    handle_keyboard_shortcuts(event)
-
-    // Legacy escape handling for sidebar
-    if (event.key === `Escape` && sidebar_open) {
-      event.stopPropagation()
-      sidebar_open = false
-    }
-  }}
+  {onkeydown}
 >
   {#if loading}
     <Spinner text="Loading trajectory..." {...spinner_props} />

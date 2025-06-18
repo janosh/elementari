@@ -1,7 +1,8 @@
 // Utilities for dealing with pymatgen Structures
-import type { ElementSymbol, Vector } from '$lib'
+import type { ElementSymbol, Vec3 } from '$lib'
 import { format_num, scale } from '$lib'
 import element_data from '$lib/element/data'
+import type { Matrix3x3 } from '$lib/math'
 
 export { default as Bond } from './Bond.svelte'
 export * as bonding_strategies from './bonding'
@@ -36,8 +37,8 @@ export type Species = {
 
 export type Site = {
   species: Species[]
-  abc: Vector
-  xyz: Vector
+  abc: Vec3
+  xyz: Vec3
   label: string
   properties: Record<string, unknown>
 }
@@ -54,7 +55,7 @@ export const lattice_param_keys = [
 export type LatticeParams = { [key in (typeof lattice_param_keys)[number]]: number }
 
 export type PymatgenLattice = {
-  matrix: [Vector, Vector, Vector]
+  matrix: Matrix3x3
   pbc: [boolean, boolean, boolean]
   volume: number
 } & LatticeParams
@@ -86,7 +87,7 @@ export type StructureGraph = {
 }
 
 // [atom_pos_1, atom_pos_2, atom_idx_1, atom_idx_2, bond_length]
-export type BondPair = [Vector, Vector, number, number, number]
+export type BondPair = [Vec3, Vec3, number, number, number]
 
 export type IdStructure = PymatgenStructure & { id: string }
 export type StructureWithGraph = IdStructure & { graph: Graph }
@@ -173,8 +174,8 @@ export function density(structure: PymatgenStructure, prec = `.2f`) {
   return format_num(dens, prec)
 }
 
-export function get_center_of_mass(struct_or_mol: AnyStructure): Vector {
-  let center: Vector = [0, 0, 0]
+export function get_center_of_mass(struct_or_mol: AnyStructure): Vec3 {
+  let center: Vec3 = [0, 0, 0]
   let total_weight = 0
 
   for (const site of struct_or_mol.sites) {
@@ -186,11 +187,11 @@ export function get_center_of_mass(struct_or_mol: AnyStructure): Vector {
       center[0] + scaled_pos[0],
       center[1] + scaled_pos[1],
       center[2] + scaled_pos[2],
-    ] as Vector
+    ] as Vec3
 
     total_weight += wt
   }
 
   const result = scale(center, 1 / total_weight)
-  return [result[0], result[1], result[2]] as Vector
+  return [result[0], result[1], result[2]] as Vec3
 }

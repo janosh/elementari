@@ -106,7 +106,7 @@
       (typeof reveal_buttons == `number` && reveal_buttons < width),
   )
 
-  // Derived structure for scene - only updates when structure or show_image_atoms change
+  // only updates when structure or show_image_atoms change
   let scene_structure = $derived(
     show_image_atoms && structure && `lattice` in structure
       ? get_pbc_image_sites(structure)

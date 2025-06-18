@@ -1563,7 +1563,7 @@
       </defs>
 
       <!-- Lines -->
-      {#if markers?.includes(`line`)}
+      {#if markers?.includes(`line`) && show_lines}
         {#each filtered_series ?? [] as
           series_data,
           series_idx
@@ -1612,7 +1612,7 @@
       {/if}
 
       <!-- Points -->
-      {#if markers?.includes(`points`)}
+      {#if markers?.includes(`points`) && show_points}
         {#each filtered_series ?? [] as
           series_data,
           series_idx

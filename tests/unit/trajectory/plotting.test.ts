@@ -1,4 +1,4 @@
-import type { ElementSymbol, Vector } from '$lib'
+import type { ElementSymbol, Vec3 } from '$lib'
 import type { Trajectory, TrajectoryFrame } from '$lib/trajectory'
 import { generate_plot_series, should_hide_plot } from '$lib/trajectory/plotting'
 import { describe, expect, it } from 'vitest'
@@ -10,8 +10,8 @@ function create_trajectory(property_frames: Record<string, number>[]): Trajector
       structure: {
         sites: [{
           species: [{ element: `H` as ElementSymbol, occu: 1, oxidation_state: 0 }],
-          abc: [0, 0, 0] as Vector,
-          xyz: [0, 0, 0] as Vector,
+          abc: [0, 0, 0] as Vec3,
+          xyz: [0, 0, 0] as Vec3,
           label: `H1`,
           properties: {},
         }],

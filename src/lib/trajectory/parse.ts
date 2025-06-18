@@ -1,62 +1,30 @@
 // Parsing functions for trajectory data from various formats
-import type { AnyStructure, ElementSymbol, Vector } from '$lib'
+import type { AnyStructure, ElementSymbol, Vec3 } from '$lib'
 import { escape_html, is_binary } from '$lib'
 import { parse_xyz } from '$lib/io/parse'
-import {
-  calc_lattice_params,
-  matrix_inverse_3x3,
-  matrix_vector_multiply,
-} from '$lib/math'
+import type { Matrix3x3 } from '$lib/math'
+import * as math from '$lib/math'
 import * as h5wasm from 'h5wasm'
 import type { Trajectory, TrajectoryFrame } from './index'
 
 // Cache for matrix inversions to avoid repeated calculations
 const matrix_inversion_cache = new WeakMap<
-  [Vector, Vector, Vector],
-  [Vector, Vector, Vector]
+  Matrix3x3,
+  Matrix3x3
 >()
 
 // Cached matrix inversion for coordinate transformations
-function get_inverse_matrix(matrix: [Vector, Vector, Vector]): [Vector, Vector, Vector] {
+function get_inverse_matrix(matrix: Matrix3x3): Matrix3x3 {
   // Check cache first
   const cached = matrix_inversion_cache.get(matrix)
   if (cached) return cached
 
   // Use the shared matrix_inverse_3x3 function
-  const inverse = matrix_inverse_3x3(matrix)
+  const inverse = math.matrix_inverse_3x3(matrix)
 
   // Cache the result
   matrix_inversion_cache.set(matrix, inverse)
   return inverse
-}
-
-// Optimized coordinate transformation
-function cartesian_to_fractional(
-  xyz: Vector,
-  inverse_matrix: [Vector, Vector, Vector],
-): Vector {
-  return matrix_vector_multiply(inverse_matrix, xyz)
-}
-
-function fractional_to_cartesian(abc: Vector, matrix: [Vector, Vector, Vector]): Vector {
-  return [
-    abc[0] * matrix[0][0] + abc[1] * matrix[1][0] + abc[2] * matrix[2][0],
-    abc[0] * matrix[0][1] + abc[1] * matrix[1][1] + abc[2] * matrix[2][1],
-    abc[0] * matrix[0][2] + abc[1] * matrix[1][2] + abc[2] * matrix[2][2],
-  ]
-}
-
-// Create complete lattice object from matrix
-function create_lattice_from_matrix(
-  matrix: [Vector, Vector, Vector],
-  pbc: [boolean, boolean, boolean] = [true, true, true],
-) {
-  const params = calc_lattice_params(matrix)
-  return {
-    matrix,
-    ...params,
-    pbc,
-  }
 }
 
 // Helper to convert ArrayBuffer to base64 data URL
@@ -360,23 +328,18 @@ export async function parse_torch_sim_hdf5(
       const frames: TrajectoryFrame[] = positions.map(
         (frame_positions, frame_idx) => {
           // Get the lattice matrix for this frame
-          const lattice_matrix = cells?.[frame_idx]
-            ? (cells[frame_idx].map((row) => row.slice() as Vector) as [
-              Vector,
-              Vector,
-              Vector,
-            ])
-            : ([
-              [1, 0, 0],
-              [0, 1, 0],
-              [0, 0, 1],
-            ] as [Vector, Vector, Vector])
+          const lattice_matrix = (cells?.[frame_idx]
+            ? (cells[frame_idx].map((row) =>
+              row.slice()
+            ))
+            : [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) as Matrix3x3
 
           // Calculate lattice parameters efficiently
-          const lattice = create_lattice_from_matrix(
-            lattice_matrix,
-            pbc as [boolean, boolean, boolean],
-          )
+          const lattice = {
+            matrix: lattice_matrix,
+            ...math.calc_lattice_params(lattice_matrix),
+            pbc: [true, true, true],
+          }
 
           // Cache inverse matrix for coordinate transformations
           const inv_matrix = get_inverse_matrix(lattice_matrix)
@@ -384,28 +347,18 @@ export async function parse_torch_sim_hdf5(
           // Create sites array in the expected format
           const sites = frame_positions.map((xyz_pos, atom_idx) => {
             // Convert Cartesian coordinates to fractional coordinates efficiently
-            const abc = cartesian_to_fractional(xyz_pos as Vector, inv_matrix)
+            const abc = math.matrix_vector_multiply(inv_matrix, xyz_pos as Vec3)
 
             return {
-              species: [
-                {
-                  element: elements[atom_idx],
-                  occu: 1,
-                  oxidation_state: 0,
-                },
-              ],
+              species: [{ element: elements[atom_idx], occu: 1, oxidation_state: 0 }],
               abc,
-              xyz: xyz_pos.slice() as Vector,
+              xyz: xyz_pos.slice() as Vec3,
               label: `${elements[atom_idx]}${atom_idx + 1}`,
               properties: {},
             }
           })
 
-          const structure: AnyStructure = {
-            sites,
-            lattice,
-            charge: 0,
-          }
+          const structure: AnyStructure = { sites, lattice }
 
           const metadata: Record<string, unknown> = {
             volume: lattice.volume,
@@ -419,11 +372,7 @@ export async function parse_torch_sim_hdf5(
             }),
           }
 
-          return {
-            structure,
-            step: frame_idx,
-            metadata,
-          }
+          return { structure, step: frame_idx, metadata }
         },
       )
 
@@ -527,7 +476,7 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
   }
 
   // Parse lattice vectors (3 lines)
-  const lattice_vectors: [Vector, Vector, Vector] = [
+  const lattice_vectors: Matrix3x3 = [
     [0, 0, 0],
     [0, 0, 0],
     [0, 0, 0],
@@ -537,11 +486,15 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
     if (coords.length !== 3 || coords.some(isNaN)) {
       throw new Error(`Invalid lattice vector at line ${line_idx}`)
     }
-    lattice_vectors[i] = coords.map((x) => x * scale_factor) as Vector
+    lattice_vectors[i] = coords.map((x) => x * scale_factor) as Vec3
   }
 
   // Calculate lattice parameters efficiently
-  const lattice = create_lattice_from_matrix(lattice_vectors)
+  const lattice = {
+    matrix: lattice_vectors,
+    ...math.calc_lattice_params(lattice_vectors),
+    pbc: [true, true, true],
+  }
 
   // Parse element names and counts
   const element_line = lines[line_idx++].trim().split(/\s+/)
@@ -604,10 +557,10 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
         continue
       }
 
-      const abc: Vector = [coords[0], coords[1], coords[2]]
+      const abc: Vec3 = [coords[0], coords[1], coords[2]]
 
       // Convert fractional to Cartesian coordinates efficiently
-      const xyz = fractional_to_cartesian(abc, lattice_vectors)
+      const xyz = math.matrix_vector_multiply(math.transpose_matrix(lattice_vectors), abc)
 
       sites.push({
         species: [{ element, occu: 1, oxidation_state: 0 }],
@@ -620,11 +573,7 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
 
     if (sites.length === total_atoms) {
       frames.push({
-        structure: {
-          sites,
-          lattice,
-          charge: 0,
-        },
+        structure: { sites, lattice },
         step,
         metadata: { volume: lattice.volume },
       })
@@ -766,7 +715,7 @@ export function parse_xyz_trajectory(content: string): Trajectory {
         }
       }
 
-      if (found_value !== undefined) {
+      if (found_value !== undefined && !isNaN(found_value)) {
         frame_metadata[canonical_name] = found_value
       }
     }
@@ -776,20 +725,13 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     if (stress_match) {
       const stress_values = stress_match[1].split(/\s+/).map(Number)
       if (stress_values.length === 9) {
-        // Convert flat array to 3x3 stress tensor
-        const stress_tensor = [
-          [stress_values[0], stress_values[1], stress_values[2]],
-          [stress_values[3], stress_values[4], stress_values[5]],
-          [stress_values[6], stress_values[7], stress_values[8]],
-        ]
+        // Convert flat array to 3x3 stress tensor using helper function
+        const stress_tensor = math.vec9_to_mat3x3(stress_values)
 
         // Store the full stress tensor
         frame_metadata.stress = stress_tensor
-
-        // Calculate stress-related properties
-        const [s11, s22, s33, s12, s13, s23] = [0, 4, 8, 1, 2, 5].map((i) =>
-          stress_values[i]
-        )
+        // Convert to Voigt notation for stress_max calculation
+        const [s11, s22, s33, s23, s13, s12] = math.to_voigt(stress_tensor)
 
         // Calculate von Mises stress (stress_max equivalent)
         frame_metadata.stress_max = Math.sqrt(
@@ -809,23 +751,27 @@ export function parse_xyz_trajectory(content: string): Trajectory {
 
     // Parse lattice matrix if present (for extended XYZ format)
     const lattice_match = comment_line.match(/Lattice\s*=\s*"([^"]+)"/i)
-    let lattice_info = null
+    let lattice = null
     if (lattice_match) {
       const lattice_values = lattice_match[1].split(/\s+/).map(Number)
       if (lattice_values.length === 9) {
         // Convert flat array to 3x3 matrix
-        const lattice_matrix: [Vector, Vector, Vector] = [
+        const lattice_matrix: Matrix3x3 = [
           [lattice_values[0], lattice_values[1], lattice_values[2]],
           [lattice_values[3], lattice_values[4], lattice_values[5]],
           [lattice_values[6], lattice_values[7], lattice_values[8]],
         ]
 
         // Calculate lattice parameters efficiently
-        lattice_info = create_lattice_from_matrix(lattice_matrix)
+        lattice = {
+          matrix: lattice_matrix,
+          ...math.calc_lattice_params(lattice_matrix),
+          pbc: [true, true, true],
+        }
 
         // Add calculated volume to metadata if not already present
         if (!frame_metadata.volume) {
-          frame_metadata.volume = lattice_info.volume
+          frame_metadata.volume = lattice.volume
         }
       }
     }
@@ -859,14 +805,14 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       }
 
       // XYZ coordinates are typically in Angstroms (Cartesian)
-      const xyz: Vector = [x, y, z]
+      const xyz: Vec3 = [x, y, z]
 
       // Calculate fractional coordinates if lattice info is available
-      let abc: Vector = [0, 0, 0]
-      if (lattice_info) {
+      let abc: Vec3 = [0, 0, 0]
+      if (lattice) {
         // Convert Cartesian to fractional coordinates efficiently
-        const inv_matrix = get_inverse_matrix(lattice_info.matrix)
-        abc = cartesian_to_fractional(xyz, inv_matrix)
+        const inv_matrix = get_inverse_matrix(lattice.matrix)
+        abc = math.matrix_vector_multiply(inv_matrix, xyz)
       }
 
       sites.push({
@@ -881,12 +827,8 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     }
 
     // Create structure for this frame
-    const structure: AnyStructure = {
-      sites,
-      charge: 0,
-      // Include lattice information if parsed from extended XYZ format
-      ...(lattice_info && { lattice: lattice_info }),
-    }
+    // Include lattice information if parsed from extended XYZ format
+    const structure: AnyStructure = { sites, ...(lattice && { lattice }) }
 
     frames.push({
       structure,
@@ -1001,14 +943,17 @@ export function parse_pymatgen_trajectory(
   >
 
   // Calculate lattice parameters efficiently
-  const lattice_matrix = lattice as [Vector, Vector, Vector]
-  const lattice_params = calc_lattice_params(lattice_matrix)
+  const lattice_matrix = lattice as Matrix3x3
+  const lattice_params = math.calc_lattice_params(lattice_matrix)
 
   const frames: TrajectoryFrame[] = coords.map((frame_coords, frame_idx) => {
     // Convert coordinates and species to sites
     const sites = frame_coords.map((xyz, site_idx) => {
-      const abc = [xyz[0], xyz[1], xyz[2]] as Vector // pymatgen uses fractional coordinates
-      const cartesian = fractional_to_cartesian(abc, lattice_matrix)
+      const abc = [xyz[0], xyz[1], xyz[2]] as Vec3 // pymatgen uses fractional coordinates
+      const cartesian = math.matrix_vector_multiply(
+        math.transpose_matrix(lattice_matrix),
+        abc,
+      )
 
       return {
         species: [
@@ -1143,16 +1088,7 @@ export async function parse_trajectory_data(
         const single_structure = parse_xyz(content)
         if (single_structure) {
           return {
-            frames: [
-              {
-                structure: {
-                  ...single_structure,
-                  charge: 0, // Add missing charge property for AnyStructure compatibility
-                },
-                step: 0,
-                metadata: {},
-              },
-            ],
+            frames: [{ structure: single_structure, step: 0, metadata: {} }],
             metadata: {
               filename,
               source_format: `single_xyz`,

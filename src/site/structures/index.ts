@@ -1,5 +1,8 @@
 import type { PymatgenStructure } from '$lib/index'
 
+const get_padded_number = (struct: PymatgenStructure) =>
+  (struct.id?.split(`-`)[1] ?? ``).padStart(6, `0`)
+
 export const structures = Object.entries(
   import.meta.glob(`./*.json`, {
     eager: true,
@@ -11,11 +14,8 @@ export const structures = Object.entries(
     structure.id = id
     return structure
   })
-  .sort((struct1, struct2) => {
-    const [n1, n2] = [struct1, struct2].map((struct) =>
-      struct.id?.split(`-`)[1].padStart(6, `0`)
-    )
-    return n1?.localeCompare(n2 ?? ``) ?? 0
-  })
+  .sort((struct_a, struct_b) =>
+    get_padded_number(struct_a).localeCompare(get_padded_number(struct_b))
+  )
 
 export const structure_map = new Map(structures.map((struct) => [struct.id, struct]))

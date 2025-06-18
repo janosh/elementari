@@ -1,17 +1,17 @@
 // Periodic Boundary Conditions utilities for pymatgen Structures
-import type { Vector } from '$lib'
+import type { Vec3 } from '$lib'
 import { add, scale } from '$lib'
 import type { PymatgenStructure } from './index'
 
 export function find_image_atoms(
   structure: PymatgenStructure,
   { tolerance = 0.05 }: { tolerance?: number } = {},
-): [number, Vector][] {
+): [number, Vec3][] {
   // Find image atoms for PBC. Returns [atom_idx, image_xyz] pairs.
   // Skips image generation for trajectory data with scattered atoms.
   if (!structure.lattice) return []
 
-  const image_sites: Array<[number, Vector]> = []
+  const image_sites: Array<[number, Vec3]> = []
   const lattice_vecs = structure.lattice.matrix
 
   // Check for trajectory data (atoms scattered outside unit cell)
@@ -43,7 +43,7 @@ export function find_image_atoms(
     // Generate all translation combinations (avoids duplicates)
     if (edge_dims.length > 0) {
       for (let mask = 1; mask < (1 << edge_dims.length); mask++) {
-        let img_xyz: Vector = [...site.xyz]
+        let img_xyz: Vec3 = [...site.xyz]
 
         // Apply selected translations
         for (let bit = 0; bit < edge_dims.length; bit++) {
@@ -51,7 +51,7 @@ export function find_image_atoms(
             const { dim, direction } = edge_dims[bit]
             const translation = scale(lattice_vecs[dim], direction)
             const sum = add(img_xyz, translation)
-            img_xyz = [sum[0], sum[1], sum[2]] as Vector
+            img_xyz = [sum[0], sum[1], sum[2]] as Vec3
           }
         }
 

@@ -549,7 +549,6 @@ O  0.000  1.000  0.000`
     )
     expect(trajectory.metadata?.source_format).toBe(`single_xyz`)
     expect(trajectory.frames).toHaveLength(1)
-    expect(trajectory.frames[0].structure.charge).toBe(0) // Should have charge property
   })
 
   it(`should prefer multi-frame over single-frame parsing for XYZ`, async () => {

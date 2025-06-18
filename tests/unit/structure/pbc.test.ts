@@ -1,5 +1,5 @@
 import { parse_structure_file } from '$lib/io/parse'
-import { euclidean_dist, pbc_dist, type Vector } from '$lib/math'
+import { euclidean_dist, type Matrix3x3, pbc_dist, type Vec3 } from '$lib/math'
 import {
   find_image_atoms,
   get_pbc_image_sites,
@@ -15,36 +15,36 @@ import refractory_alloy from '$site/trajectories/V8_Ta12_W71_Re8-mace-omat.xyz?r
 import { expect, test } from 'vitest'
 
 test(`pbc_dist basic functionality`, () => {
-  const cubic_lattice: [Vector, Vector, Vector] = [
+  const cubic_lattice: Matrix3x3 = [
     [6.256930122878799, 0.0, 0.0],
     [0.0, 6.256930122878799, 0.0],
     [0.0, 0.0, 6.256930122878799],
   ]
 
   // Atoms at optimal separation - PBC should match direct distance
-  const center1: Vector = [0.0, 0.0, 0.0]
-  const center2: Vector = [3.1284650614394, 3.1284650614393996, 3.1284650614394]
+  const center1: Vec3 = [0.0, 0.0, 0.0]
+  const center2: Vec3 = [3.1284650614394, 3.1284650614393996, 3.1284650614394]
   const center_direct = euclidean_dist(center1, center2)
   const center_pbc = pbc_dist(center1, center2, cubic_lattice)
   expect(center_pbc).toBeCloseTo(center_direct, 3)
   expect(center_pbc).toBeCloseTo(5.419, 3)
 
   // Corner atoms - PBC improvement
-  const corner1: Vector = [0.1, 0.1, 0.1]
-  const corner2: Vector = [6.156930122878799, 6.156930122878799, 6.156930122878799]
+  const corner1: Vec3 = [0.1, 0.1, 0.1]
+  const corner2: Vec3 = [6.156930122878799, 6.156930122878799, 6.156930122878799]
   const corner_direct = euclidean_dist(corner1, corner2)
   const corner_pbc = pbc_dist(corner1, corner2, cubic_lattice)
   expect(corner_pbc).toBeCloseTo(0.346, 3)
   expect(corner_direct).toBeCloseTo(10.491, 3)
 
   // Long cell scenario - extreme aspect ratio
-  const long_cell: [Vector, Vector, Vector] = [
+  const long_cell: Matrix3x3 = [
     [20.0, 0.0, 0.0],
     [0.0, 5.0, 0.0],
     [0.0, 0.0, 5.0],
   ]
-  const long1: Vector = [1.0, 2.5, 2.5]
-  const long2: Vector = [19.0, 2.5, 2.5]
+  const long1: Vec3 = [1.0, 2.5, 2.5]
+  const long2: Vec3 = [19.0, 2.5, 2.5]
   const long_pbc = pbc_dist(long1, long2, long_cell)
   const long_direct = euclidean_dist(long1, long2)
   expect(long_pbc).toBeCloseTo(2.0, 3)
@@ -96,13 +96,13 @@ test.each([
     desc: `numerical precision`,
   },
 ])(`pbc_dist edge cases: $desc`, ({ pos1, pos2, expected }) => {
-  const lattice: [Vector, Vector, Vector] = [
+  const lattice: Matrix3x3 = [
     [10.0, 0.0, 0.0],
     [0.0, 10.0, 0.0],
     [0.0, 0.0, 10.0],
   ]
 
-  const result = pbc_dist(pos1 as Vector, pos2 as Vector, lattice)
+  const result = pbc_dist(pos1 as Vec3, pos2 as Vec3, lattice)
   const precision = expected < 0.001 ? 7 : expected < 0.1 ? 4 : 3
   expect(result).toBeCloseTo(expected, precision)
 })
@@ -115,9 +115,9 @@ test.each([
       [8.0, 0.0, 0.0],
       [0.0, 12.0, 0.0],
       [0.0, 0.0, 6.0],
-    ] as [Vector, Vector, Vector],
-    pos1: [0.5, 0.5, 0.5] as Vector,
-    pos2: [7.7, 11.7, 5.7] as Vector,
+    ] as Matrix3x3,
+    pos1: [0.5, 0.5, 0.5] as Vec3,
+    pos2: [7.7, 11.7, 5.7] as Vec3,
     expected_pbc: 1.386,
     expected_direct: 14.294,
   },
@@ -127,9 +127,9 @@ test.each([
       [5.0, 0.0, 0.0],
       [2.5, 4.33, 0.0],
       [1.0, 1.0, 4.0],
-    ] as [Vector, Vector, Vector],
-    pos1: [0.2, 0.2, 0.2] as Vector,
-    pos2: [7.3, 4.9, 3.9] as Vector,
+    ] as Matrix3x3,
+    pos1: [0.2, 0.2, 0.2] as Vec3,
+    pos2: [7.3, 4.9, 3.9] as Vec3,
     expected_pbc: 3.308,
     expected_direct: 9.284,
   },
@@ -139,9 +139,9 @@ test.each([
       [3.0, 0.0, 0.0],
       [0.0, 3.0, 0.0],
       [0.0, 0.0, 30.0],
-    ] as [Vector, Vector, Vector],
-    pos1: [0.1, 0.1, 1.0] as Vector,
-    pos2: [2.9, 2.9, 29.0] as Vector,
+    ] as Matrix3x3,
+    pos1: [0.1, 0.1, 1.0] as Vec3,
+    pos2: [2.9, 2.9, 29.0] as Vec3,
     expected_pbc: 2.02,
     expected_direct: 28.279,
   },
@@ -151,9 +151,9 @@ test.each([
       [15.6, 0.0, 0.0],
       [0.0, 15.6, 0.0],
       [0.0, 0.0, 15.6],
-    ] as [Vector, Vector, Vector],
-    pos1: [0.2, 0.2, 0.2] as Vector,
-    pos2: [15.4, 15.4, 15.4] as Vector,
+    ] as Matrix3x3,
+    pos1: [0.2, 0.2, 0.2] as Vec3,
+    pos2: [15.4, 15.4, 15.4] as Vec3,
     expected_pbc: 0.693,
     expected_direct: 26.327,
   },
@@ -163,9 +163,9 @@ test.each([
       [50.0, 0.0, 0.0],
       [0.0, 4.0, 0.0],
       [0.0, 0.0, 4.0],
-    ] as [Vector, Vector, Vector],
-    pos1: [1.0, 2.0, 2.0] as Vector,
-    pos2: [49.0, 2.0, 2.0] as Vector,
+    ] as Matrix3x3,
+    pos1: [1.0, 2.0, 2.0] as Vec3,
+    pos2: [49.0, 2.0, 2.0] as Vec3,
     expected_pbc: 2.0,
     expected_direct: 48.0,
   },
@@ -175,9 +175,9 @@ test.each([
       [2.1, 0.0, 0.0],
       [0.0, 2.1, 0.0],
       [0.0, 0.0, 2.1],
-    ] as [Vector, Vector, Vector],
-    pos1: [0.05, 0.05, 0.05] as Vector,
-    pos2: [2.05, 2.05, 2.05] as Vector,
+    ] as Matrix3x3,
+    pos1: [0.05, 0.05, 0.05] as Vec3,
+    pos2: [2.05, 2.05, 2.05] as Vec3,
     expected_pbc: 0.173,
     expected_direct: 3.464,
   },
@@ -193,7 +193,7 @@ test.each([
 )
 
 test(`pbc_dist symmetry equivalence`, () => {
-  const sym_lattice: [Vector, Vector, Vector] = [
+  const sym_lattice: Matrix3x3 = [
     [6.0, 0.0, 0.0],
     [0.0, 6.0, 0.0],
     [0.0, 0.0, 6.0],
@@ -205,7 +205,7 @@ test(`pbc_dist symmetry equivalence`, () => {
   ]
 
   const equiv_distances = equiv_cases.map(({ pos1, pos2 }) =>
-    pbc_dist(pos1 as Vector, pos2 as Vector, sym_lattice)
+    pbc_dist(pos1 as Vec3, pos2 as Vec3, sym_lattice)
   )
 
   // All should be equal (0.2 Å)
@@ -222,22 +222,22 @@ test.each([
   { pos1: [0.1, 0.1, 0.1], pos2: [7.9, 11.9, 5.9], desc: `near boundaries` },
   { pos1: [4.0, 6.0, 3.0], pos2: [4.1, 6.1, 3.1], desc: `close positions` },
 ])(`pbc_dist optimized path consistency: $desc`, ({ pos1, pos2 }) => {
-  const lattice: [Vector, Vector, Vector] = [
+  const lattice: Matrix3x3 = [
     [8.0, 0.0, 0.0],
     [0.0, 12.0, 0.0],
     [0.0, 0.0, 6.0],
   ]
 
-  const lattice_inv: [Vector, Vector, Vector] = [
+  const lattice_inv: Matrix3x3 = [
     [1 / 8.0, 0.0, 0.0],
     [0.0, 1 / 12.0, 0.0],
     [0.0, 0.0, 1 / 6.0],
   ]
 
-  const standard = pbc_dist(pos1 as Vector, pos2 as Vector, lattice)
+  const standard = pbc_dist(pos1 as Vec3, pos2 as Vec3, lattice)
   const optimized = pbc_dist(
-    pos1 as Vector,
-    pos2 as Vector,
+    pos1 as Vec3,
+    pos2 as Vec3,
     lattice,
     lattice_inv,
   )
@@ -272,22 +272,22 @@ test.each([
     desc: `across boundary`,
   },
 ])(`pbc_dist optimization boundary conditions: $desc`, ({ pos1, pos2 }) => {
-  const unit_lattice: [Vector, Vector, Vector] = [
+  const unit_lattice: Matrix3x3 = [
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     [0.0, 0.0, 1.0],
   ]
 
-  const unit_lattice_inv: [Vector, Vector, Vector] = [
+  const unit_lattice_inv: Matrix3x3 = [
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     [0.0, 0.0, 1.0],
   ]
 
-  const standard = pbc_dist(pos1 as Vector, pos2 as Vector, unit_lattice)
+  const standard = pbc_dist(pos1 as Vec3, pos2 as Vec3, unit_lattice)
   const optimized = pbc_dist(
-    pos1 as Vector,
-    pos2 as Vector,
+    pos1 as Vec3,
+    pos2 as Vec3,
     unit_lattice,
     unit_lattice_inv,
   )
@@ -300,27 +300,27 @@ test.each([
 
 test(`pbc_dist optimization advanced scenarios`, () => {
   // Test with triclinic lattice determinism
-  const triclinic_lattice: [Vector, Vector, Vector] = [
+  const triclinic_lattice: Matrix3x3 = [
     [5.0, 0.0, 0.0],
     [2.5, 4.33, 0.0],
     [1.0, 1.0, 4.0],
   ]
 
-  const tri_pos1: Vector = [0.2, 0.2, 0.2]
-  const tri_pos2: Vector = [4.8, 4.1, 3.8]
+  const tri_pos1: Vec3 = [0.2, 0.2, 0.2]
+  const tri_pos2: Vec3 = [4.8, 4.1, 3.8]
 
   const tri_standard = pbc_dist(tri_pos1, tri_pos2, triclinic_lattice)
   const tri_standard_repeat = pbc_dist(tri_pos1, tri_pos2, triclinic_lattice)
   expect(tri_standard_repeat).toBeCloseTo(tri_standard, 10)
 
   // Test large lattice wrap-around behavior
-  const large_lattice: [Vector, Vector, Vector] = [
+  const large_lattice: Matrix3x3 = [
     [100.0, 0.0, 0.0],
     [0.0, 200.0, 0.0],
     [0.0, 0.0, 50.0],
   ]
 
-  const large_lattice_inv: [Vector, Vector, Vector] = [
+  const large_lattice_inv: Matrix3x3 = [
     [0.01, 0.0, 0.0],
     [0.0, 0.005, 0.0],
     [0.0, 0.0, 0.02],
@@ -330,10 +330,10 @@ test(`pbc_dist optimization advanced scenarios`, () => {
   const center_case = { pos1: [50.0, 100.0, 25.0], pos2: [51.0, 101.0, 26.0] }
 
   for (const { pos1, pos2 } of [wrap_around_case, center_case]) {
-    const standard = pbc_dist(pos1 as Vector, pos2 as Vector, large_lattice)
+    const standard = pbc_dist(pos1 as Vec3, pos2 as Vec3, large_lattice)
     const optimized = pbc_dist(
-      pos1 as Vector,
-      pos2 as Vector,
+      pos1 as Vec3,
+      pos2 as Vec3,
       large_lattice,
       large_lattice_inv,
     )
@@ -348,7 +348,7 @@ test(`pbc_dist optimization advanced scenarios`, () => {
 
     // For wrap-around case, PBC should be shorter than direct distance
     if (pos1[0] === 1.0 && pos2[0] === 99.0) {
-      const direct = euclidean_dist(pos1 as Vector, pos2 as Vector)
+      const direct = euclidean_dist(pos1 as Vec3, pos2 as Vec3)
       expect(standard).toBeLessThan(direct)
       expect(optimized).toBeLessThan(direct)
     }
@@ -566,7 +566,7 @@ test(`image atoms should have fractional coordinates related by lattice translat
 
     // Calculate fractional coordinates by solving: xyz = abc * lattice_matrix
     // Using simple method for cubic lattice
-    const image_abc: Vector = [
+    const image_abc: Vec3 = [
       image_xyz[0] / lattice_matrix[0][0],
       image_xyz[1] / lattice_matrix[1][1],
       image_xyz[2] / lattice_matrix[2][2],
@@ -668,7 +668,7 @@ test(`edge detection should be precise for atoms at boundaries`, () => {
   // Check that we get the expected corner images (with some tolerance)
   for (const expected_pos of expected_corner_images) {
     const found = corner_image_positions.some((actual_pos) => {
-      const dist = euclidean_dist(actual_pos, expected_pos as Vector)
+      const dist = euclidean_dist(actual_pos, expected_pos as Vec3)
       return dist < 0.001
     })
     expect(found).toBe(true)
@@ -709,8 +709,8 @@ test.each([
       sites: [
         {
           species: [{ element: `Na`, occu: 1, oxidation_state: 0 }],
-          abc: abc_coords as Vector,
-          xyz: [abc_coords[0] * 5.0, abc_coords[1] * 5.0, abc_coords[2] * 5.0] as Vector,
+          abc: abc_coords as Vec3,
+          xyz: [abc_coords[0] * 5.0, abc_coords[1] * 5.0, abc_coords[2] * 5.0] as Vec3,
           label: `Na1`,
           properties: {},
         },
@@ -755,7 +755,7 @@ test(`all image atoms should be positioned at unit cell boundaries`, () => {
       const lattice_matrix = structure.lattice.matrix
 
       // Convert to fractional coordinates
-      const image_abc: Vector = [
+      const image_abc: Vec3 = [
         image_xyz[0] / lattice_matrix[0][0],
         image_xyz[1] / lattice_matrix[1][1],
         image_xyz[2] / lattice_matrix[2][2],
@@ -829,7 +829,7 @@ test(`image atoms should have fractional coordinates at cell boundaries`, () => 
     const original_abc = test_structure.sites[original_idx].abc
 
     // Convert image position back to fractional coordinates
-    const image_abc: Vector = [
+    const image_abc: Vec3 = [
       image_xyz[0] / 4.0,
       image_xyz[1] / 4.0,
       image_xyz[2] / 4.0,
@@ -876,7 +876,7 @@ test(`comprehensive image atom validation`, () => {
 
     // 4. Validate image is related by lattice translation
     const lattice_matrix = structure.lattice.matrix
-    const image_abc: Vector = [
+    const image_abc: Vec3 = [
       image_xyz[0] / lattice_matrix[0][0],
       image_xyz[1] / lattice_matrix[1][1],
       image_xyz[2] / lattice_matrix[2][2],
@@ -969,13 +969,13 @@ test.each([
     const test_structure: PymatgenStructure = {
       sites: sites.map((site, idx) => ({
         species: [{ element: `C`, occu: 1, oxidation_state: 0 }],
-        abc: site.abc as Vector,
-        xyz: site.xyz as Vector,
+        abc: site.abc as Vec3,
+        xyz: site.xyz as Vec3,
         label: `C${idx + 1}`,
         properties: {},
       })),
       lattice: {
-        matrix: lattice as [Vector, Vector, Vector],
+        matrix: lattice as Matrix3x3,
         pbc: [true, true, true],
         a: lattice[0][0],
         b: lattice[1][1],

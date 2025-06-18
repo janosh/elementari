@@ -1,4 +1,5 @@
-import type { ElementSymbol, Vector } from '$lib'
+import type { ElementSymbol, Vec3 } from '$lib'
+import { Matrix3x3 } from '$lib/math'
 import type { Trajectory } from '$lib/trajectory'
 import {
   energy_data_extractor,
@@ -34,8 +35,8 @@ function create_basic_frame(
           species: [
             { element: `H` as ElementSymbol, occu: 1, oxidation_state: 0 },
           ],
-          abc: [0, 0, 0] as Vector,
-          xyz: [0, 0, 0] as Vector,
+          abc: [0, 0, 0] as Vec3,
+          xyz: [0, 0, 0] as Vec3,
           label: `H1`,
           properties: {},
         },
@@ -60,8 +61,8 @@ function create_frame_with_lattice(
           species: [
             { element: `H` as ElementSymbol, occu: 1, oxidation_state: 0 },
           ],
-          abc: [0, 0, 0] as Vector,
-          xyz: [0, 0, 0] as Vector,
+          abc: [0, 0, 0] as Vec3,
+          xyz: [0, 0, 0] as Vec3,
           label: `H1`,
           properties: {},
         },
@@ -72,7 +73,7 @@ function create_frame_with_lattice(
           [lattice_params.a || 1, 0, 0],
           [0, lattice_params.b || 1, 0],
           [0, 0, lattice_params.c || 1],
-        ] as [Vector, Vector, Vector],
+        ] as Matrix3x3,
         pbc: [true, true, true] as [boolean, boolean, boolean],
         a: lattice_params.a || 1,
         b: lattice_params.b || 1,
