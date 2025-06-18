@@ -117,7 +117,7 @@
   let loading = $state(false)
   let error_message = $state<string | null>(null)
   let is_playing = $state(false)
-  let frame_rate_fps = $state(1) // default 1 frame per second
+  let frame_rate_fps = $state(2)
   let play_interval: ReturnType<typeof setInterval> | undefined = $state(undefined)
   let current_filename = $state<string | null>(null)
   let current_file_path = $state<string | null>(null)
