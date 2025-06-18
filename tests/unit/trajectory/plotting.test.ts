@@ -1,4 +1,5 @@
 import type { ElementSymbol, Vec3 } from '$lib'
+import type { DataSeries } from '$lib/plot'
 import type { Trajectory, TrajectoryFrame } from '$lib/trajectory'
 import { generate_plot_series, should_hide_plot } from '$lib/trajectory/plotting'
 import { describe, expect, it } from 'vitest'
@@ -35,7 +36,7 @@ function test_extractor(frame: TrajectoryFrame): Record<string, number> {
 }
 
 // Helper to create a mock series for should_hide_plot tests
-function create_series(y_values: number[], visible = true, label = `Test`) {
+function create_series(y_values: number[], visible = true, label = `Test`): DataSeries {
   return {
     x: y_values.map((_, idx) => idx),
     y: y_values,

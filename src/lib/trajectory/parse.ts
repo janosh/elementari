@@ -651,9 +651,7 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     }
 
     // Check if we have enough lines for this frame
-    if (line_idx + num_atoms + 1 >= lines.length) {
-      break
-    }
+    if (line_idx + num_atoms + 1 >= lines.length) break
 
     // Parse comment line (line 2 of each frame) - may contain metadata
     line_idx++
@@ -764,6 +762,9 @@ export function parse_xyz_trajectory(content: string): Trajectory {
     const sites = []
     line_idx++
 
+    // Pre-compute inverse matrix once per frame for efficiency
+    const inv_matrix = lattice && get_inverse_matrix(lattice.matrix)
+
     for (let atom_idx = 0; atom_idx < num_atoms; atom_idx++) {
       if (line_idx >= lines.length) {
         throw new Error(`Incomplete XYZ frame: missing atomic coordinates`)
@@ -792,12 +793,9 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       const xyz: Vec3 = [x, y, z]
 
       // Calculate fractional coordinates if lattice info is available
-      let abc: Vec3 = [0, 0, 0]
-      if (lattice) {
-        // Convert Cartesian to fractional coordinates efficiently
-        const inv_matrix = get_inverse_matrix(lattice.matrix)
-        abc = math.mat3x3_vec3_multiply(inv_matrix, xyz)
-      }
+      const abc: Vec3 = inv_matrix
+        ? math.mat3x3_vec3_multiply(inv_matrix, xyz)
+        : [0, 0, 0]
 
       sites.push({
         species: [{ element, occu: 1, oxidation_state: 0 }],

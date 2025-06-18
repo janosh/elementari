@@ -502,8 +502,8 @@ describe(`tensor conversion utilities`, () => {
       if (tensor.some((row) => row.some((val) => isNaN(val)))) {
         expect(voigt.some((val) => isNaN(val))).toBe(true)
         expect(reconstructed.some((row) => row.some((val) => isNaN(val)))).toBe(true)
-      } else if (tensor.some((row) => row.some((val) => !isFinite(val)))) {
-        expect(voigt.some((val) => !isFinite(val))).toBe(true)
+      } else if (tensor.some((row) => row.some((val) => !Number.isFinite(val)))) {
+        expect(voigt.some((val) => !Number.isFinite(val))).toBe(true)
       } else {
         expect(reconstructed[0][0]).toBeCloseTo(tensor[0][0], -5)
       }

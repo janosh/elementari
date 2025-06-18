@@ -219,6 +219,26 @@
   let svg_element: SVGElement | null = $state(null) // Bind the SVG element
   let svg_bounding_box: DOMRect | null = $state(null) // Store SVG bounds during drag
 
+  // Stable ID assignment for series - computed once and cached
+  let next_id = 0
+  const series_id_cache = new WeakMap<object, number>()
+  let series_with_ids = $derived.by(() => {
+    return series.map((s) => {
+      if (!s || typeof s !== `object`) return s
+      if (`_id` in s && typeof s._id === `number`) return s // Already has stable ID
+
+      // Check cache first
+      if (series_id_cache.has(s)) {
+        return { ...s, _id: series_id_cache.get(s)! }
+      }
+
+      // Assign and cache new stable ID
+      const new_id = next_id++
+      series_id_cache.set(s, new_id)
+      return { ...s, _id: new_id }
+    })
+  })
+
   // Controls component reference to access internal states
   let controls_component: ScatterPlotControls | undefined = $state(undefined)
 
@@ -312,14 +332,14 @@
 
   // Create raw data points from all series
   let all_points = $derived(
-    series
+    series_with_ids
       .filter(Boolean)
       .flatMap(({ x: xs, y: ys }) => xs.map((x, idx) => ({ x, y: ys[idx] }))),
   )
 
   // Separate points by y-axis for range calculations
   let y1_points = $derived(
-    series
+    series_with_ids
       .filter(Boolean)
       .filter((s, idx) =>
         (series_visibility[idx] ?? true) && (s.y_axis ?? `y1`) === `y1`
@@ -328,7 +348,7 @@
   )
 
   let y2_points = $derived(
-    series
+    series_with_ids
       .filter(Boolean)
       .filter((s, idx) => (series_visibility[idx] ?? true) && s.y_axis === `y2`) // Only visible y2 series
       .flatMap(({ x: xs, y: ys }) => xs.map((x, idx) => ({ x, y: ys[idx] }))),
@@ -342,7 +362,9 @@
 
   // Compute data color values for color scaling
   let all_color_values = $derived(
-    series.filter(Boolean).flatMap((srs) => srs.color_values?.filter(Boolean) || []),
+    series_with_ids.filter(Boolean).flatMap((srs) =>
+      srs.color_values?.filter(Boolean) || []
+    ),
   )
 
   // Helper for computing nice data ranges with D3's nice() function
@@ -528,7 +550,7 @@
   let size_scale_fn = $derived.by(() => {
     const [min_radius, max_radius] = size_scale.radius_range ?? [2, 10]
     // Calculate all size values directly here
-    const current_all_size_values = series
+    const current_all_size_values = series_with_ids
       .filter(Boolean)
       .flatMap(({ size_values }) => size_values?.filter(Boolean) || [])
 
@@ -578,14 +600,14 @@
 
   // Filter series data to only include points within bounds and augment with internal data
   let filtered_series = $derived(
-    series
+    series_with_ids
       .map((data_series, series_idx) => {
         if (!series_visibility[series_idx]) {
           return {
             ...data_series,
             visible: false,
             filtered_data: [],
-          } as DataSeries & { filtered_data: InternalPoint[] }
+          } as DataSeries & { filtered_data: InternalPoint[]; _id: number }
         }
 
         if (!data_series) {
@@ -595,7 +617,8 @@
             y: [],
             visible: true, // Assume visible if undefined but we somehow process it
             filtered_data: [],
-          } as unknown as DataSeries & { filtered_data: InternalPoint[] }
+            _id: next_id++,
+          } as unknown as DataSeries & { filtered_data: InternalPoint[]; _id: number }
         }
 
         const { x: xs, y: ys, color_values, size_values, ...rest } = data_series
@@ -656,7 +679,7 @@
           ...data_series,
           visible: true, // Mark series as visible here
           filtered_data: filtered_data_with_extras as InternalPoint[],
-        } as DataSeries & { filtered_data: InternalPoint[] }
+        }
       })
       // Filter series end up completely empty after point filtering
       .filter((series_data) => series_data.filtered_data.length > 0),
@@ -747,7 +770,7 @@
 
   // Prepare data needed for the legend component
   let legend_data = $derived.by(() => {
-    return series.map((data_series, series_idx) => {
+    return series_with_ids.map((data_series, series_idx) => {
       const is_visible = series_visibility[series_idx] ?? true
       // Prefer top-level label, fallback to metadata label, then default
       const label = data_series?.label ??
@@ -1500,7 +1523,7 @@
   }
 
   let using_controls = $derived(show_controls && controls_component != null)
-  let has_multiple_series = $derived(series.filter(Boolean).length > 1)
+  let has_multiple_series = $derived(series_with_ids.filter(Boolean).length > 1)
 </script>
 
 <div class="scatter" bind:clientWidth={width} bind:clientHeight={height} {style}>
@@ -1564,13 +1587,9 @@
 
       <!-- Lines -->
       {#if markers?.includes(`line`) && show_lines}
-        {#each filtered_series ?? [] as
-          series_data,
-          series_idx
-          ([...series_data.x, ...series_data.y])
-        }
+        {#each filtered_series ?? [] as series_data (series_data._id)}
           {@const series_markers = series_data.markers ?? markers}
-          <g data-series-idx={series_idx} clip-path="url(#plot-area-clip)">
+          <g data-series-id={series_data._id} clip-path="url(#plot-area-clip)">
             {#if series_markers?.includes(`line`)}
               {@const all_line_points = series_data.x.map((x, idx) => ({
           x,
@@ -1581,7 +1600,7 @@
           .filter(([sx, sy]) => isFinite(sx) && isFinite(sy))}
               {@const apply_line_controls = using_controls &&
           (!has_multiple_series ||
-            series_idx === selected_series_idx)}
+            series_data._id === series_with_ids[selected_series_idx]?._id)}
               <Line
                 points={finite_screen_points}
                 origin={[
@@ -1613,13 +1632,9 @@
 
       <!-- Points -->
       {#if markers?.includes(`points`) && show_points}
-        {#each filtered_series ?? [] as
-          series_data,
-          series_idx
-          (series_data.label ?? series_idx)
-        }
+        {#each filtered_series ?? [] as series_data (series_data._id)}
           {@const series_markers = series_data.markers ?? markers}
-          <g data-series-idx={series_idx}>
+          <g data-series-id={series_data._id}>
             {#if series_markers?.includes(`points`)}
               {#each series_data.filtered_data as point ([point.x, point.y])}
                 {@const label_id = `${point.series_idx}-${point.point_idx}`}
@@ -1650,7 +1665,7 @@
           : (series_data.y_axis === `y2` ? y2_scale_fn : y_scale_fn).range()[0]}
                 {@const apply_controls = using_controls &&
           (!has_multiple_series ||
-            point.series_idx === selected_series_idx)}
+            series_data._id === series_with_ids[selected_series_idx]?._id)}
                 <ScatterPoint
                   x={screen_x}
                   y={screen_y}
@@ -1897,7 +1912,7 @@
       {#if tooltip_point && hovered}
         {@const { x, y, metadata, color_value, point_label, point_style, series_idx } =
         tooltip_point}
-        {@const hovered_series = series[series_idx]}
+        {@const hovered_series = series_with_ids[series_idx]}
         {@const series_markers = hovered_series?.markers ?? markers}
         {@const is_transparent_or_none = (color: string | undefined | null): boolean =>
         !color ||
@@ -2016,7 +2031,7 @@
       bind:show_points
       bind:show_lines
       bind:selected_series_idx
-      {series}
+      series={series_with_ids}
       {plot_controls}
       has_y2_points={y2_points.length > 0}
     />
