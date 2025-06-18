@@ -195,8 +195,9 @@
               <h4 class="section-heading">Point Style</h4>
               <div class="controls-group">
                 <div class="control-row">
-                  <label>Size:</label>
+                  <label for="point-size-range">Size:</label>
                   <input
+                    id="point-size-range"
                     type="range"
                     min="1"
                     max="20"
@@ -213,8 +214,9 @@
                   />
                 </div>
                 <div class="control-row">
-                  <label>Color:</label>
+                  <label for="point-color">Color:</label>
                   <input
+                    id="point-color"
                     type="color"
                     bind:value={point_color}
                     class="color-input"
@@ -238,8 +240,9 @@
                   />
                 </div>
                 <div class="control-row">
-                  <label>Stroke Width:</label>
+                  <label for="point-stroke-width-range">Stroke Width:</label>
                   <input
+                    id="point-stroke-width-range"
                     type="range"
                     min="0"
                     max="5"
@@ -256,8 +259,9 @@
                   />
                 </div>
                 <div class="control-row">
-                  <label>Stroke Color:</label>
+                  <label for="point-stroke-color">Stroke Color:</label>
                   <input
+                    id="point-stroke-color"
                     type="color"
                     bind:value={point_stroke_color}
                   />
@@ -287,8 +291,9 @@
               <h4 class="section-heading">Line Style</h4>
               <div class="controls-group">
                 <div class="control-row">
-                  <label>Line Width:</label>
+                  <label for="line-width-range">Line Width:</label>
                   <input
+                    id="line-width-range"
                     type="range"
                     min="0.5"
                     max="10"
@@ -305,8 +310,9 @@
                   />
                 </div>
                 <div class="control-row">
-                  <label>Line Color:</label>
+                  <label for="line-color">Line Color:</label>
                   <input
+                    id="line-color"
                     type="color"
                     bind:value={line_color}
                   />
@@ -329,8 +335,9 @@
                   />
                 </div>
                 <div class="control-row">
-                  <label>Line Style:</label>
+                  <label for="line-style-select">Line Style:</label>
                   <select
+                    id="line-style-select"
                     value={line_dash ?? `solid`}
                     onchange={(event) => {
                       line_dash = event.currentTarget.value === `solid`

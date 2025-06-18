@@ -267,11 +267,26 @@
   let legend_drag_offset = $state<{ x: number; y: number }>({ x: 0, y: 0 })
   let legend_manual_position = $state<{ x: number; y: number } | null>(null)
 
+  // Module-level constants to avoid repeated allocations
+  const DEFAULT_MARGIN = { t: 10, l: 10, b: 10, r: 10 } as const
+  const X_FACTORS = {
+    left: { anchor: 0, transform: `0` },
+    center: { anchor: 0.5, transform: `-50%` },
+    right: { anchor: 1, transform: `-100%` },
+  } as const
+  type XFactorKey = keyof typeof X_FACTORS
+  const Y_FACTORS = {
+    top: { anchor: 0, transform: `0` },
+    middle: { anchor: 0.5, transform: `-50%` },
+    bottom: { anchor: 1, transform: `-100%` },
+  } as const
+  type YFactorKey = keyof typeof Y_FACTORS
+
   function normalize_margin(margin: number | Sides | undefined): Required<Sides> {
     if (typeof margin === `number`) {
       return { t: margin, l: margin, b: margin, r: margin }
     }
-    return { t: 10, l: 10, b: 10, r: 10, ...margin }
+    return { ...DEFAULT_MARGIN, ...margin }
   }
 
   function get_placement_styles( //  based on grid cell
@@ -288,31 +303,12 @@
       item_type === `legend` ? legend?.margin : color_bar?.margin,
     )
 
-    const x_anchor_factors: Record<string, number> = {
-      left: 0,
-      center: 0.5,
-      right: 1,
-    }
-    const y_anchor_factors: Record<string, number> = {
-      top: 0,
-      middle: 0.5,
-      bottom: 1,
-    }
-    const x_transform_factors: Record<string, string> = {
-      left: `0`,
-      center: `-50%`,
-      right: `-100%`,
-    }
-    const y_transform_factors: Record<string, string> = {
-      top: `0`,
-      middle: `-50%`,
-      bottom: `-100%`,
-    }
+    const [y_part, x_part] = cell.split(`-`) as [YFactorKey, XFactorKey]
+    const x_factor = X_FACTORS[x_part]
+    const y_factor = Y_FACTORS[y_part]
 
-    const [y_part, x_part] = cell.split(`-`)
-
-    const base_x = effective_pad.l + plot_width * x_anchor_factors[x_part]
-    const base_y = effective_pad.t + plot_height * y_anchor_factors[y_part]
+    const base_x = effective_pad.l + plot_width * x_factor.anchor
+    const base_y = effective_pad.t + plot_height * y_factor.anchor
 
     // Adjust base position by margin depending on anchor point
     const target_x = base_x +
@@ -320,11 +316,8 @@
     const target_y = base_y +
       (y_part === `top` ? margin.t : y_part === `bottom` ? -margin.b : 0)
 
-    const transform_x = x_transform_factors[x_part]
-    const transform_y = y_transform_factors[y_part]
-
-    const transform = transform_x !== `0` || transform_y !== `0`
-      ? `translate(${transform_x}, ${transform_y})`
+    const transform = x_factor.transform !== `0` || y_factor.transform !== `0`
+      ? `translate(${x_factor.transform}, ${y_factor.transform})`
       : ``
 
     return { left: target_x, top: target_y, transform }
@@ -1522,7 +1515,7 @@
     return [screen_x, screen_y]
   }
 
-  let using_controls = $derived(show_controls && controls_component != null)
+  let using_controls = $derived(show_controls)
   let has_multiple_series = $derived(series_with_ids.filter(Boolean).length > 1)
 </script>
 
@@ -2009,32 +2002,34 @@
     </svg>
 
     <!-- Control Panel positioned in top-right corner -->
-    <ScatterPlotControls
-      bind:this={controls_component}
-      bind:show_controls
-      bind:controls_open
-      bind:markers
-      bind:show_zero_lines
-      bind:x_grid
-      bind:y_grid
-      bind:y2_grid
-      bind:point_size
-      bind:point_color
-      bind:point_opacity
-      bind:point_stroke_width
-      bind:point_stroke_color
-      bind:point_stroke_opacity
-      bind:line_width
-      bind:line_color
-      bind:line_opacity
-      bind:line_dash
-      bind:show_points
-      bind:show_lines
-      bind:selected_series_idx
-      series={series_with_ids}
-      {plot_controls}
-      has_y2_points={y2_points.length > 0}
-    />
+    {#if show_controls}
+      <ScatterPlotControls
+        bind:this={controls_component}
+        bind:show_controls
+        bind:controls_open
+        bind:markers
+        bind:show_zero_lines
+        bind:x_grid
+        bind:y_grid
+        bind:y2_grid
+        bind:point_size
+        bind:point_color
+        bind:point_opacity
+        bind:point_stroke_width
+        bind:point_stroke_color
+        bind:point_stroke_opacity
+        bind:line_width
+        bind:line_color
+        bind:line_opacity
+        bind:line_dash
+        bind:show_points
+        bind:show_lines
+        bind:selected_series_idx
+        series={series_with_ids}
+        {plot_controls}
+        has_y2_points={y2_points.length > 0}
+      />
+    {/if}
 
     <!-- Color Bar -->
     {#if color_bar && all_color_values.length > 0 && color_bar_cell}
