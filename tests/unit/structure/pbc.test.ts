@@ -1,4 +1,5 @@
 import { parse_structure_file } from '$lib/io/parse'
+import * as math from '$lib/math'
 import { euclidean_dist, type Matrix3x3, pbc_dist, type Vec3 } from '$lib/math'
 import {
   find_image_atoms,
@@ -493,7 +494,7 @@ test.each([
     let structure: PymatgenStructure
 
     if (filename.endsWith(`.json`)) {
-      structure = content
+      structure = content as unknown as PymatgenStructure
     } else {
       const parsed = parse_structure_file(content as string, filename)
       if (!parsed || !parsed.lattice) {
@@ -516,19 +517,31 @@ test.each([
     expect(image_atoms.length).toBeLessThanOrEqual(expected_max_images)
 
     // Test that all image atoms have valid positions
-    for (const [original_idx, image_xyz] of image_atoms) {
+    for (const [original_idx, image_xyz, image_abc] of image_atoms) {
       // Original index should be valid
       expect(original_idx).toBeGreaterThanOrEqual(0)
       expect(original_idx).toBeLessThan(structure.sites.length)
 
       // Image position should be finite and valid
       expect(image_xyz).toHaveLength(3)
-      expect(image_xyz.every((coord) => isFinite(coord))).toBe(true)
+      expect(image_xyz.every((coord) => Number.isFinite(coord))).toBe(true)
+
+      // Image fractional coordinates should be finite and valid
+      expect(image_abc).toHaveLength(3)
+      expect(image_abc.every((coord) => Number.isFinite(coord))).toBe(true)
 
       // Image position should be different from original
       const original_xyz = structure.sites[original_idx].xyz
       const distance = euclidean_dist(original_xyz, image_xyz)
       expect(distance).toBeGreaterThan(0.01) // Should be at least 0.01 Å away
+
+      // Image fractional coordinates should be related by integer translations
+      const original_abc = structure.sites[original_idx].abc
+      const has_translation = [0, 1, 2].some((dim) => {
+        const frac_diff = image_abc[dim] - original_abc[dim]
+        return Math.abs(Math.round(frac_diff)) > 0
+      })
+      expect(has_translation).toBe(true)
     }
 
     // Test get_pbc_image_sites
@@ -560,22 +573,7 @@ test(`image atoms should have fractional coordinates related by lattice translat
   expect(image_atoms.length).toBeGreaterThan(0) // Should have some image atoms
 
   // Check each image atom
-  for (const [original_idx, image_xyz] of image_atoms) {
-    // Convert image xyz back to fractional coordinates
-    const lattice_matrix = structure.lattice.matrix
-
-    // Calculate fractional coordinates by solving: xyz = abc * lattice_matrix
-    // Using simple method for cubic lattice
-    const image_abc: Vec3 = [
-      image_xyz[0] / lattice_matrix[0][0],
-      image_xyz[1] / lattice_matrix[1][1],
-      image_xyz[2] / lattice_matrix[2][2],
-    ]
-
-    // Image atoms should have fractional coordinates that place them
-    // either just inside or just outside the unit cell boundary
-    // but be related to original atoms by lattice translations
-
+  for (const [original_idx, image_xyz, image_abc] of image_atoms) {
     const original_abc = structure.sites[original_idx].abc
 
     // Check that image is related to original by integer lattice translations
@@ -593,6 +591,18 @@ test(`image atoms should have fractional coordinates related by lattice translat
       const frac_diff = image_abc[dim] - original_abc[dim]
       const int_diff = Math.round(frac_diff)
       expect(Math.abs(frac_diff - int_diff)).toBeLessThan(0.001)
+    }
+
+    // Verify xyz and abc coordinates are consistent
+    const lattice_matrix = structure.lattice.matrix
+    const expected_xyz: Vec3 = [
+      image_abc[0] * lattice_matrix[0][0],
+      image_abc[1] * lattice_matrix[1][1],
+      image_abc[2] * lattice_matrix[2][2],
+    ]
+
+    for (let dim = 0; dim < 3; dim++) {
+      expect(image_xyz[dim]).toBeCloseTo(expected_xyz[dim], 10)
     }
   }
 })
@@ -640,15 +650,15 @@ test(`edge detection should be precise for atoms at boundaries`, () => {
   const image_atoms = find_image_atoms(test_structure)
 
   // Atom at (0,0,0) should generate images in all directions
-  const corner_images = image_atoms.filter(([idx, _]) => idx === 0)
+  const corner_images = image_atoms.filter(([idx]) => idx === 0)
   expect(corner_images.length).toBeGreaterThan(0)
 
   // Atom at (1,0,0) should generate images
-  const edge_images = image_atoms.filter(([idx, _]) => idx === 1)
+  const edge_images = image_atoms.filter(([idx]) => idx === 1)
   expect(edge_images.length).toBeGreaterThan(0)
 
   // Atom at (0.5,0.5,0.5) should NOT generate images (not at edge)
-  const center_images = image_atoms.filter(([idx, _]) => idx === 2)
+  const center_images = image_atoms.filter(([idx]) => idx === 2)
   expect(center_images.length).toBe(0)
 
   // Check specific image positions for corner atom
@@ -825,16 +835,10 @@ test(`image atoms should have fractional coordinates at cell boundaries`, () => 
 
   // Check that all image atoms have fractional coordinates that are
   // related to originals by integer translations
-  for (const [original_idx, image_xyz] of image_atoms) {
+  for (const [original_idx, image_xyz, image_abc] of image_atoms) {
     const original_abc = test_structure.sites[original_idx].abc
 
-    // Convert image position back to fractional coordinates
-    const image_abc: Vec3 = [
-      image_xyz[0] / 4.0,
-      image_xyz[1] / 4.0,
-      image_xyz[2] / 4.0,
-    ]
-
+    // Image fractional coordinates are now directly provided
     // Each fractional coordinate should differ by an integer
     for (let dim = 0; dim < 3; dim++) {
       const diff = image_abc[dim] - original_abc[dim]
@@ -843,12 +847,14 @@ test(`image atoms should have fractional coordinates at cell boundaries`, () => 
     }
 
     // At least one coordinate should be translated by a non-zero integer
-    const translations = [
-      Math.round(image_abc[0] - original_abc[0]),
-      Math.round(image_abc[1] - original_abc[1]),
-      Math.round(image_abc[2] - original_abc[2]),
-    ]
-    expect(translations.some((t) => t !== 0)).toBe(true)
+    expect(image_abc.some((val, idx) => val !== original_abc[idx])).toBe(true)
+
+    // Verify xyz and abc coordinates are consistent
+    const expected_xyz: Vec3 = math.scale(image_abc, 4.0) as Vec3
+
+    for (let dim = 0; dim < 3; dim++) {
+      expect(image_xyz[dim]).toBeCloseTo(expected_xyz[dim], 10)
+    }
   }
 })
 
@@ -859,7 +865,7 @@ test(`comprehensive image atom validation`, () => {
 
   expect(image_atoms.length).toBeGreaterThan(0)
 
-  for (const [original_idx, image_xyz] of image_atoms) {
+  for (const [original_idx, image_xyz, image_abc] of image_atoms) {
     // 1. Validate original index
     expect(original_idx).toBeGreaterThanOrEqual(0)
     expect(original_idx).toBeLessThan(structure.sites.length)
@@ -869,18 +875,17 @@ test(`comprehensive image atom validation`, () => {
     expect(image_xyz.every((coord) => Number.isFinite(coord))).toBe(true)
     expect(image_xyz.every((coord) => !Number.isNaN(coord))).toBe(true)
 
-    // 3. Validate image is different from original
+    // 3. Validate image fractional coordinates are finite and valid
+    expect(image_abc).toHaveLength(3)
+    expect(image_abc.every((coord) => Number.isFinite(coord))).toBe(true)
+    expect(image_abc.every((coord) => !Number.isNaN(coord))).toBe(true)
+
+    // 4. Validate image is different from original
     const original_xyz = structure.sites[original_idx].xyz
     const distance = euclidean_dist(original_xyz, image_xyz)
     expect(distance).toBeGreaterThan(0.01)
 
-    // 4. Validate image is related by lattice translation
-    const lattice_matrix = structure.lattice.matrix
-    const image_abc: Vec3 = [
-      image_xyz[0] / lattice_matrix[0][0],
-      image_xyz[1] / lattice_matrix[1][1],
-      image_xyz[2] / lattice_matrix[2][2],
-    ]
+    // 5. Validate image is related by lattice translation
     const original_abc = structure.sites[original_idx].abc
 
     // Check fractional coordinate differences are integers
@@ -888,6 +893,18 @@ test(`comprehensive image atom validation`, () => {
       const frac_diff = image_abc[dim] - original_abc[dim]
       const int_diff = Math.round(frac_diff)
       expect(Math.abs(frac_diff - int_diff)).toBeLessThan(1e-6)
+    }
+
+    // 6. Validate xyz and abc coordinates are consistent
+    const lattice_matrix = structure.lattice.matrix
+    const expected_xyz: Vec3 = [
+      image_abc[0] * lattice_matrix[0][0],
+      image_abc[1] * lattice_matrix[1][1],
+      image_abc[2] * lattice_matrix[2][2],
+    ]
+
+    for (let dim = 0; dim < 3; dim++) {
+      expect(image_xyz[dim]).toBeCloseTo(expected_xyz[dim], 10)
     }
   }
 })
@@ -901,7 +918,7 @@ test(`image atom generation should not create duplicates`, () => {
   const unique_positions = new Set<string>()
   let duplicates_found = 0
 
-  for (const [_, image_xyz] of image_atoms) {
+  for (const [_, image_xyz, __] of image_atoms) {
     // Create a string representation of the position with reasonable precision
     const pos_key = image_xyz.map((coord) => coord.toFixed(6)).join(`,`)
 
@@ -920,8 +937,8 @@ test(`image atom generation should not create duplicates`, () => {
   // Alternative check: ensure all pairwise distances are reasonable
   for (let i = 0; i < image_atoms.length; i++) {
     for (let j = i + 1; j < image_atoms.length; j++) {
-      const pos1 = image_atoms[i][1]
-      const pos2 = image_atoms[j][1]
+      const pos1 = image_atoms[i][1] // xyz coordinates
+      const pos2 = image_atoms[j][1] // xyz coordinates
       const distance = euclidean_dist(pos1, pos2)
 
       // No two image atoms should be at exactly the same position
@@ -982,10 +999,129 @@ test.each([
     expect(image_atoms.length).toBeGreaterThanOrEqual(expected_min)
 
     // Validate all image atoms
-    for (const [original_idx, image_xyz] of image_atoms) {
+    for (const [original_idx, image_xyz, image_abc] of image_atoms) {
       expect(original_idx).toBeGreaterThanOrEqual(0)
       expect(original_idx).toBeLessThan(test_structure.sites.length)
       expect(image_xyz.every((coord) => Number.isFinite(coord))).toBe(true)
+      expect(image_abc.every((coord) => Number.isFinite(coord))).toBe(true)
+
+      // Verify fractional coordinates are related by integer translations
+      const original_abc = test_structure.sites[original_idx].abc
+      for (let dim = 0; dim < 3; dim++) {
+        const frac_diff = image_abc[dim] - original_abc[dim]
+        const int_diff = Math.round(frac_diff)
+        expect(Math.abs(frac_diff - int_diff)).toBeLessThan(1e-10)
+      }
     }
   },
 )
+
+// Test the new behavior: abc coordinates should be preserved and synchronized with xyz
+test(`image atoms preserve fractional coordinates correctly`, () => {
+  // Create a simple test structure with atoms at known boundary positions
+  const test_structure: PymatgenStructure = {
+    sites: [
+      {
+        species: [{ element: `Na`, occu: 1, oxidation_state: 0 }],
+        abc: [0.0, 0.0, 0.0], // Corner atom
+        xyz: [0.0, 0.0, 0.0],
+        label: `Na1`,
+        properties: {},
+      },
+      {
+        species: [{ element: `Cl`, occu: 1, oxidation_state: 0 }],
+        abc: [1.0, 0.5, 0.0], // Edge atom in x-direction
+        xyz: [5.0, 2.5, 0.0],
+        label: `Cl1`,
+        properties: {},
+      },
+    ],
+    lattice: {
+      matrix: [[5.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 5.0]],
+      pbc: [true, true, true],
+      a: 5.0,
+      b: 5.0,
+      c: 5.0,
+      alpha: 90,
+      beta: 90,
+      gamma: 90,
+      volume: 125.0,
+    },
+  }
+
+  const image_atoms = find_image_atoms(test_structure)
+  expect(image_atoms.length).toBeGreaterThan(0)
+
+  // Test get_pbc_image_sites to ensure the fractional coordinates are properly set
+  const symmetrized = get_pbc_image_sites(test_structure)
+
+  // Check that each image atom in the symmetrized structure has correct abc coordinates
+  const original_count = test_structure.sites.length
+  const image_sites = symmetrized.sites.slice(original_count) // Image atoms are added after original atoms
+
+  expect(image_sites.length).toBe(image_atoms.length)
+
+  for (let idx = 0; idx < image_atoms.length; idx++) {
+    const [original_idx, expected_xyz, expected_abc] = image_atoms[idx]
+    const image_site = image_sites[idx]
+
+    // Verify the image site has the expected coordinates
+    for (let dim = 0; dim < 3; dim++) {
+      expect(image_site.xyz[dim]).toBeCloseTo(expected_xyz[dim], 10)
+      expect(image_site.abc[dim]).toBeCloseTo(expected_abc[dim], 10)
+    }
+
+    // Verify consistency between abc and xyz coordinates in the image site
+    const lattice_matrix = test_structure.lattice.matrix
+    const computed_xyz: Vec3 = [
+      image_site.abc[0] * lattice_matrix[0][0],
+      image_site.abc[1] * lattice_matrix[1][1],
+      image_site.abc[2] * lattice_matrix[2][2],
+    ]
+
+    for (let dim = 0; dim < 3; dim++) {
+      expect(image_site.xyz[dim]).toBeCloseTo(computed_xyz[dim], 10)
+    }
+
+    // Verify the image abc coordinates are related to original by integer translations
+    const original_abc = test_structure.sites[original_idx].abc
+    for (let dim = 0; dim < 3; dim++) {
+      const diff = image_site.abc[dim] - original_abc[dim]
+      const rounded_diff = Math.round(diff)
+      expect(Math.abs(diff - rounded_diff)).toBeLessThan(1e-10)
+    }
+
+    // Verify at least one dimension has non-zero translation
+    const has_translation = [0, 1, 2].some((dim) => {
+      const diff = image_site.abc[dim] - original_abc[dim]
+      return Math.abs(Math.round(diff)) > 0
+    })
+    expect(has_translation).toBe(true)
+  }
+})
+
+// Test that the new tuple format works correctly for downstream code
+test(`find_image_atoms returns correct tuple format`, () => {
+  const structure = mp1_json as unknown as PymatgenStructure
+  const image_atoms = find_image_atoms(structure)
+
+  expect(image_atoms.length).toBeGreaterThan(0)
+
+  for (const tuple of image_atoms) {
+    // Should be exactly 3 elements: [original_idx, image_xyz, image_abc]
+    expect(tuple).toHaveLength(3)
+
+    const [original_idx, image_xyz, image_abc] = tuple
+
+    // Type checks
+    expect(typeof original_idx).toBe(`number`)
+    expect(Array.isArray(image_xyz)).toBe(true)
+    expect(Array.isArray(image_abc)).toBe(true)
+    expect(image_xyz).toHaveLength(3)
+    expect(image_abc).toHaveLength(3)
+
+    // All coordinates should be finite numbers
+    expect(image_xyz.every((coord) => Number.isFinite(coord))).toBe(true)
+    expect(image_abc.every((coord) => Number.isFinite(coord))).toBe(true)
+  }
+})

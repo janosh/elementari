@@ -15,6 +15,8 @@
     dialog_style?: string | null
     tips_modal_snippet?: Snippet
     amount_format?: string // Float formatting for element amounts (default: 3 significant digits)
+    show_amounts?: boolean // Whether to show element amounts
+    get_element_label?: (element: string, amount: number) => string // Custom label function
   }
   let {
     elements,
@@ -25,7 +27,15 @@
     dialog_style = null,
     tips_modal_snippet,
     amount_format = `.3~f`,
+    show_amounts = true,
+    get_element_label,
   }: Props = $props()
+
+  // Generate label text for each element
+  function get_label_text(element: string, amount: number): string {
+    if (get_element_label) return get_element_label(element, amount)
+    return show_amounts ? `${element}${format_num(amount, amount_format)}` : element
+  }
 </script>
 
 <div {style}>
@@ -44,7 +54,7 @@
         }}
         style:color={choose_bw_for_contrast(labels[idx], null, 0.55)}
       >
-        {elem}{format_num(amt, amount_format)}
+        {get_label_text(elem, amt)}
         <input
           type="color"
           bind:value={colors.element[elem]}

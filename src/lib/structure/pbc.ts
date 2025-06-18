@@ -6,12 +6,12 @@ import type { PymatgenStructure } from './index'
 export function find_image_atoms(
   structure: PymatgenStructure,
   { tolerance = 0.05 }: { tolerance?: number } = {},
-): [number, Vec3][] {
-  // Find image atoms for PBC. Returns [atom_idx, image_xyz] pairs.
+): [number, Vec3, Vec3][] {
+  // Find image atoms for PBC. Returns [atom_idx, image_xyz, image_abc] tuples.
   // Skips image generation for trajectory data with scattered atoms.
   if (!structure.lattice) return []
 
-  const image_sites: Array<[number, Vec3]> = []
+  const image_sites: Array<[number, Vec3, Vec3]> = []
   const lattice_vecs = structure.lattice.matrix
 
   // Check for trajectory data (atoms scattered outside unit cell)
@@ -44,6 +44,7 @@ export function find_image_atoms(
     if (edge_dims.length > 0) {
       for (let mask = 1; mask < (1 << edge_dims.length); mask++) {
         let img_xyz: Vec3 = [...site.xyz]
+        const img_abc: Vec3 = [...site.abc]
 
         // Apply selected translations
         for (let bit = 0; bit < edge_dims.length; bit++) {
@@ -52,10 +53,11 @@ export function find_image_atoms(
             const translation = scale(lattice_vecs[dim], direction)
             const sum = add(img_xyz, translation)
             img_xyz = [sum[0], sum[1], sum[2]] as Vec3
+            img_abc[dim] += direction // Update fractional coordinate
           }
         }
 
-        image_sites.push([idx, img_xyz])
+        image_sites.push([idx, img_xyz, img_abc])
       }
     }
   }
@@ -89,9 +91,9 @@ export function get_pbc_image_sites(
   symmetrized_structure.sites = [...structure.sites]
 
   // Add image atoms as new sites
-  for (const [site_idx, img_xyz] of image_sites) {
+  for (const [site_idx, img_xyz, img_abc] of image_sites) {
     const original_site = structure.sites[site_idx]
-    symmetrized_structure.sites.push({ ...original_site, xyz: img_xyz })
+    symmetrized_structure.sites.push({ ...original_site, abc: img_abc, xyz: img_xyz })
   }
 
   return symmetrized_structure

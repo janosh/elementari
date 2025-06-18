@@ -1,4 +1,4 @@
-import type { PymatgenMolecule } from '$lib/index.ts'
+import type { PymatgenMolecule } from '$lib/index'
 
 export const molecules = Object.entries(
   import.meta.glob(`./*.json`, {
