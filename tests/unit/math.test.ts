@@ -30,6 +30,26 @@ test.each([
   expect(math.dot(vec1, vec2)).toEqual(expected)
 })
 
+test.each([
+  // Identity matrix - should return the same vector
+  [[[1, 0, 0], [0, 1, 0], [0, 0, 1]], [3, 4, 5], [3, 4, 5]],
+  // Zero matrix - should return zero vector
+  [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [1, 2, 3], [0, 0, 0]],
+  // Zero vector - should return zero vector
+  [[[1, 2, 3], [4, 5, 6], [7, 8, 9]], [0, 0, 0], [0, 0, 0]],
+  // Basic multiplication
+  [[[1, 2, 3], [4, 5, 6], [7, 8, 9]], [1, 2, 3], [14, 32, 50]],
+  // Scaling matrix
+  [[[2, 0, 0], [0, 3, 0], [0, 0, 4]], [1, 2, 3], [2, 6, 12]],
+  // Rotation around z-axis (90 degrees)
+  [[[0, -1, 0], [1, 0, 0], [0, 0, 1]], [1, 0, 0], [0, 1, 0]],
+  // Complex example
+  [[[1, 2, 3], [0, 1, 4], [5, 6, 0]], [2, 3, 1], [11, 7, 28]],
+])(`mat3x3_vec3_multiply`, (matrix, vector, expected) => {
+  expect(math.mat3x3_vec3_multiply(matrix as math.Matrix3x3, vector as math.Vec3))
+    .toEqual(expected)
+})
+
 test(`dot matrix operations`, () => {
   const matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] as unknown as NdVector
   const vector: NdVector = [2, 3, 4]

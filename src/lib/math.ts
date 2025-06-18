@@ -59,8 +59,8 @@ export function pbc_dist(
   const inv_matrix = lattice_inv ?? matrix_inverse_3x3(lattice_matrix)
 
   // Convert Cartesian coordinates to fractional coordinates
-  const frac1 = matrix_vector_multiply(inv_matrix, pos1)
-  const frac2 = matrix_vector_multiply(inv_matrix, pos2)
+  const frac1 = mat3x3_vec3_multiply(inv_matrix, pos1)
+  const frac2 = mat3x3_vec3_multiply(inv_matrix, pos2)
 
   // Calculate fractional distance vector
   const frac_diff = add(frac1, scale(frac2, -1))
@@ -74,7 +74,7 @@ export function pbc_dist(
   }) as Vec3
 
   // Convert back to Cartesian coordinates
-  const cart_diff = matrix_vector_multiply(lattice_matrix, wrapped_frac_diff)
+  const cart_diff = mat3x3_vec3_multiply(lattice_matrix, wrapped_frac_diff)
 
   return norm(cart_diff)
 }
@@ -110,18 +110,14 @@ export function matrix_inverse_3x3(matrix: Matrix3x3): Matrix3x3 {
   ]
 }
 
-export function matrix_vector_multiply(matrix: Matrix3x3, vector: Vec3): Vec3 {
-  /** Multiply a 3x3 matrix by a 3D vector */
+// Multiply a 3x3 matrix by a 3D vector
+export function mat3x3_vec3_multiply(matrix: Matrix3x3, vector: Vec3): Vec3 {
+  const [a, b, c] = matrix
+  const [x, y, z] = vector
   return [
-    matrix[0][0] * vector[0] +
-    matrix[0][1] * vector[1] +
-    matrix[0][2] * vector[2],
-    matrix[1][0] * vector[0] +
-    matrix[1][1] * vector[1] +
-    matrix[1][2] * vector[2],
-    matrix[2][0] * vector[0] +
-    matrix[2][1] * vector[1] +
-    matrix[2][2] * vector[2],
+    a[0] * x + a[1] * y + a[2] * z,
+    b[0] * x + b[1] * y + b[2] * z,
+    c[0] * x + c[1] * y + c[2] * z,
   ]
 }
 
@@ -148,26 +144,19 @@ export function add(...vecs: NdVector[]): NdVector {
   return result
 }
 
-export function dot(
-  x1: NdVector,
-  x2: NdVector,
-): number | number[] | number[][] {
+export function dot(vec1: NdVector, vec2: NdVector): number | number[] | number[][] {
   // Handle the case where both inputs are scalars
-  if (typeof x1 === `number` && typeof x2 === `number`) {
-    return x1 * x2
+  if (typeof vec1 === `number` && typeof vec2 === `number`) {
+    return vec1 * vec2
   }
 
   // Handle the case where one input is a scalar and the other is a vector
-  if (typeof x1 === `number` && Array.isArray(x2)) {
+  if (typeof vec1 === `number` && Array.isArray(vec2)) {
     throw `Scalar and vector multiplication is not supported`
   }
-  if (Array.isArray(x1) && typeof x2 === `number`) {
+  if (Array.isArray(vec1) && typeof vec2 === `number`) {
     throw `vector and scalar multiplication is not supported`
   }
-
-  // At this point, we know that both inputs are arrays
-  const vec1 = x1 as number[]
-  const vec2 = x2 as number[]
 
   // Handle the case where both inputs are vectors
   if (!Array.isArray(vec1[0]) && !Array.isArray(vec2[0])) {

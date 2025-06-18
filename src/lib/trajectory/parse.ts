@@ -334,12 +334,8 @@ export async function parse_torch_sim_hdf5(
             ))
             : [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) as Matrix3x3
 
-          // Calculate lattice parameters efficiently
-          const lattice = {
-            matrix: lattice_matrix,
-            ...math.calc_lattice_params(lattice_matrix),
-            pbc: [true, true, true],
-          }
+          const lattice_params = math.calc_lattice_params(lattice_matrix)
+          const lattice = { matrix: lattice_matrix, ...lattice_params, pbc }
 
           // Cache inverse matrix for coordinate transformations
           const inv_matrix = get_inverse_matrix(lattice_matrix)
@@ -347,7 +343,7 @@ export async function parse_torch_sim_hdf5(
           // Create sites array in the expected format
           const sites = frame_positions.map((xyz_pos, atom_idx) => {
             // Convert Cartesian coordinates to fractional coordinates efficiently
-            const abc = math.matrix_vector_multiply(inv_matrix, xyz_pos as Vec3)
+            const abc = math.mat3x3_vec3_multiply(inv_matrix, xyz_pos as Vec3)
 
             return {
               species: [{ element: elements[atom_idx], occu: 1, oxidation_state: 0 }],
@@ -476,11 +472,7 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
   }
 
   // Parse lattice vectors (3 lines)
-  const lattice_vectors: Matrix3x3 = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ]
+  const lattice_vectors: Matrix3x3 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
   for (let i = 0; i < 3; i++) {
     const coords = lines[line_idx++].trim().split(/\s+/).map(Number)
     if (coords.length !== 3 || coords.some(isNaN)) {
@@ -489,12 +481,8 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
     lattice_vectors[i] = coords.map((x) => x * scale_factor) as Vec3
   }
 
-  // Calculate lattice parameters efficiently
-  const lattice = {
-    matrix: lattice_vectors,
-    ...math.calc_lattice_params(lattice_vectors),
-    pbc: [true, true, true],
-  }
+  const lattice_params = math.calc_lattice_params(lattice_vectors)
+  const lattice = { matrix: lattice_vectors, ...lattice_params, pbc: [true, true, true] }
 
   // Parse element names and counts
   const element_line = lines[line_idx++].trim().split(/\s+/)
@@ -560,7 +548,7 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
       const abc: Vec3 = [coords[0], coords[1], coords[2]]
 
       // Convert fractional to Cartesian coordinates efficiently
-      const xyz = math.matrix_vector_multiply(math.transpose_matrix(lattice_vectors), abc)
+      const xyz = math.mat3x3_vec3_multiply(math.transpose_matrix(lattice_vectors), abc)
 
       sites.push({
         species: [{ element, occu: 1, oxidation_state: 0 }],
@@ -762,12 +750,8 @@ export function parse_xyz_trajectory(content: string): Trajectory {
           [lattice_values[6], lattice_values[7], lattice_values[8]],
         ]
 
-        // Calculate lattice parameters efficiently
-        lattice = {
-          matrix: lattice_matrix,
-          ...math.calc_lattice_params(lattice_matrix),
-          pbc: [true, true, true],
-        }
+        const lattice_params = math.calc_lattice_params(lattice_matrix)
+        lattice = { matrix: lattice_matrix, ...lattice_params, pbc: [true, true, true] }
 
         // Add calculated volume to metadata if not already present
         if (!frame_metadata.volume) {
@@ -812,7 +796,7 @@ export function parse_xyz_trajectory(content: string): Trajectory {
       if (lattice) {
         // Convert Cartesian to fractional coordinates efficiently
         const inv_matrix = get_inverse_matrix(lattice.matrix)
-        abc = math.matrix_vector_multiply(inv_matrix, xyz)
+        abc = math.mat3x3_vec3_multiply(inv_matrix, xyz)
       }
 
       sites.push({
@@ -934,35 +918,21 @@ export function parse_pymatgen_trajectory(
 ): Trajectory {
   const species = obj_data.species as Array<{ element: ElementSymbol }>
   const coords = obj_data.coords as number[][][] // [frame][atom][xyz]
-  const lattice = obj_data.lattice as number[][] // lattice vectors
+  const matrix = obj_data.lattice as Matrix3x3 // lattice vectors
   const frame_properties = obj_data.frame_properties as Array<
     Record<string, unknown>
   >
-  const _site_properties = obj_data.site_properties as Array<
-    Record<string, unknown>
-  >
 
-  // Calculate lattice parameters efficiently
-  const lattice_matrix = lattice as Matrix3x3
-  const lattice_params = math.calc_lattice_params(lattice_matrix)
+  const lattice_params = math.calc_lattice_params(matrix)
 
   const frames: TrajectoryFrame[] = coords.map((frame_coords, frame_idx) => {
     // Convert coordinates and species to sites
     const sites = frame_coords.map((xyz, site_idx) => {
       const abc = [xyz[0], xyz[1], xyz[2]] as Vec3 // pymatgen uses fractional coordinates
-      const cartesian = math.matrix_vector_multiply(
-        math.transpose_matrix(lattice_matrix),
-        abc,
-      )
+      const cartesian = math.mat3x3_vec3_multiply(math.transpose_matrix(matrix), abc)
 
       return {
-        species: [
-          {
-            element: species[site_idx].element,
-            occu: 1,
-            oxidation_state: 0,
-          },
-        ],
+        species: [{ element: species[site_idx].element, occu: 1, oxidation_state: 0 }],
         abc,
         xyz: cartesian,
         label: species[site_idx].element,
@@ -1026,11 +996,7 @@ export function parse_pymatgen_trajectory(
       structure: {
         sites,
         charge: (obj_data.charge as number) || 0,
-        lattice: {
-          matrix: lattice_matrix,
-          pbc: [true, true, true] as [boolean, boolean, boolean],
-          ...lattice_params,
-        },
+        lattice: { matrix, ...lattice_params, pbc: [true, true, true] },
       },
       step: frame_idx,
       metadata,

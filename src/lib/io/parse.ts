@@ -311,7 +311,7 @@ export function parse_poscar(content: string): ParsedStructure | null {
             try {
               const lattice_transposed = math.transpose_matrix(scaled_lattice)
               const lattice_inv = math.matrix_inverse_3x3(lattice_transposed)
-              abc = math.matrix_vector_multiply(lattice_inv, xyz)
+              abc = math.mat3x3_vec3_multiply(lattice_inv, xyz)
             } catch {
               // Fallback to simplified method if matrix is singular
               abc = [
@@ -467,7 +467,7 @@ export function parse_xyz(content: string): ParsedStructure | null {
         try {
           const lattice_transposed = math.transpose_matrix(lattice.matrix)
           const lattice_inv = math.matrix_inverse_3x3(lattice_transposed)
-          abc = math.matrix_vector_multiply(lattice_inv, xyz)
+          abc = math.mat3x3_vec3_multiply(lattice_inv, xyz)
         } catch {
           // Fallback to simplified method if matrix is singular
           abc = [xyz[0] / lattice.a, xyz[1] / lattice.b, xyz[2] / lattice.c]
@@ -632,7 +632,7 @@ export function parse_cif(content: string): ParsedStructure | null {
               const abc: Vec3 = [fract_x, fract_y, fract_z]
 
               // Convert fractional to Cartesian coordinates
-              const xyz = math.matrix_vector_multiply(
+              const xyz = math.mat3x3_vec3_multiply(
                 math.transpose_matrix(lattice_matrix),
                 abc,
               )

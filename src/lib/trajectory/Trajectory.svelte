@@ -509,7 +509,7 @@
     if (!trajectory) return
 
     // Don't handle shortcuts if user is typing in an input field (but allow if it's our step input and not focused)
-    const target = event.target as Element
+    const target = event.target as HTMLElement
     const is_step_input = target.classList.contains(`step-input`)
     const is_input_focused = target.tagName === `INPUT` ||
       target.tagName === `TEXTAREA`
@@ -517,9 +517,15 @@
     // Skip if typing in an input that's not our step input
     if (is_input_focused && !is_step_input) return
 
+    // If typing in step input, only handle certain navigation keys
+    if (is_step_input && is_input_focused) {
+      // Allow normal typing, but handle special navigation keys
+      if ([`Escape`, `Enter`].includes(event.key)) target.blur() // Remove focus from input
+      return
+    }
+
     const total_frames = trajectory.frames.length
     const is_cmd_or_ctrl = event.metaKey || event.ctrlKey
-    event.preventDefault()
 
     // Navigation shortcuts
     if (event.key === ` `) toggle_play()
