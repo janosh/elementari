@@ -155,7 +155,7 @@
     y2_label_shift = { y: 60 },
     y2_tick_label_shift = { x: 8, y: 0 },
     y2_unit = ``,
-    y2_format = ``,
+    y2_format = $bindable(``),
     y2_ticks = 5,
     y2_scale_type = `linear`,
     y2_grid = true,
@@ -171,8 +171,8 @@
     tooltip_point = $bindable(null),
     hovered = $bindable(false),
     markers = `line+points`,
-    x_format = ``,
-    y_format = ``,
+    x_format = $bindable(``),
+    y_format = $bindable(``),
     tooltip,
     change = () => {},
     x_ticks,
@@ -1455,39 +1455,33 @@
     return unit1 === unit2
   }
 
+  function resolve_unit_conflicts(
+    series: DataSeries[],
+    target_idx: number,
+  ): DataSeries[] {
+    const target_series = series[target_idx]
+    const target_axis = target_series.y_axis ?? `y1`
+
+    return series.map((s, idx) => ({
+      ...s,
+      visible: idx === target_idx ||
+        !(s.visible && (s.y_axis ?? `y1`) === target_axis &&
+          !have_compatible_units(target_series, s)),
+    }))
+  }
+
   // Function to toggle series visibility
   function toggle_series_visibility(series_idx: number) {
     if (series_idx >= 0 && series_idx < series.length && series[series_idx]) {
       const toggled_series = series[series_idx]
       const new_visibility = !(toggled_series.visible ?? true)
 
-      // If making a series visible, check for unit conflicts on the same axis
       if (new_visibility) {
-        const target_axis = toggled_series.y_axis ?? `y1`
-
-        // Create a new array to trigger reactivity
-        series = series.map((s, idx) => {
-          if (idx === series_idx) {
-            return { ...s, visible: true }
-          }
-
-          // Hide conflicting series on the same axis with different units
-          if (
-            s.visible &&
-            (s.y_axis ?? `y1`) === target_axis &&
-            !have_compatible_units(toggled_series, s)
-          ) {
-            return { ...s, visible: false }
-          }
-
-          return s
-        })
+        series = resolve_unit_conflicts(series, series_idx)
       } else {
         // Just toggle visibility normally when hiding
         series = series.map((s, idx) => {
-          if (idx === series_idx) {
-            return { ...s, visible: false }
-          }
+          if (idx === series_idx) return { ...s, visible: false }
           return s
         })
       }
@@ -2093,6 +2087,9 @@
         bind:show_points
         bind:show_lines
         bind:selected_series_idx
+        bind:x_format
+        bind:y_format
+        bind:y2_format
         series={series_with_ids}
         {plot_controls}
         has_y2_points={y2_points.length > 0}

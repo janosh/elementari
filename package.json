@@ -103,6 +103,10 @@
       "types": "./dist/colors.d.ts",
       "default": "./dist/colors.js"
     },
+    "./io": {
+      "types": "./dist/io.d.ts",
+      "default": "./dist/io.js"
+    },
     "./labels": {
       "types": "./dist/labels.d.ts",
       "default": "./dist/labels.js"

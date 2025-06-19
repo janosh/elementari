@@ -1,8 +1,11 @@
 <script lang="ts">
+  import type { IdStructure } from '$lib'
   import Structure from '$lib/structure/Structure.svelte'
   import initial_structure from '$site/structures/mp-1.json'
 
-  let test_structure = $state(initial_structure)
+  let test_structure = $state(
+    { ...initial_structure, id: `mp-1` } as unknown as IdStructure,
+  )
 
   let controls_open = $state(false)
   let canvas = $state({ width: 600, height: 400 })

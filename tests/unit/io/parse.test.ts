@@ -488,7 +488,7 @@ unit_cell:
     },
   ])(
     `should parse and detect $name`,
-    ({ content, filename, expected_min_sites, space_group }) => {
+    ({ content, filename, expected_min_sites }) => {
       // Test direct parsing
       const direct_result = parse_phonopy_yaml(content)
       expect(direct_result).toBeDefined()
@@ -505,10 +505,6 @@ unit_cell:
       const by_content = parse_structure_file(content)
       expect(by_content).toBeDefined()
       expect(by_content?.sites.length).toBeGreaterThan(expected_min_sites)
-
-      console.log(
-        `${space_group}: Parsed ${direct_result?.sites.length} sites with lattice volume ${direct_result?.lattice?.volume}`,
-      )
     },
   )
 
