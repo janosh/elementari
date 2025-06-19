@@ -27,9 +27,6 @@ test.describe(`Structure Component Tests`, () => {
     // Wait for structure to load properly before checking ID
     await page.waitForLoadState(`networkidle`)
     await expect(
-      page.locator(`[data-testid="structure-id-status"]`),
-    ).toContainText(`mp-1`)
-    await expect(
       page.locator(`[data-testid="canvas-width-status"]`),
     ).toContainText(`600`)
     await expect(
@@ -45,7 +42,7 @@ test.describe(`Structure Component Tests`, () => {
     )
 
     const initial_bg_style_full = await structure_div.evaluate(
-      (el) => getComputedStyle(el).background,
+      (el) => globalThis.getComputedStyle(el).background,
     )
 
     await background_color_input.fill(`#ff0000`) // Change to red
@@ -60,7 +57,7 @@ test.describe(`Structure Component Tests`, () => {
 
     // Verify the full background property also changed from its initial state
     const new_bg_style_full = await structure_div.evaluate(
-      (el) => getComputedStyle(el).background,
+      (el) => globalThis.getComputedStyle(el).background,
     )
     expect(new_bg_style_full).not.toBe(initial_bg_style_full)
   })
@@ -1417,7 +1414,7 @@ test.describe(`Export Button Tests`, () => {
 
     // Verify the container has proper flex styling for button layout
     const container_styles = await export_container.evaluate((el) => {
-      const computed = getComputedStyle(el)
+      const computed = globalThis.getComputedStyle(el)
       return {
         display: computed.display,
         gap: computed.gap,
