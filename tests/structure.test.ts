@@ -1,12 +1,8 @@
 import { expect, type Page, test } from '@playwright/test'
 
-// Helper function to mock downloads if needed, or check for anchor tags
-// For now, we'll focus on button presence and clickability
-
 test.describe(`Structure Component Tests`, () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(`/test/structure`, { waitUntil: `load` })
-    // Wait for the structure component to be initialized
     await page.waitForSelector(`#structure-wrapper canvas`, { timeout: 5000 })
   })
 
@@ -16,15 +12,13 @@ test.describe(`Structure Component Tests`, () => {
 
     const canvas = structure_wrapper.locator(`canvas`)
     await expect(canvas).toBeVisible()
-    await expect(canvas).toHaveAttribute(`width`) // Threlte sets these
+    await expect(canvas).toHaveAttribute(`width`)
     await expect(canvas).toHaveAttribute(`height`)
 
-    // Check initial bound prop statuses from test page
     await expect(
       page.locator(`[data-testid="controls-open-status"]`),
     ).toContainText(`false`)
 
-    // Wait for structure to load properly before checking ID
     await page.waitForLoadState(`networkidle`)
     await expect(
       page.locator(`[data-testid="canvas-width-status"]`),
@@ -36,7 +30,6 @@ test.describe(`Structure Component Tests`, () => {
 
   test(`reacts to background_color prop change from test page`, async ({ page }) => {
     const structure_div = page.locator(`#structure-wrapper .structure`)
-    // More specific locator for the test page's background color input
     const background_color_input = page.locator(
       `section:has-text("Controls for Test Page") label:has-text("Background Color") input[type="color"]`,
     )
@@ -45,17 +38,15 @@ test.describe(`Structure Component Tests`, () => {
       (el) => globalThis.getComputedStyle(el).background,
     )
 
-    await background_color_input.fill(`#ff0000`) // Change to red
+    await background_color_input.fill(`#ff0000`)
 
-    const expected_alpha = 0.1 // Default background_opacity value
-    // Wait for the target element's style to change to what we expect
+    const expected_alpha = 0.1
     await expect(structure_div).toHaveCSS(
       `background-color`,
       `rgba(255, 0, 0, ${expected_alpha})`,
       { timeout: 3000 },
     )
 
-    // Verify the full background property also changed from its initial state
     const new_bg_style_full = await structure_div.evaluate(
       (el) => globalThis.getComputedStyle(el).background,
     )
@@ -63,7 +54,7 @@ test.describe(`Structure Component Tests`, () => {
   })
 
   test(`updates width and height from test page controls`, async ({ page }) => {
-    const structure_wrapper_div = page.locator(`#structure-wrapper`) // The outer div whose style is changed
+    const structure_wrapper_div = page.locator(`#structure-wrapper`)
     const canvas = page.locator(`#structure-wrapper .structure canvas`)
     const width_input = page.locator(
       `label:has-text("Canvas Width") input[type="number"]`,
@@ -78,45 +69,37 @@ test.describe(`Structure Component Tests`, () => {
       `[data-testid="canvas-height-status"]`,
     )
 
-    // Check initial wrapper style which dictates component size
     await expect(structure_wrapper_div).toHaveCSS(`width`, `600px`)
     await expect(structure_wrapper_div).toHaveCSS(`height`, `400px`)
-    // Check initial canvas attributes (Threlte might take a moment to update these after prop change)
     await expect(canvas).toHaveAttribute(`width`, `600`)
     await expect(canvas).toHaveAttribute(`height`, `500`)
 
     await width_input.fill(`700`)
     await height_input.fill(`500`)
 
-    // Wait for test page state and then component to update
     await expect(canvas_width_status).toContainText(`700`)
     await expect(canvas_height_status).toContainText(`500`)
     await expect(structure_wrapper_div).toHaveCSS(`width`, `700px`)
     await expect(structure_wrapper_div).toHaveCSS(`height`, `500px`)
 
-    // Check canvas attributes reflect the change
     await expect(canvas).toHaveAttribute(`width`, `700`, { timeout: 1000 })
     await expect(canvas).toHaveAttribute(`height`, `500`, { timeout: 1000 })
   })
 
-  // Fullscreen testing is complex with Playwright as it requires user gesture and browser API mocking.
-  // We can at least check if the button exists and try to click it.
+  // Fullscreen testing is complex with Playwright as it requires user gesture and browser API mocking
   test(`fullscreen button click`, async ({ page }: { page: Page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
     const fullscreen_button = structure_component.locator(
       `button.fullscreen-toggle`,
     )
 
-    // Mock requestFullscreen if possible, or just check for errors on click
-    // For now, just click and ensure no immediate client-side error
     let error_occured = false
     page.on(`pageerror`, () => (error_occured = true))
 
     await expect(fullscreen_button).toBeVisible()
-    await expect(fullscreen_button).toBeEnabled() // Ensure it's actionable
+    await expect(fullscreen_button).toBeEnabled()
     await fullscreen_button.click({ force: true })
     expect(error_occured).toBe(false)
-    // Further checks would involve complex browser state or mocking.
   })
 
   test(`closes controls panel with Escape key`, async ({ page }) => {
@@ -129,14 +112,12 @@ test.describe(`Structure Component Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls using test page checkbox (more reliable)
+    // Use test page checkbox for more reliable opening
     await test_page_controls_checkbox.check()
-    // Wait for controls to open
     await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 1000 })
 
     await page.keyboard.press(`Escape`)
 
-    // Check if dialog is not visible
     await expect(controls_dialog).not.toHaveClass(/controls-open/, {
       timeout: 1000,
     })
@@ -159,17 +140,14 @@ test.describe(`Structure Component Tests`, () => {
       `button.controls-toggle`,
     )
     const controls_dialog = structure_component.locator(`div.controls`)
-    const outside_area = page.locator(`body`) // Clicking on body, outside the dialog/button
+    const outside_area = page.locator(`body`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls using test page checkbox (more reliable)
     await test_page_controls_checkbox.check()
-    // Wait for controls to open
     await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 1000 })
 
-    // Click outside (e.g., on the body or a designated outside element)
     await outside_area.click({ position: { x: 0, y: 0 }, force: true })
 
     await expect(controls_dialog).not.toHaveClass(/controls-open/, {
@@ -195,16 +173,13 @@ test.describe(`Structure Component Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls panel using test page checkbox
     await test_page_controls_checkbox.check()
-    // Wait for the dialog to open
-    await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 1000 })
+    await expect(controls_dialog).toBeVisible()
 
-    // Find site labels checkbox by searching through all checkboxes
+    // Search for site labels checkbox by iterating through all checkboxes
     const all_checkboxes = controls_dialog.locator(`input[type="checkbox"]`)
     const checkbox_count = await all_checkboxes.count()
 
-    // Search for site labels checkbox in parallel
     const checkbox_promises = Array.from({ length: checkbox_count }, async (_, idx) => {
       const checkbox = all_checkboxes.nth(idx)
       const label_text = await checkbox.locator(`xpath=..`).textContent()
@@ -217,6 +192,11 @@ test.describe(`Structure Component Tests`, () => {
       null
 
     if (!site_labels_checkbox) throw `Site labels checkbox not found`
+
+    expect(await site_labels_checkbox.isChecked()).toBe(false)
+    await site_labels_checkbox.check()
+    expect(await site_labels_checkbox.isChecked()).toBe(true)
+    await site_labels_checkbox.uncheck()
     expect(await site_labels_checkbox.isChecked()).toBe(false)
   })
 
@@ -228,12 +208,9 @@ test.describe(`Structure Component Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls panel using test page checkbox
     await test_page_controls_checkbox.check()
-    // Wait for the dialog to open
-    await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 1000 })
+    await expect(controls_dialog).toBeVisible()
 
-    // Verify control structure exists
     const site_labels_label = controls_dialog.locator(
       `label:has-text("site labels")`,
     )
@@ -241,32 +218,29 @@ test.describe(`Structure Component Tests`, () => {
       `input[type="checkbox"]`,
     )
 
+    await expect(site_labels_label).toBeVisible()
+    await expect(site_labels_checkbox).toBeVisible()
     expect(await site_labels_label.count()).toBe(1)
     expect(await site_labels_checkbox.count()).toBe(1)
   })
 
   test(`gizmo is hidden when prop is set to false`, async ({ page }) => {
-    // Find and uncheck the gizmo checkbox on the test page
     const gizmo_checkbox = page.locator(
       `label:has-text("Show Gizmo") input[type="checkbox"]`,
     )
     await expect(gizmo_checkbox).toBeVisible()
-    await expect(gizmo_checkbox).toBeChecked() // Should be checked by default
+    await expect(gizmo_checkbox).toBeChecked()
 
-    // Uncheck the gizmo to hide it
     await gizmo_checkbox.uncheck()
 
-    // Verify the gizmo status is updated
     const gizmo_status = page.locator(`[data-testid="gizmo-status"]`)
     await expect(gizmo_status).toContainText(`Gizmo Status: false`)
 
-    // Verify the scene still loads without errors
     const canvas = page.locator(`#structure-wrapper canvas`)
     await expect(canvas).toBeVisible()
   })
 
   test(`gizmo is visible by default and can be toggled`, async ({ page }) => {
-    // Verify gizmo is enabled by default
     const gizmo_checkbox = page.locator(
       `label:has-text("Show Gizmo") input[type="checkbox"]`,
     )
@@ -275,7 +249,6 @@ test.describe(`Structure Component Tests`, () => {
     await expect(gizmo_checkbox).toBeChecked()
     await expect(gizmo_status).toContainText(`Gizmo Status: true`)
 
-    // Test toggling gizmo off and on
     await gizmo_checkbox.uncheck()
     await expect(gizmo_status).toContainText(`Gizmo Status: false`)
 
@@ -287,12 +260,10 @@ test.describe(`Structure Component Tests`, () => {
     const canvas = page.locator(`#structure-wrapper canvas`)
     await expect(canvas).toBeVisible()
 
-    // Wait for the structure to fully load and render
     await page.waitForTimeout(1000)
 
     const initial_screenshot = await canvas.screenshot()
 
-    // Try gizmo click (top-right) or fallback to drag for camera rotation
     const box = await canvas.boundingBox()
     if (box) {
       await canvas.dragTo(canvas, {
@@ -300,7 +271,6 @@ test.describe(`Structure Component Tests`, () => {
         targetPosition: { x: box.width / 2 + 100, y: box.height / 2 },
       })
 
-      // Wait for animation to complete
       await page.waitForTimeout(500)
 
       const after_screenshot = await canvas.screenshot()
@@ -338,11 +308,9 @@ test.describe(`Structure Component Tests`, () => {
     const color_input = first_label.locator(`input[type="color"]`)
     await expect(color_input).toBeAttached()
 
-    // Test that color input exists and has a valid initial value
     const initial_color_value = await color_input.inputValue()
     expect(initial_color_value).toMatch(/^#[0-9a-fA-F]{6}$/)
 
-    // Test that we can change the color input value
     await color_input.evaluate((input: HTMLInputElement) => {
       input.value = `#ff0000`
       input.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -355,7 +323,6 @@ test.describe(`Structure Component Tests`, () => {
     // Test double-click reset functionality exists (even if visual change isn't immediate in test)
     await first_label.dblclick({ force: true })
 
-    // Verify the color picker is still functional after double-click
     await expect(color_input).toBeAttached()
   })
 
@@ -660,7 +627,6 @@ test.describe(`Structure Component Tests`, () => {
 test.describe(`File Drop Functionality Tests`, () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(`/`, { waitUntil: `load` })
-    // Wait for the structure component to be initialized
     await page.waitForSelector(`.structure canvas`, { timeout: 5000 })
   })
 
@@ -669,10 +635,8 @@ test.describe(`File Drop Functionality Tests`, () => {
     const structure_component = page.locator(`.structure`)
     const canvas = structure_component.locator(`canvas`)
 
-    // Take initial screenshot to compare later
     const initial_screenshot = await canvas.screenshot()
 
-    // Create a simple POSCAR file content
     const poscar_content = `BaTiO3 tetragonal
 1.0
 4.0 0.0 0.0
@@ -687,7 +651,6 @@ Direct
 0.5 0.0 0.5
 0.0 0.5 0.5`
 
-    // Create a file and simulate drop
     const data_transfer = await page.evaluateHandle((content) => {
       const dt = new DataTransfer()
       const file = new File([content], `test.poscar`, { type: `text/plain` })
@@ -695,11 +658,9 @@ Direct
       return dt
     }, poscar_content)
 
-    // Simulate dragover and drop events
     await canvas.dispatchEvent(`dragover`, { dataTransfer: data_transfer })
     await canvas.dispatchEvent(`drop`, { dataTransfer: data_transfer })
 
-    // Take screenshot after drop to verify change
     const after_drop_screenshot = await canvas.screenshot()
     expect(initial_screenshot.equals(after_drop_screenshot)).toBe(false)
   })
@@ -708,10 +669,8 @@ Direct
     const structure_component = page.locator(`.structure`).first()
     const canvas = structure_component.locator(`canvas`)
 
-    // Take initial screenshot
     const initial_screenshot = await canvas.screenshot()
 
-    // Create a simple XYZ file content (cyclohexane molecule)
     const xyz_content = `18
 Cyclohexane molecule
 C    1.261   -0.728    0.000
@@ -733,7 +692,6 @@ H   -1.261   -0.728   -0.890
 H    1.261    0.728    0.890
 H    1.261    0.728   -0.890`
 
-    // Create file and simulate drop
     const data_transfer = await page.evaluateHandle((content) => {
       const dt = new DataTransfer()
       const file = new File([content], `cyclohexane.xyz`, {
@@ -743,14 +701,11 @@ H    1.261    0.728   -0.890`
       return dt
     }, xyz_content)
 
-    // Simulate drop
     await canvas.dispatchEvent(`dragover`, { dataTransfer: data_transfer })
     await canvas.dispatchEvent(`drop`, { dataTransfer: data_transfer })
 
-    // Wait for structure to update after file drop
     await page.waitForTimeout(1000)
 
-    // Verify structure changed
     const after_drop_screenshot = await canvas.screenshot()
     expect(initial_screenshot.equals(after_drop_screenshot)).toBe(false)
   })
@@ -882,7 +837,6 @@ H    1.261    0.728   -0.890`
 test.describe(`Reset Camera Button Tests`, () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(`/test/structure`, { waitUntil: `load` })
-    // Wait for the structure component to be initialized
     await page.waitForSelector(`#structure-wrapper canvas`, { timeout: 5000 })
   })
 
@@ -890,29 +844,23 @@ test.describe(`Reset Camera Button Tests`, () => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
     const reset_camera_button = structure_component.locator(`button.reset-camera`)
 
-    // Reset button should not be visible initially
     await expect(reset_camera_button).not.toBeVisible()
   })
 
   test(`reset camera button structure and styling are correct`, async ({ page }) => {
-    // Test the button structure when it would be visible
     // Since OrbitControls events don't fire in test environment, we'll test the static structure
     const structure_component = page.locator(`#structure-wrapper .structure`)
     const button_section = structure_component.locator(`section`)
 
-    // Verify the button container exists and is properly structured
     await expect(button_section).toBeVisible()
 
-    // Check that the section has the correct CSS classes and structure for buttons
     const section_classes = await button_section.getAttribute(`class`)
     console.log(`Button section classes: ${section_classes}`)
 
-    // Verify the conditional rendering structure exists in the DOM
     // The button should be in the DOM but hidden when camera_has_moved is false
     const button_count = await page.locator(`button.reset-camera`).count()
     console.log(`Reset camera button count in DOM: ${button_count}`)
 
-    // Test that other buttons in the section are visible (to confirm section visibility)
     const other_buttons = button_section.locator(`button`)
     const other_button_count = await other_buttons.count()
     expect(other_button_count).toBeGreaterThan(0)
@@ -1216,7 +1164,6 @@ test.describe(`Reset Camera Button Tests`, () => {
 test.describe(`Export Button Tests`, () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto(`/test/structure`, { waitUntil: `load` })
-    // Wait for the structure component to be initialized
     await page.waitForSelector(`#structure-wrapper canvas`, { timeout: 5000 })
   })
 
@@ -1227,11 +1174,9 @@ test.describe(`Export Button Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls panel
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 2000 })
 
-    // Find export buttons by their text content
     const json_export_btn = controls_dialog.locator(
       `button:has-text("⬇ Save as JSON")`,
     )
@@ -1242,12 +1187,10 @@ test.describe(`Export Button Tests`, () => {
       `button:has-text("✎ Save as PNG")`,
     )
 
-    // Verify all export buttons are visible
     await expect(json_export_btn).toBeVisible()
     await expect(xyz_export_btn).toBeVisible()
     await expect(png_export_btn).toBeVisible()
 
-    // Verify buttons are enabled and clickable
     await expect(json_export_btn).toBeEnabled()
     await expect(xyz_export_btn).toBeEnabled()
     await expect(png_export_btn).toBeEnabled()
@@ -1257,10 +1200,8 @@ test.describe(`Export Button Tests`, () => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
     const controls_dialog = structure_component.locator(`div.controls`)
 
-    // Verify controls are closed initially
     await expect(controls_dialog).not.toHaveClass(/controls-open/)
 
-    // Verify export buttons are not visible when controls are closed
     const json_export_btn = structure_component.locator(
       `button:has-text("⬇ Save as JSON")`,
     )
@@ -1279,18 +1220,15 @@ test.describe(`Export Button Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls panel
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 2000 })
 
-    // Find and click JSON export button
     const json_export_btn = controls_dialog.locator(
       `button:has-text("⬇ Save as JSON")`,
     )
     await expect(json_export_btn).toBeVisible()
     await json_export_btn.click()
 
-    // Button should be clickable without throwing errors
     await expect(json_export_btn).toBeEnabled()
   })
 
@@ -1301,18 +1239,15 @@ test.describe(`Export Button Tests`, () => {
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
 
-    // Open controls panel
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveClass(/controls-open/, { timeout: 2000 })
 
-    // Find and click XYZ export button
     const xyz_export_btn = controls_dialog.locator(
       `button:has-text("📄 Save as XYZ")`,
     )
     await expect(xyz_export_btn).toBeVisible()
     await xyz_export_btn.click()
 
-    // Button should be clickable without throwing errors
     await expect(xyz_export_btn).toBeEnabled()
   })
 
