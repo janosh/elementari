@@ -160,7 +160,7 @@
 
           <!-- Arrow tip -->
           <T.Mesh position={tip_start_position} {rotation}>
-            <T.ConeGeometry args={[0.15, vector_length * 0.15, 16]} />
+            <T.ConeGeometry args={[0.2, vector_length * 0.05, 16]} />
             <T.MeshStandardMaterial color={vector_colors[idx]} />
           </T.Mesh>
         {/each}

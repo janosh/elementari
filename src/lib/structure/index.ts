@@ -30,8 +30,11 @@ export const STRUCT_DEFAULTS = {
     color: `white`,
   },
   vector: {
-    scale: 50,
+    scale: 2,
     color: `#ff6b6b`,
+    shaft_radius: 0.02,
+    arrow_head_radius: 0.08,
+    arrow_head_length: 0.2,
   },
 } as const
 

@@ -1,20 +1,29 @@
 <script lang="ts">
   import type { Vec3 } from '$lib'
   import * as math from '$lib/math'
+  import { STRUCT_DEFAULTS } from '$lib/structure'
   import { T } from '@threlte/core'
   import { Euler, Quaternion, Vector3 } from 'three'
 
   interface Props {
-    // Starting position of the vector (atom position)
-    position: Vec3
-    // Vector components [x, y, z] in appropriate units
-    vector: Vec3
-    // Scale factor for vector visualization
-    scale?: number
-    // Color of the vector
-    color?: string
+    position: Vec3 // Starting position of the vector (atom position)
+    vector: Vec3 // Vector components [x, y, z] in appropriate units
+    scale?: number // Scale factor for vector visualization
+    color?: string // Color of the vector
+    // Arrow dimensions
+    shaft_radius?: number
+    arrow_head_radius?: number
+    arrow_head_length?: number
   }
-  let { position, vector, scale = 0.05, color = `#ff6b6b` }: Props = $props()
+  let {
+    position,
+    vector,
+    scale = STRUCT_DEFAULTS.vector.scale,
+    color = STRUCT_DEFAULTS.vector.color,
+    shaft_radius = STRUCT_DEFAULTS.vector.shaft_radius,
+    arrow_head_radius = STRUCT_DEFAULTS.vector.arrow_head_radius,
+    arrow_head_length = STRUCT_DEFAULTS.vector.arrow_head_length,
+  }: Props = $props()
 
   // Calculate vector magnitude and normalized direction
   let vector_magnitude = $derived(math.norm(vector))
@@ -25,11 +34,9 @@
   // Scaled vector length
   let vector_length = $derived(vector_magnitude * scale)
 
-  // Arrow dimensions - consistent thickness for all vectors
-  let shaft_radius = $derived(0.02)
-  let arrow_head_radius = $derived(0.08)
-  let arrow_head_length = $derived(Math.min(vector_length * 3.0, 0.2))
-  let shaft_length = $derived(Math.max(0, vector_length - arrow_head_length * 0.5))
+  let shaft_length = $derived(
+    Math.max(0, vector_length - arrow_head_length * 0.5),
+  )
 
   // Calculate positions using math helpers
   let shaft_center = $derived(
@@ -44,6 +51,8 @@
 
   // Calculate rotation to align Y-axis with vector direction
   let rotation = $derived.by((): Vec3 => {
+    if (vector_magnitude < 1e-10) return [0, 0, 0] // Handle zero vector
+
     const quaternion = new Quaternion().setFromUnitVectors(
       new Vector3(0, 1, 0),
       new Vector3(...vector_direction).normalize(),
@@ -54,15 +63,15 @@
 </script>
 
 <!-- Vector shaft (cylinder) -->
-{#if shaft_length > 0}
+{#if shaft_length > 0.01}
   <T.Mesh position={shaft_center} {rotation}>
-    <T.CylinderGeometry args={[shaft_radius, shaft_radius, shaft_length, 8]} />
+    <T.CylinderGeometry args={[shaft_radius, shaft_radius, shaft_length, 12]} />
     <T.MeshStandardMaterial {color} />
   </T.Mesh>
 {/if}
 
 <!-- Arrow head (cone) -->
 <T.Mesh position={arrow_head_position} {rotation}>
-  <T.ConeGeometry args={[arrow_head_radius, arrow_head_length, 8]} />
+  <T.ConeGeometry args={[arrow_head_radius, arrow_head_length, 12]} />
   <T.MeshStandardMaterial {color} />
 </T.Mesh>

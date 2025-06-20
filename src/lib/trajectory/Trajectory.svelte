@@ -180,9 +180,7 @@
     // Filter out undefined values from units
     const filtered_units: Record<string, string> = {}
     for (const [key, value] of Object.entries(units)) {
-      if (value !== undefined) {
-        filtered_units[key] = value
-      }
+      if (value !== undefined) filtered_units[key] = value
     }
 
     return generate_plot_series(trajectory, data_extractor, {
