@@ -194,6 +194,14 @@ export const trajectory_labels: Record<string, string> = {
   Volume: `Cell Volume (Å³)`,
   density: `Density (g/cm³)`,
 
+  // Lattice parameters
+  a: `A (Å)`,
+  b: `B (Å)`,
+  c: `C (Å)`,
+  alpha: `α (°)`,
+  beta: `β (°)`,
+  gamma: `γ (°)`,
+
   // Thermodynamic properties
   temperature: `Temperature (K)`,
   pressure: `Pressure (GPa)`,

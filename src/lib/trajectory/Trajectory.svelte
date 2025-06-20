@@ -180,9 +180,7 @@
     // Filter out undefined values from units
     const filtered_units: Record<string, string> = {}
     for (const [key, value] of Object.entries(units)) {
-      if (value !== undefined) {
-        filtered_units[key] = value
-      }
+      if (value !== undefined) filtered_units[key] = value
     }
 
     return generate_plot_series(trajectory, data_extractor, {
@@ -842,6 +840,10 @@
             <li>VASP XDATCAR files</li>
             <li>Compressed files (.gz)</li>
           </ul>
+          <p style="margin-top: 1rem; font-size: 0.9em; color: var(--trajectory-text-muted, #666)">
+            💡 Force vectors will be automatically displayed when present in trajectory
+            data
+          </p>
         </div>
       </div>
     </div>
@@ -874,7 +876,6 @@
     border: 2px dashed transparent;
     transition: border-color 0.2s ease;
     box-sizing: border-box;
-    overflow: hidden;
     contain: layout;
   }
   .trajectory-viewer:fullscreen {
