@@ -1085,11 +1085,9 @@ export function parse_pymatgen_trajectory(
 
       // Add force vector to site properties if available
       const site_properties: Record<string, unknown> = {}
-      if (forces_data && forces_data[site_idx]) {
-        const force = forces_data[site_idx]
-        if (force.length >= 3) {
-          site_properties.force = [force[0], force[1], force[2]] as Vec3
-        }
+      const force = forces_data?.[site_idx]
+      if (force && force.length >= 3) {
+        site_properties.force = [force[0], force[1], force[2]] as Vec3
       }
 
       return {

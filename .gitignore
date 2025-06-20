@@ -20,4 +20,4 @@ src/types
 test-results
 
 # TODO remove once fully implemented
-extensions/vscode
+extensions/vscode/
