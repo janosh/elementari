@@ -89,9 +89,9 @@
     ...rest
   }: Props = $props()
 
-  // Ensure scene_props always has some defaults merged in
   $effect.pre(() => {
-    scene_props = { bond_thickness: STRUCT_DEFAULTS.bond.thickness, ...scene_props }
+    // Ensure scene_props defaults to show_atoms=true
+    scene_props = { show_atoms: true, ...scene_props }
   })
 
   // Track if force vectors have been auto-enabled to prevent repeated triggering

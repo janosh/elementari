@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { STRUCT_DEFAULTS } from '$lib/structure'
   import { T } from '@threlte/core'
   import { CanvasTexture, Euler, Quaternion, Vector3 } from 'three'
 
@@ -11,12 +12,11 @@
     from_color?: string // color of atom 1
     to_color?: string // color of atom 2
   }
-
   let {
     from,
     to,
-    color = `#ffffff`,
-    thickness = 0.02,
+    color = STRUCT_DEFAULTS.bond.color,
+    thickness = STRUCT_DEFAULTS.bond.thickness,
     offset = 0,
     from_color,
     to_color,
@@ -24,7 +24,6 @@
 
   const from_vec = new Vector3(...from)
   const to_vec = new Vector3(...to)
-
   const { position, rotation, height } = calc_bond(
     from_vec,
     to_vec,

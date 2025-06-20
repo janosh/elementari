@@ -3,7 +3,8 @@
   import { ControlPanel } from '$lib';
   import { element_color_schemes } from '$lib/colors';
   import * as exports from '$lib/io/export';
-  import { STRUCT_DEFAULTS } from '$lib/structure';
+  import { STRUCT_DEFAULTS, StructureScene } from '$lib/structure';
+  import type { ComponentProps } from 'svelte';
   import Select from 'svelte-multiselect';
   import { Tooltip } from 'svelte-zoo';
 
@@ -11,18 +12,7 @@
     // Control panel state
     controls_open?: boolean
     // Scene properties (bindable from parent)
-    scene_props?: {
-      atom_radius: number
-      show_atoms: boolean
-      auto_rotate: number
-      bond_thickness?: number
-      show_bonds?: boolean
-      show_force_vectors?: boolean
-      force_vector_scale?: number
-      force_vector_color?: string
-      same_size_atoms: boolean
-      [key: string]: unknown
-    }
+    scene_props?: ComponentProps<typeof StructureScene>
     // Lattice properties (bindable from parent)
     lattice_props?: {
       cell_edge_opacity: number
@@ -427,20 +417,8 @@
       </label>
       <label>
         Bond thickness
-        <input
-          type="number"
-          min={0.01}
-          max={0.12}
-          step={0.005}
-          bind:value={scene_props.bond_thickness}
-        />
-        <input
-          type="range"
-          min="0.01"
-          max="0.12"
-          step={0.005}
-          bind:value={scene_props.bond_thickness}
-        />
+        <input type="number" min={0.05} max={0.5} step={0.05} bind:value={scene_props.bond_thickness} />
+        <input type="range" min={0.05} max={0.5} step={0.05} bind:value={scene_props.bond_thickness} />
       </label>
     {/if}
 

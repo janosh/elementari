@@ -25,9 +25,9 @@ export const STRUCT_DEFAULTS = {
     line_width: 1.5,
   },
   bond: {
-    thickness: 0.02,
+    thickness: 0.1,
     offset: 0,
-    color: `white`,
+    color: `#ffffff`,
   },
   vector: {
     scale: 2,
