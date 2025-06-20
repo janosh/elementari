@@ -78,7 +78,7 @@ export async function load_trajectory_from_url(
     return await parse_trajectory_data(content, filename)
   } else {
     // Manual decompression needed (for cases where server sends raw gzip)
-    const { decompress_file } = await import(`$lib/io/decompress`)
+    const { decompress_file } = await import(`../io/decompress`)
     const blob = await response.blob()
     const file = new File([blob], filename, {
       type: response.headers.get(`content-type`) || `application/octet-stream`,
@@ -314,12 +314,13 @@ export async function parse_torch_sim_hdf5(
       }
 
       // Get periodic boundary conditions if available
-      let pbc: boolean[] = [true, true, true] // Default
+      let pbc: [boolean, boolean, boolean] = [true, true, true] // Default
       try {
         const pbc_dataset = data_group.get(`pbc`) as H5Dataset | null
         if (pbc_dataset) {
           const pbc_array = pbc_dataset.to_array() as number[]
-          pbc = pbc_array.slice(0, 3).map((val) => val !== 0)
+          const pbc_bools = pbc_array.slice(0, 3).map((val) => val !== 0)
+          pbc = [pbc_bools[0] ?? true, pbc_bools[1] ?? true, pbc_bools[2] ?? true]
         }
       } catch {
         // PBC might not be available

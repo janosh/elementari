@@ -35,9 +35,20 @@
   function toggle_controls() {
     controls_open = !controls_open
   }
+  function handle_click_outside(event: MouseEvent) {
+    if (!controls_open) return
+
+    const target = event.target as Element
+    const controls_panel = target.closest(`.controls`)
+    const toggle_button = target.closest(`.controls-toggle`)
+
+    // Don't close if clicking inside panel or on toggle button
+    if (!controls_panel && !toggle_button) controls_open = false
+  }
 </script>
 
 <svelte:window onkeydown={on_keydown} />
+<svelte:document onclick={handle_click_outside} />
 
 {#if show_controls}
   {#if show_toggle_button}

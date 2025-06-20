@@ -326,7 +326,7 @@ test.describe(`Structure Component Tests`, () => {
     await page.waitForSelector(`#structure-wrapper canvas`, { timeout: 5000 })
 
     // Find element legend labels and validate count
-    const legend_labels = structure_wrapper.locator(`div label`)
+    const legend_labels = structure_wrapper.locator(`.structure-legend label`)
     const legend_count = await legend_labels.count()
     expect(legend_count).toBeGreaterThan(0)
 
@@ -362,7 +362,7 @@ test.describe(`Structure Component Tests`, () => {
   // SKIPPED: Controls dialog fails to open reliably in test environment
   test.skip(`controls panel stays open when interacting with control inputs`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`dialog.controls`)
+    const controls_dialog = structure_component.locator(`div.controls`)
     const controls_open_status = page.locator(
       `[data-testid="controls-open-status"]`,
     )
@@ -372,13 +372,13 @@ test.describe(`Structure Component Tests`, () => {
 
     // Verify initial state
     await expect(controls_open_status).toContainText(`false`)
-    await expect(controls_dialog).not.toHaveAttribute(`open`)
+    await expect(controls_dialog).not.toHaveClass(/controls-open/)
 
     // Open controls panel using the test page checkbox (we know this works)
     await test_page_controls_checkbox.check()
     // Wait for the controls to open
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Test that controls are accessible and panel stays open when interacting
     // Use corrected label text (with leading spaces as shown in debug output)
@@ -393,7 +393,7 @@ test.describe(`Structure Component Tests`, () => {
     // Test various control interactions to ensure panel stays open
     await show_atoms_checkbox.click()
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     const show_bonds_label = controls_dialog
       .locator(`label`)
@@ -404,7 +404,7 @@ test.describe(`Structure Component Tests`, () => {
     await expect(show_bonds_checkbox).toBeVisible()
     await show_bonds_checkbox.click()
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     const show_vectors_label = controls_dialog
       .locator(`label`)
@@ -415,7 +415,7 @@ test.describe(`Structure Component Tests`, () => {
     await expect(show_vectors_checkbox).toBeVisible()
     await show_vectors_checkbox.click()
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Test color scheme select dropdown (this still exists)
     const color_scheme_select = controls_dialog
@@ -425,7 +425,7 @@ test.describe(`Structure Component Tests`, () => {
     await expect(color_scheme_select).toBeVisible()
     await color_scheme_select.selectOption(`Jmol`)
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Test number input
     const atom_radius_label = controls_dialog
@@ -435,14 +435,14 @@ test.describe(`Structure Component Tests`, () => {
     await expect(atom_radius_input).toBeVisible()
     await atom_radius_input.fill(`0.8`)
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Test range input
     const atom_radius_range = atom_radius_label.locator(`input[type="range"]`)
     await expect(atom_radius_range).toBeVisible()
     await atom_radius_range.fill(`0.6`)
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Test color input
     const background_color_label = controls_dialog
@@ -453,7 +453,7 @@ test.describe(`Structure Component Tests`, () => {
     await expect(background_color_input).toBeVisible()
     await background_color_input.fill(`#00ff00`)
     await expect(controls_open_status).toContainText(`true`)
-    await expect(controls_dialog).toHaveAttribute(`open`)
+    await expect(controls_dialog).toHaveClass(/controls-open/)
 
     // Note: We don't test the download buttons as they may close the panel due to download behavior
     // The important thing is that normal control inputs (checkboxes, selects, inputs) keep the panel open
@@ -527,7 +527,7 @@ test.describe(`Structure Component Tests`, () => {
     const controls_toggle_button = structure_component.locator(
       `button.controls-toggle`,
     )
-    const controls_dialog = structure_component.locator(`dialog.controls`)
+    const controls_dialog = structure_component.locator(`div.controls`)
     const controls_open_status = page.locator(
       `[data-testid="controls-open-status"]`,
     )

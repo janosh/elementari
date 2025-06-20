@@ -140,6 +140,7 @@
     show_points?: boolean
     show_lines?: boolean
     selected_series_idx?: number
+    color_axis_labels?: boolean | { y1?: string | null; y2?: string | null } // Y-axis label colors: true (auto), false (none), or explicit colors
   }
   let {
     series = [],
@@ -212,6 +213,7 @@
     show_points = $bindable(true),
     show_lines = $bindable(true),
     selected_series_idx = $bindable(0),
+    color_axis_labels = true,
   }: Props = $props()
 
   let width = $state(0)
@@ -701,7 +703,21 @@
 
   // Determine axis colors based on visible series
   let axis_colors = $derived.by(() => {
+    // Handle explicit color overrides
+    if (typeof color_axis_labels === `object`) {
+      return { y1: color_axis_labels.y1 ?? null, y2: color_axis_labels.y2 ?? null }
+    }
+
+    // Check if axis coloring is disabled
+    if (!color_axis_labels) return { y1: null, y2: null }
+
     const visible_series = filtered_series.filter((s) => s.visible !== false)
+
+    // Only apply axis colors if not using a color scale and both y axes are populated
+    const is_using_color_scale = all_color_values.length > 0
+    const both_axes_populated = y1_points.length > 0 && y2_points.length > 0
+
+    if (is_using_color_scale || !both_axes_populated) return { y1: null, y2: null }
 
     // Count series by axis and get their colors
     const y1_series = visible_series.filter((s) => (s.y_axis ?? `y1`) === `y1`)
@@ -719,10 +735,6 @@
         : series.point_style
       if (first_point_style?.fill) return first_point_style.fill
       if (first_point_style?.stroke) return first_point_style.stroke
-
-      // Fallback to color scale if available
-      const first_color_value = series.color_values?.[0]
-      if (first_color_value != null) return color_scale_fn(first_color_value)
 
       return null // No color found
     }
