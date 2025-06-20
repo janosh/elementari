@@ -13,20 +13,26 @@ export { default as StructureCard } from './StructureCard.svelte'
 export { default as StructureControls } from './StructureControls.svelte'
 export { default as StructureLegend } from './StructureLegend.svelte'
 export { default as StructureScene } from './StructureScene.svelte'
+export { default as Vector } from './Vector.svelte'
 
-export const CELL_DEFAULTS = {
-  edge_opacity: 0.4,
-  surface_opacity: 0.05,
-  color: `#ffffff`,
-  line_width: 1.5,
-} as const
-
-export const BOND_DEFAULTS = {
-  thickness: 0.25,
-  offset: 0,
-  color: `white`,
-  from_color: `white`,
-  to_color: `white`,
+export const STRUCT_DEFAULTS = {
+  cell: {
+    edge_color: `#000000`,
+    edge_opacity: 0.4,
+    surface_color: `#ffffff`,
+    surface_opacity: 0.05,
+    color: `#ffffff`,
+    line_width: 1.5,
+  },
+  bond: {
+    thickness: 0.02,
+    offset: 0,
+    color: `white`,
+  },
+  vector: {
+    scale: 50,
+    color: `#ff6b6b`,
+  },
 } as const
 
 export type Species = {

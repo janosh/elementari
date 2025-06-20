@@ -9,8 +9,7 @@
   import type { Snippet } from 'svelte'
   import { WebGLRenderer } from 'three'
   import {
-    BOND_DEFAULTS,
-    CELL_DEFAULTS,
+    STRUCT_DEFAULTS,
     StructureControls,
     StructureLegend,
     StructureScene,
@@ -46,13 +45,18 @@
   }
   let {
     structure = $bindable(undefined),
-    scene_props = $bindable({ atom_radius: 1, show_atoms: true, auto_rotate: 0 }),
+    scene_props = $bindable({
+      atom_radius: 1,
+      show_atoms: true,
+      auto_rotate: 0,
+      same_size_atoms: false,
+    }),
     lattice_props = $bindable({
-      cell_edge_opacity: CELL_DEFAULTS.edge_opacity,
-      cell_surface_opacity: CELL_DEFAULTS.surface_opacity,
-      cell_edge_color: CELL_DEFAULTS.color,
-      cell_surface_color: CELL_DEFAULTS.color,
-      cell_line_width: CELL_DEFAULTS.line_width,
+      cell_edge_opacity: STRUCT_DEFAULTS.cell.edge_opacity,
+      cell_surface_opacity: STRUCT_DEFAULTS.cell.surface_opacity,
+      cell_edge_color: STRUCT_DEFAULTS.cell.color,
+      cell_surface_color: STRUCT_DEFAULTS.cell.color,
+      cell_line_width: STRUCT_DEFAULTS.cell.line_width,
       show_vectors: true,
     }),
     controls_open = $bindable(false),
@@ -87,17 +91,36 @@
 
   // Ensure scene_props always has some defaults merged in
   $effect.pre(() => {
-    scene_props = {
-      atom_radius: 1,
-      show_atoms: true,
-      auto_rotate: 0,
-      bond_thickness: BOND_DEFAULTS.thickness,
-      ...scene_props,
+    scene_props = { bond_thickness: STRUCT_DEFAULTS.bond.thickness, ...scene_props }
+  })
+
+  // Track if force vectors have been auto-enabled to prevent repeated triggering
+  let force_vectors_auto_enabled = $state(false)
+
+  // Auto-enable force vectors when structure has force data
+  $effect(() => {
+    if (structure?.sites && !force_vectors_auto_enabled) {
+      const has_force_data = structure.sites.some((site) =>
+        site.properties?.force && Array.isArray(site.properties.force)
+      )
+
+      // Enable force vectors if structure has force data
+      if (has_force_data && !scene_props.show_force_vectors) {
+        scene_props = {
+          ...scene_props,
+          show_force_vectors: true,
+          force_vector_scale: scene_props.force_vector_scale ||
+            STRUCT_DEFAULTS.vector.scale,
+          force_vector_color: scene_props.force_vector_color || `#ff6b6b`,
+        }
+        force_vectors_auto_enabled = true
+      }
     }
   })
 
   $effect.pre(() => {
-    colors.element = element_color_schemes[color_scheme]
+    colors.element =
+      element_color_schemes[color_scheme as keyof typeof element_color_schemes]
   })
 
   let visible_buttons = $derived(

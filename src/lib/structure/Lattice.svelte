@@ -11,7 +11,7 @@
     Quaternion,
     Vector3,
   } from 'three'
-  import { CELL_DEFAULTS } from './index'
+  import { STRUCT_DEFAULTS } from './index'
 
   interface Props {
     matrix?: Matrix3x3 | undefined
@@ -26,11 +26,11 @@
   }
   let {
     matrix = undefined,
-    cell_edge_color = CELL_DEFAULTS.color,
-    cell_surface_color = CELL_DEFAULTS.color,
-    cell_line_width = CELL_DEFAULTS.line_width,
-    cell_edge_opacity = CELL_DEFAULTS.edge_opacity,
-    cell_surface_opacity = CELL_DEFAULTS.surface_opacity,
+    cell_edge_color = STRUCT_DEFAULTS.cell.color,
+    cell_surface_color = STRUCT_DEFAULTS.cell.color,
+    cell_line_width = STRUCT_DEFAULTS.cell.line_width,
+    cell_edge_opacity = STRUCT_DEFAULTS.cell.edge_opacity,
+    cell_surface_opacity = STRUCT_DEFAULTS.cell.surface_opacity,
     show_vectors = true,
     vector_colors = [`red`, `green`, `blue`],
     vector_origin = [-1, -1, -1] as Vec3,

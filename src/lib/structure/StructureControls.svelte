@@ -1,20 +1,38 @@
 <script lang="ts">
-  import type { AnyStructure, Lattice } from '$lib'
-  import { ControlPanel } from '$lib'
-  import { element_color_schemes } from '$lib/colors'
-  import * as exports from '$lib/io/export'
-  import type { ComponentProps } from 'svelte'
-  import Select from 'svelte-multiselect'
-  import { Tooltip } from 'svelte-zoo'
-  import type { StructureScene } from './index'
+  import type { AnyStructure } from '$lib';
+  import { ControlPanel } from '$lib';
+  import { element_color_schemes } from '$lib/colors';
+  import * as exports from '$lib/io/export';
+  import { STRUCT_DEFAULTS } from '$lib/structure';
+  import Select from 'svelte-multiselect';
+  import { Tooltip } from 'svelte-zoo';
 
   export interface Props {
     // Control panel state
     controls_open?: boolean
     // Scene properties (bindable from parent)
-    scene_props?: ComponentProps<typeof StructureScene>
+    scene_props?: {
+      atom_radius: number
+      show_atoms: boolean
+      auto_rotate: number
+      bond_thickness?: number
+      show_bonds?: boolean
+      show_force_vectors?: boolean
+      force_vector_scale?: number
+      force_vector_color?: string
+      same_size_atoms: boolean
+      [key: string]: unknown
+    }
     // Lattice properties (bindable from parent)
-    lattice_props?: ComponentProps<typeof Lattice>
+    lattice_props?: {
+      cell_edge_opacity: number
+      cell_surface_opacity: number
+      cell_edge_color: string
+      cell_surface_color: string
+      cell_line_width: number
+      show_vectors: boolean
+      [key: string]: unknown
+    }
     // Display options (bindable from parent)
     show_image_atoms?: boolean
     show_site_labels?: boolean
@@ -23,11 +41,11 @@
     background_color?: string
     background_opacity?: number
     // Color scheme (bindable from parent)
-    color_scheme?: `Jmol` | `Vesta`
+    color_scheme?: string
     // Structure for export functions
     structure?: AnyStructure | undefined
     // Canvas wrapper for PNG export
-    wrapper?: HTMLDivElement | undefined
+    wrapper?: HTMLDivElement
     // Export settings
     png_dpi?: number
     save_json_btn_text?: string
@@ -36,8 +54,25 @@
   }
   let {
     controls_open = $bindable(false),
-    scene_props = $bindable({}),
-    lattice_props = $bindable({}),
+    scene_props = $bindable({
+      atom_radius: 1,
+      show_atoms: true,
+      auto_rotate: 0,
+      show_bonds: true,
+      show_force_vectors: false,
+      force_vector_scale: STRUCT_DEFAULTS.vector.scale,
+      force_vector_color: STRUCT_DEFAULTS.vector.color,
+      same_size_atoms: false,
+      bond_thickness: STRUCT_DEFAULTS.bond.thickness,
+    }),
+    lattice_props = $bindable({
+      cell_edge_opacity: STRUCT_DEFAULTS.cell.edge_opacity,
+      cell_surface_opacity: STRUCT_DEFAULTS.cell.surface_opacity,
+      cell_edge_color: STRUCT_DEFAULTS.cell.edge_color,
+      cell_surface_color: STRUCT_DEFAULTS.cell.surface_color,
+      cell_line_width: STRUCT_DEFAULTS.cell.line_width,
+      show_vectors: true,
+    }),
     show_image_atoms = $bindable(true),
     show_site_labels = $bindable(false),
     show_full_controls = $bindable(false),
@@ -56,9 +91,16 @@
   let color_scheme_selected = $state([color_scheme])
   $effect(() => {
     if (color_scheme_selected.length > 0) {
-      color_scheme = color_scheme_selected[0] as `Jmol` | `Vesta`
+      color_scheme = color_scheme_selected[0] as string
     }
   })
+
+  // Detect if structure has force data
+  let has_forces = $derived(
+    structure?.sites?.some((site) =>
+      site.properties?.force && Array.isArray(site.properties.force)
+    ) ?? false
+  )
 
   // Helper function to get example set of colors from an element color scheme
   function get_representative_colors(scheme_name: string): string[] {
@@ -95,6 +137,12 @@
         <input type="checkbox" bind:checked={show_site_labels} />
         site labels
       </label>
+      {#if has_forces}
+        <label>
+          <input type="checkbox" bind:checked={scene_props.show_force_vectors} />
+          force vectors
+        </label>
+      {/if}
       <label>
         <input type="checkbox" bind:checked={show_full_controls} />
         full controls
@@ -155,6 +203,34 @@
     </label>
 
     <hr />
+
+    <!-- Force Vector Controls -->
+    {#if has_forces && scene_props.show_force_vectors}
+      <h4 class="section-heading">Force Vectors</h4>
+      <label class="slider-control">
+        Scale
+        <input
+          type="number"
+          min="0.01"
+          max="1"
+          step="0.01"
+          bind:value={scene_props.force_vector_scale}
+        />
+        <input
+          type="range"
+          min="0.01"
+          max="1"
+          step="0.01"
+          bind:value={scene_props.force_vector_scale}
+        />
+      </label>
+      <label class="compact">
+        Color
+        <input type="color" bind:value={scene_props.force_vector_color} />
+      </label>
+
+      <hr />
+    {/if}
 
     <!-- Cell Controls -->
     <h4 class="section-heading">Cell</h4>
