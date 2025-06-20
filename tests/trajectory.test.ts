@@ -117,6 +117,10 @@ test.describe(`Trajectory Component`, () => {
       await expect(sidebar).toContainText(`Atoms`)
       await expect(sidebar).toContainText(`Steps`)
       await expect(sidebar).toContainText(`Volume`)
+
+      // Test timestamp formatting: Date.now() should format as readable date, not raw milliseconds
+      const formatted_date = new Date(Date.now()).toLocaleString()
+      expect(formatted_date).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}.*\d{1,2}:\d{2}/)
     })
 
     test(`fullscreen toggle works`, async () => {
