@@ -260,7 +260,7 @@
     }}
     {...rest}
   >
-    <section class:visible={visible_buttons}>
+    <section class:visible={visible_buttons} class="control-buttons">
       {#if camera_has_moved}
         <button class="reset-camera" onclick={reset_camera} title={reset_text}>
           <!-- Target/Focus icon for reset camera -->
@@ -371,27 +371,18 @@
   button:hover {
     background-color: transparent !important;
   }
-  section {
+  section.control-buttons {
     position: absolute;
     display: flex;
     justify-content: end;
     top: var(--struct-buttons-top, 1ex);
     right: var(--struct-buttons-right, 1ex);
     gap: var(--struct-buttons-gap, 3pt);
-    z-index: 2;
+    z-index: var(--struct-buttons-z-index, 1);
   }
   section button {
     pointer-events: auto;
     font-size: 1em;
-  }
-  section :global(.controls-toggle) {
-    background-color: transparent;
-  }
-  section :global(.controls-toggle):hover {
-    background-color: transparent !important;
-  }
-  .structure :global(canvas) {
-    pointer-events: auto;
   }
   p.warn {
     text-align: center;

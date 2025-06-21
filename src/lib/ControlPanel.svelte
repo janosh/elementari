@@ -31,7 +31,7 @@
     icon_style = `width: 24px; height: 24px`,
   }: Props = $props()
 
-  const panel_class = `controls-panel`
+  const [panel_class, toggle_class] = [`controls-panel`, `controls-toggle`]
 
   function on_keydown(event: KeyboardEvent) {
     if (event.key === `Escape`) controls_open = false
@@ -44,7 +44,7 @@
 
     const target = event.target as Element
     const control_panel = target.closest(`.${panel_class}`)
-    const toggle_btn = target.closest(`.controls-toggle`)
+    const toggle_btn = target.closest(`.${toggle_class}`)
 
     // Don't close if clicking inside panel or on toggle button
     if (!control_panel && !toggle_btn) controls_open = false
@@ -63,7 +63,7 @@
       aria-controls="controls-panel"
       title={toggle_button.title ?? (controls_open ? `Close controls` : `Open controls`)}
       {...toggle_button}
-      class="controls-toggle {toggle_button.class ?? ``}"
+      class="{toggle_class} {toggle_button.class ?? ``}"
     >
       <Icon icon={controls_open ? open_icon : closed_icon} style={icon_style} />
     </button>

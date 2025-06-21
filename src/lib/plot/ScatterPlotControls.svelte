@@ -133,7 +133,9 @@
 
     // Sync with selected series style properties
     if (
-      series.length > 0 && selected_series_idx < series.length &&
+      series.length > 0 &&
+      selected_series_idx >= 0 &&
+      selected_series_idx < series.length &&
       series[selected_series_idx]
     ) {
       const selected_series = series[selected_series_idx]
@@ -457,7 +459,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    z-index: 10;
+    z-index: var(--plot-controls-z-index);
   }
   .plot-controls :global(.controls-panel) {
     --control-panel-bg: rgba(0, 0, 0, 0.9);

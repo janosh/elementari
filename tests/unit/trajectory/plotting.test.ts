@@ -1,7 +1,11 @@
 import type { ElementSymbol, Vec3 } from '$lib'
 import type { DataSeries } from '$lib/plot'
 import type { Trajectory, TrajectoryFrame } from '$lib/trajectory'
-import { generate_plot_series, should_hide_plot } from '$lib/trajectory/plotting'
+import {
+  generate_axis_labels,
+  generate_plot_series,
+  should_hide_plot,
+} from '$lib/trajectory/plotting'
 import { describe, expect, it } from 'vitest'
 
 // Helper to create a simple trajectory with metadata properties
@@ -346,5 +350,55 @@ describe(`y-axis assignment edge cases`, () => {
     expect(energy_series?.y_axis).toBe(`y1`)
     expect(force_series?.y_axis).toBe(`y2`)
     expect(volume_series?.y_axis).toBe(`y2`)
+  })
+})
+
+describe(`generate_axis_labels`, () => {
+  // Helper for creating test series
+  const series = (
+    label: string,
+    y_axis: `y1` | `y2` = `y1`,
+    visible = true,
+  ): DataSeries => ({
+    x: [0, 1],
+    y: [1, 2],
+    label,
+    visible,
+    y_axis,
+    markers: `line` as const,
+    metadata: [],
+    line_style: { stroke: `blue`, stroke_width: 2 },
+    point_style: { fill: `blue`, radius: 4, stroke: `blue`, stroke_width: 1 },
+  })
+
+  it.each([
+    [`empty series`, [], { y1: `Value`, y2: `Value` }],
+    [`y1 only`, [series(`Energy`, `y1`)], { y1: `Energy`, y2: `Value` }],
+    [`y2 only`, [series(`Force`, `y2`)], { y1: `Value`, y2: `Force` }],
+    [`mixed axes`, [series(`Energy`, `y1`), series(`Force`, `y2`)], {
+      y1: `Energy`,
+      y2: `Force`,
+    }],
+    [`visible priority`, [series(`Hidden`, `y1`, false), series(`Visible`, `y1`)], {
+      y1: `Visible`,
+      y2: `Value`,
+    }],
+    [`fallback invisible`, [series(`Energy`, `y1`, false)], {
+      y1: `Energy`,
+      y2: `Value`,
+    }],
+  ])(`should handle %s`, (_, series_data, expected) => {
+    expect(generate_axis_labels(series_data)).toEqual(expected)
+  })
+
+  it.each([
+    [`undefined`, { ...series(``, `y1`), label: undefined }],
+    [`empty string`, series(``, `y1`)],
+    [`null`, { ...series(``, `y1`), label: null }],
+  ])(`should handle %s label`, (_, test_series) => {
+    expect(generate_axis_labels([test_series] as DataSeries[])).toEqual({
+      y1: `Value`,
+      y2: `Value`,
+    })
   })
 })

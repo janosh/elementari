@@ -17,7 +17,11 @@
     load_trajectory_from_url,
     parse_trajectory_data,
   } from './parse'
-  import { generate_plot_series, should_hide_plot } from './plotting'
+  import {
+    generate_axis_labels,
+    generate_plot_series,
+    should_hide_plot,
+  } from './plotting'
 
   interface Props {
     // trajectory data - can be provided directly or loaded from file
@@ -198,25 +202,8 @@
   let show_structure = $derived(display_mode !== `plot`)
   let actual_show_plot = $derived(display_mode !== `structure` && show_plot)
 
-  // Generate intelligent axis labels based on first series on each axis
-  let y_axis_labels = $derived.by(() => {
-    if (plot_series.length === 0) return { y1: `Value`, y2: `Value` }
-
-    const y1_series = plot_series.filter((s) => (s.y_axis ?? `y1`) === `y1`)
-    const y2_series = plot_series.filter((s) => s.y_axis === `y2`)
-
-    const get_axis_label = (series: DataSeries[]): string => {
-      if (series.length === 0) return `Value`
-      // Use the first series label as the axis label
-      const first_series = series[0]
-      return first_series?.label || `Value`
-    }
-
-    return {
-      y1: get_axis_label(y1_series),
-      y2: get_axis_label(y2_series),
-    }
-  })
+  // Generate intelligent axis labels based on first visible series on each axis
+  let y_axis_labels = $derived(generate_axis_labels(plot_series))
 
   // Check if there are any Y2 series to determine padding
   let has_y2_series = $derived(

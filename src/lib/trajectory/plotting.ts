@@ -126,12 +126,12 @@ export function generate_plot_series(
     series.push({
       x: x_values,
       y: y_values,
-      label: full_label,
+      label: clean_label, // Use label without units for legend
       unit,
       y_axis,
       visible: is_default_visible,
       markers: n < 30 ? `line+points` : `line`,
-      metadata: x_values.map(() => ({ series_label: full_label })),
+      metadata: x_values.map(() => ({ series_label: full_label })), // Use full label with units for tooltips
       line_style: {
         stroke: color,
         stroke_width: 2,
@@ -207,4 +207,27 @@ export function should_hide_plot(
   }
 
   return true // All series are constant, hide plot
+}
+
+// Generate dynamic y-axis labels based on visible series
+export function generate_axis_labels(
+  plot_series: DataSeries[],
+): { y1: string; y2: string } {
+  if (plot_series.length === 0) return { y1: `Value`, y2: `Value` }
+
+  const y1_series = plot_series.filter((s) => (s.y_axis ?? `y1`) === `y1`)
+  const y2_series = plot_series.filter((s) => s.y_axis === `y2`)
+
+  const get_axis_label = (series: DataSeries[]): string => {
+    if (series.length === 0) return `Value`
+
+    // Find the first visible series on this axis
+    const visible_series = series.filter((s) => s.visible)
+    // Use the label from the first visible series
+    if (visible_series.length > 0) return visible_series[0].label || `Value`
+    // If no visible series, use the first series as fallback
+    return series[0]?.label || `Value`
+  }
+
+  return { y1: get_axis_label(y1_series), y2: get_axis_label(y2_series) }
 }
