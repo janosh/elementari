@@ -211,9 +211,7 @@
   export function toggle_fullscreen() {
     if (!document.fullscreenElement && wrapper) {
       wrapper.requestFullscreen().catch(console.error)
-    } else {
-      document.exitFullscreen()
-    }
+    } else document.exitFullscreen()
   }
 
   // set --struct-bg to background_color
@@ -274,17 +272,19 @@
           {#if tips_icon}{@render tips_icon()}{:else}<Icon icon="Info" />{/if}
         </button>
       {/if}
-      <button
-        onclick={toggle_fullscreen}
-        class="fullscreen-toggle"
-        title="Toggle fullscreen"
-      >
-        {#if typeof fullscreen_toggle === `function`}
-          {@render fullscreen_toggle()}
-        {:else if fullscreen_toggle}
-          <Icon icon="Fullscreen" style="transform: scale(0.9)" />
-        {/if}
-      </button>
+      {#if fullscreen_toggle}
+        <button
+          onclick={toggle_fullscreen}
+          class="fullscreen-toggle"
+          title="Toggle fullscreen"
+        >
+          {#if typeof fullscreen_toggle === `function`}
+            {@render fullscreen_toggle()}
+          {:else}
+            <Icon icon="Fullscreen" style="transform: scale(0.9)" />
+          {/if}
+        </button>
+      {/if}
 
       <StructureControls
         bind:controls_open
@@ -348,7 +348,6 @@
     min-width: var(--struct-min-width, 300px);
     border-radius: var(--struct-border-radius, 3pt);
     background: var(--struct-bg, rgba(255, 255, 255, 0.1));
-    --struct-controls-transition-duration: 0.3s;
     overflow: var(--struct-overflow, visible);
     color: var(--struct-text-color);
   }
