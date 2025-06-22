@@ -552,6 +552,8 @@
       sidebar_open = false
     }
   }
+
+  let controls_open = $state({ structure: false, plot: false })
 </script>
 
 <div
@@ -559,6 +561,7 @@
   class:horizontal={layout === `horizontal`}
   class:vertical={layout === `vertical`}
   class:dragover
+  class:active={sidebar_open || is_playing || controls_open.structure || controls_open.plot}
   bind:this={wrapper}
   role="button"
   tabindex="0"
@@ -768,6 +771,7 @@
           enable_tips={false}
           fullscreen_toggle={false}
           {...{ show_image_atoms: false, ...structure_props }}
+          bind:controls_open={controls_open.structure}
         />
       {/if}
 
@@ -786,6 +790,7 @@
           markers="line"
           x_ticks={step_label_positions}
           show_controls
+          bind:controls_open={controls_open.plot}
           legend={{
             responsive: true,
             layout: `horizontal`,
@@ -864,6 +869,9 @@
     transition: border-color 0.2s ease;
     box-sizing: border-box;
     contain: layout;
+  }
+  .trajectory-viewer.active {
+    z-index: 1;
   }
   .trajectory-viewer:fullscreen {
     height: 100vh !important;

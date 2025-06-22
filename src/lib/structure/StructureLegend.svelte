@@ -100,7 +100,7 @@
     gap: var(--struct-legend-gap, 8pt);
     font-size: var(--struct-legend-font, 14pt);
     filter: grayscale(10%) brightness(0.8) saturate(0.8);
-    z-index: var(--struct-legend-z-index);
+    z-index: var(--struct-legend-z-index, 1);
     pointer-events: auto;
     visibility: visible;
   }

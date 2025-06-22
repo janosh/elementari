@@ -1836,7 +1836,7 @@
                 y={height - pad.b - active_tick_height / 2}
                 width="3"
                 height={active_tick_height}
-                fill="var(--esp-current-frame-color, #ff6b35)"
+                fill="var(--scatter-current-frame-color, #ff6b35)"
                 stroke="white"
                 stroke-width="0.5"
                 class="current-frame-indicator"
@@ -1877,12 +1877,7 @@
 
                   {#if tick >= y_min && tick <= y_max}
                     {@const { x, y } = y_tick_label_shift}
-                    <text
-                      {x}
-                      {y}
-                      text-anchor="end"
-                      style:fill={axis_colors.y1 || undefined}
-                    >
+                    <text {x} {y} text-anchor="end" fill={axis_colors.y1 || undefined}>
                       {format_value(tick, y_format)}
                       {#if y_unit && idx === 0}
                         &zwnj;&ensp;{y_unit}
@@ -1935,12 +1930,7 @@
 
                     {#if tick >= y2_min && tick <= y2_max}
                       {@const { x, y } = y2_tick_label_shift}
-                      <text
-                        {x}
-                        {y}
-                        text-anchor="start"
-                        style:fill={axis_colors.y2 || undefined}
-                      >
+                      <text {x} {y} text-anchor="start" fill={axis_colors.y2}>
                         {format_value(tick, y2_format)}
                         {#if y2_unit && idx === 0}
                           &zwnj;&ensp;{y2_unit}
@@ -1967,7 +1957,7 @@
                 (height - pad.t - pad.b) / 2 +
                 (y2_label_shift.x ?? 0)})"
             >
-              <div class="axis-label y2-label" style:color={axis_colors.y2 || undefined}>
+              <div class="axis-label y2-label" style:color={axis_colors.y2}>
                 {@html y2_label ?? ``}
               </div>
             </foreignObject>
@@ -2053,7 +2043,7 @@
           <div
             class="tooltip"
             style:background-color={tooltip_bg_color}
-            style:color="var(--esp-tooltip-color, {tooltip_text_color})"
+            style:color="var(--scatter-tooltip-color, {tooltip_text_color})"
           >
             {#if tooltip}
               {@const tooltip_props = { x_formatted, y_formatted, color_value, label }}
@@ -2172,22 +2162,21 @@
     width: 100%;
     height: 100%;
     display: flex;
-    min-height: var(--esp-min-height, 100px);
+    min-height: var(--scatter-min-height, 100px);
     container-type: inline-size;
-    z-index: var(--esp-z-index, 1);
+    z-index: var(--scatter-z-index, 1);
   }
   svg {
     width: 100%;
-    fill: var(--esp-fill, white);
-    font-weight: var(--esp-font-weight);
+    fill: var(--scatter-fill, white);
+    font-weight: var(--scatter-font-weight);
     overflow: visible;
-    z-index: var(--esp-z-index, 1);
-    font-size: var(--esp-font-size);
+    font-size: var(--scatter-font-size);
   }
   line {
-    stroke: var(--esp-grid-stroke, gray);
-    stroke-dasharray: var(--esp-grid-dash, 4);
-    stroke-width: var(--esp-grid-width, 0.4);
+    stroke: var(--scatter-grid-stroke, gray);
+    stroke-dasharray: var(--scatter-grid-dash, 4);
+    stroke-width: var(--scatter-grid-width, 0.4);
   }
   g.x-axis text {
     text-anchor: middle;
@@ -2209,9 +2198,9 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    font-size: var(--esp-font-size, inherit);
-    font-weight: var(--esp-font-weight, normal);
-    color: var(--esp-fill, currentColor);
+    font-size: var(--scatter-font-size, inherit);
+    font-weight: var(--scatter-font-weight, normal);
+    color: var(--scatter-fill, currentColor);
     white-space: nowrap;
   }
   .current-frame-indicator {
@@ -2222,18 +2211,18 @@
     opacity: 0.8;
   }
   .tooltip {
-    color: var(--esp-tooltip-color, white);
-    padding: var(--esp-tooltip-padding, 1px 4px);
-    border-radius: var(--esp-tooltip-border-radius, 3px);
-    font-size: var(--esp-tooltip-font-size, 0.8em);
+    color: var(--scatter-tooltip-color, white);
+    padding: var(--scatter-tooltip-padding, 1px 4px);
+    border-radius: var(--scatter-tooltip-border-radius, 3px);
+    font-size: var(--scatter-tooltip-font-size, 0.8em);
     /* Ensure background fits content width */
-    width: var(--esp-tooltip-width, max-content);
+    width: var(--scatter-tooltip-width, max-content);
     box-sizing: border-box;
   }
   .zoom-rect {
-    fill: var(--esp-zoom-rect-fill, rgba(100, 100, 255, 0.2));
-    stroke: var(--esp-zoom-rect-stroke, rgba(100, 100, 255, 0.8));
-    stroke-width: var(--esp-zoom-rect-stroke-width, 1);
+    fill: var(--scatter-zoom-rect-fill, rgba(100, 100, 255, 0.2));
+    stroke: var(--scatter-zoom-rect-stroke, rgba(100, 100, 255, 0.8));
+    stroke-width: var(--scatter-zoom-rect-stroke-width, 1);
     pointer-events: none; /* Prevent rect from interfering with mouse events */
   }
 </style>
