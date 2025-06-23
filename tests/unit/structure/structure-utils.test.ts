@@ -17,7 +17,7 @@ const ref_data: Record<
 > = {
   'mp-1': {
     amounts: { Cs: 2 },
-    density: 1.8,
+    density: 1.8019302505603234,
     center_of_mass: [1.564, 1.564, 1.564],
     elements: [`Cs`],
     alphabetical_formula: `Cs<sub>2</sub>`,
@@ -25,7 +25,7 @@ const ref_data: Record<
   },
   'mp-2': {
     amounts: { Pd: 4 },
-    density: 11.76,
+    density: 11.759135742447171,
     center_of_mass: [0.979, 0.979, 0.979],
     elements: [`Pd`],
     alphabetical_formula: `Pd<sub>4</sub>`,
@@ -49,7 +49,7 @@ const ref_data: Record<
   },
   'mp-756175': {
     amounts: { Zr: 16, Bi: 16, O: 56 },
-    density: 7.46,
+    density: 7.457890165317997,
     center_of_mass: [4.798, 4.798, 4.798],
     elements: [`Bi`, `O`, `Zr`],
     alphabetical_formula: `Bi<sub>16</sub> O<sub>56</sub> Zr<sub>16</sub>`,
@@ -57,7 +57,7 @@ const ref_data: Record<
   },
   'mp-1229155': {
     amounts: { Ag: 4, Hg: 4, S: 4, Br: 1, Cl: 3 },
-    density: 6.11,
+    density: 6.107930572082895,
     center_of_mass: [2.282, 3.522, 6.642],
     elements: [`Ag`, `Br`, `Cl`, `Hg`, `S`],
     alphabetical_formula: `Ag<sub>4</sub> Br Cl<sub>3</sub> Hg<sub>4</sub> S<sub>4</sub>`,
@@ -65,7 +65,7 @@ const ref_data: Record<
   },
   'mp-1229168': {
     amounts: { Al: 54, Fe: 4, Ni: 8 },
-    density: 3.66,
+    density: 3.6567149052096903,
     center_of_mass: [1.785, 2.959, 12.51],
     elements: [`Al`, `Fe`, `Ni`],
     alphabetical_formula: `Al<sub>54</sub> Fe<sub>4</sub> Ni<sub>8</sub>`,

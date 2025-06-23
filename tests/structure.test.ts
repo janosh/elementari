@@ -854,17 +854,10 @@ test.describe(`Reset Camera Button Tests`, () => {
 
     await expect(button_section).toBeVisible()
 
-    const section_classes = await button_section.getAttribute(`class`)
-    console.log(`Button section classes: ${section_classes}`)
-
     // The button should be in the DOM but hidden when camera_has_moved is false
-    const button_count = await page.locator(`button.reset-camera`).count()
-    console.log(`Reset camera button count in DOM: ${button_count}`)
-
     const other_buttons = button_section.locator(`button`)
     const other_button_count = await other_buttons.count()
     expect(other_button_count).toBeGreaterThan(0)
-    console.log(`Other buttons in section: ${other_button_count}`)
   })
 
   test(`reset camera button SVG icon structure is correct`, async ({ page }) => {
