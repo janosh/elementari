@@ -2133,13 +2133,15 @@
       (legend_data.length > 1 || (legend != null && JSON.stringify(legend) !== `{}`))}
       <PlotLegend
         series_data={legend_data}
-        on_toggle={toggle_series_visibility}
-        on_double_click={handle_legend_double_click}
         on_drag_start={handle_legend_drag_start}
         on_drag={handle_legend_drag}
         on_drag_end={handle_legend_drag_end}
         draggable={legend?.draggable ?? true}
         {...legend}
+        on_toggle={(legend?.on_toggle as ((series_idx: number) => void) | undefined) ??
+        toggle_series_visibility}
+        on_double_click={(legend?.on_double_click as ((series_idx: number) => void) | undefined) ??
+        handle_legend_double_click}
         wrapper_style={`
           position: absolute;
           left: ${tweened_legend_coords.current.x}px;
@@ -2193,15 +2195,15 @@
   }
   .axis-label {
     text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     height: 100%;
     font-size: var(--scatter-font-size, inherit);
     font-weight: var(--scatter-font-weight, normal);
     color: var(--scatter-fill, currentColor);
     white-space: nowrap;
+    /* Use line-height to center text vertically without flexbox */
+    line-height: 20px; /* Match foreignObject height */
+    display: block;
   }
   .current-frame-indicator {
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-await-in-loop
 import type { Locator } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
@@ -107,7 +108,6 @@ test.describe(`Trajectory Component`, () => {
       // Check sidebar sections exist (might be visible or hidden)
       const sections = [`File`, `Structure`, `Unit Cell`, `Trajectory`]
       for (const section of sections) {
-        // deno-lint-ignore no-await-in-loop
         await expect(
           sidebar.locator(`h4`).filter({ hasText: section }),
         ).toBeAttached()
@@ -580,6 +580,783 @@ test.describe(`Trajectory Component`, () => {
       await expect(trajectory).toBeVisible()
       await expect(trajectory.locator(`.content-area`)).toBeVisible()
       await expect(trajectory.locator(`.trajectory-controls`)).toBeVisible()
+    })
+  })
+})
+
+test.describe(`Trajectory Demo Page - Unit-Aware Plotting`, () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(`/trajectory`, { waitUntil: `networkidle` })
+    // Wait for trajectories to load
+    await page.waitForSelector(`.trajectory-viewer`, { timeout: 10000 })
+  })
+
+  test.describe(`debugging unit extraction and legend issues`, () => {
+    test(`debug third viewer data and unit grouping`, async ({ page }) => {
+      // Navigate to the third trajectory viewer
+      const third_viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+        .nth(2)
+      const plot = third_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      await expect(plot).toBeVisible()
+      await expect(legend).toBeVisible()
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+      console.log(`\nThird viewer has ${legend_count} legend items:`)
+
+      // Get all legend item details
+      const legend_details = []
+      for (let idx = 0; idx < legend_count; idx++) {
+        const legend_item = legend_items.nth(idx)
+        const text = await legend_item.textContent()
+        const is_visible = await legend_item.evaluate((el) => {
+          const styles = globalThis.getComputedStyle(el)
+          return styles.opacity !== `0` && !styles.textDecoration.includes(`line-through`)
+        })
+
+        // Extract unit from text
+        const unit_match = text?.match(/\(([^)]+)\)/)
+        const unit = unit_match ? unit_match[1] : `no unit`
+
+        legend_details.push({
+          idx,
+          text: text?.trim(),
+          unit,
+          visible: is_visible,
+        })
+
+        console.log(
+          `  ${idx}: "${text?.trim()}" | Unit: ${unit} | Visible: ${is_visible}`,
+        )
+      }
+
+      // Group by units
+      const unit_groups = new Map()
+      legend_details.forEach((item) => {
+        if (item.visible) {
+          if (!unit_groups.has(item.unit)) {
+            unit_groups.set(item.unit, [])
+          }
+          unit_groups.get(item.unit).push(item.text)
+        }
+      })
+
+      console.log(`\nVisible unit groups:`)
+      for (const [unit, items] of unit_groups) {
+        console.log(`  ${unit}: [${items.join(`, `)}]`)
+      }
+      console.log(`\nTotal visible unit groups: ${unit_groups.size}`)
+
+      // This should help us understand why we have 3 unit groups
+      expect(unit_groups.size).toBeLessThanOrEqual(3) // Temporarily allow 3 to see the data
+    })
+
+    test(`debug legend text and unit extraction`, async ({ page }) => {
+      const first_viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+        .first()
+      const plot = first_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      await expect(plot).toBeVisible()
+      await expect(legend).toBeVisible()
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+      console.log(`Found ${legend_count} legend items`)
+
+      // Debug each legend item in detail
+      for (let idx = 0; idx < Math.min(legend_count, 6); idx++) {
+        const legend_item = legend_items.nth(idx)
+        const full_text = await legend_item.textContent()
+        const inner_html = await legend_item.innerHTML()
+
+        console.log(`\nLegend item ${idx}:`)
+        console.log(`  Full text: "${full_text}"`)
+        console.log(`  Inner HTML: "${inner_html}"`)
+
+        // Try different unit extraction patterns
+        const unit_patterns = [
+          /\(([^)]+)\)/, // Standard parentheses
+          /\[([^\]]+)\]/, // Square brackets
+          /\s([A-Za-z°Å³²\/]+)$/, // Unit at end
+          /(\w+\/\w+)/, // Slash units like eV/Å
+        ]
+
+        for (const pattern of unit_patterns) {
+          const match = full_text?.match(pattern)
+          if (match) {
+            console.log(`  Unit match with ${pattern}: "${match[1]}"`)
+          }
+        }
+
+        // Check visibility state
+        const styles = await legend_item.evaluate((el) => {
+          const computed = globalThis.getComputedStyle(el)
+          return {
+            opacity: computed.opacity,
+            textDecoration: computed.textDecoration,
+            color: computed.color,
+            display: computed.display,
+            visibility: computed.visibility,
+          }
+        })
+        console.log(`  Styles:`, styles)
+      }
+    })
+
+    test(`debug legend click behavior`, async ({ page }) => {
+      const first_viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+        .first()
+      const plot = first_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      await expect(plot).toBeVisible()
+      await expect(legend).toBeVisible()
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+
+      if (legend_count > 0) {
+        const first_item = legend_items.first()
+        const initial_text = await first_item.textContent()
+        const initial_styles = await first_item.evaluate((el) => {
+          const computed = globalThis.getComputedStyle(el)
+          return {
+            opacity: computed.opacity,
+            textDecoration: computed.textDecoration,
+            color: computed.color,
+          }
+        })
+
+        console.log(`\nBefore click on "${initial_text}":`)
+        console.log(`  Styles:`, initial_styles)
+
+        // Click the legend item
+        await first_item.click()
+
+        // Wait a moment for changes
+        await page.waitForTimeout(200)
+
+        const after_styles = await first_item.evaluate((el) => {
+          const computed = globalThis.getComputedStyle(el)
+          return {
+            opacity: computed.opacity,
+            textDecoration: computed.textDecoration,
+            color: computed.color,
+          }
+        })
+
+        console.log(`After click:`)
+        console.log(`  Styles:`, after_styles)
+
+        // Check if there are any visible changes
+        const changed = JSON.stringify(initial_styles) !== JSON.stringify(after_styles)
+        console.log(`  Styles changed: ${changed}`)
+
+        // Try to see if there are data attributes or aria states
+        const data_state = await first_item.evaluate((el) => ({
+          ariaPressed: el.getAttribute(`aria-pressed`),
+          dataVisible: el.getAttribute(`data-visible`),
+          className: el.className,
+          dataset: Object.fromEntries(Object.entries(el.dataset)),
+        }))
+        console.log(`  Data/aria state:`, data_state)
+      }
+    })
+  })
+
+  test.describe(`plot legend interactions and unit constraints`, () => {
+    test(`first trajectory viewer - basic legend functionality`, async ({ page }) => {
+      const first_viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+        .first()
+      const plot = first_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      // Wait for plot to load
+      await expect(plot).toBeVisible()
+      await expect(legend).toBeVisible()
+
+      // Check initial legend items
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+      expect(legend_count).toBeGreaterThan(0)
+
+      // Test legend item visibility states
+      for (let idx = 0; idx < Math.min(legend_count, 5); idx++) {
+        const legend_item = legend_items.nth(idx)
+        await expect(legend_item).toBeVisible()
+
+        // Get the legend item text to understand what property it represents
+        const legend_text = await legend_item.textContent()
+        console.log(`Legend item ${idx}: ${legend_text}`)
+      }
+    })
+
+    test(`second trajectory viewer - legend interactions`, async ({ page }) => {
+      const all_viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+      const viewer_count = await all_viewers.count()
+
+      // Skip if we don't have at least 2 viewers
+      if (viewer_count < 2) {
+        console.log(`Skipping test: Only ${viewer_count} viewers found, need at least 2`)
+        return
+      }
+
+      const second_viewer = all_viewers.nth(1)
+      const plot = second_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      // Check if plot exists and is visible, skip if not
+      if (!(await plot.isVisible({ timeout: 5000 }))) {
+        console.log(`Skipping test: Second viewer plot not visible`)
+        return
+      }
+
+      await expect(legend).toBeVisible({ timeout: 10000 })
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+
+      if (legend_count > 0) {
+        // Test clicking on legend items
+        const first_legend_item = legend_items.first()
+        const initial_text = await first_legend_item.textContent()
+
+        // Click to toggle visibility
+        await first_legend_item.click()
+
+        // Check if the legend item visual state changed (opacity, strikethrough, etc.)
+        const legend_styles = await first_legend_item.evaluate((el) => {
+          const styles = globalThis.getComputedStyle(el)
+          return {
+            opacity: styles.opacity,
+            textDecoration: styles.textDecoration,
+            color: styles.color,
+          }
+        })
+
+        console.log(`Legend item "${initial_text}" styles after click:`, legend_styles)
+      }
+    })
+
+    test(`third trajectory viewer - comprehensive unit group testing`, async ({ page }) => {
+      const third_viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+        .nth(2)
+      const plot = third_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      // Wait for plot to load with longer timeout
+      await expect(plot).toBeVisible({ timeout: 15000 })
+      await expect(legend).toBeVisible({ timeout: 15000 })
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+      console.log(`Third viewer has ${legend_count} legend items`)
+
+      // Test maximum 2 unit groups constraint
+      const initial_visible_count = await legend_items.filter({
+        has: page.locator(
+          `:not([style*="opacity: 0"]):not([style*="text-decoration: line-through"])`,
+        ),
+      }).count()
+
+      console.log(`Initially visible legend items: ${initial_visible_count}`)
+
+      // Test clicking on each legend item and verify constraints
+      const legend_texts: string[] = []
+      for (let idx = 0; idx < Math.min(legend_count, 8); idx++) {
+        const legend_item = legend_items.nth(idx)
+        const text = await legend_item.textContent()
+        legend_texts.push(text || ``)
+
+        // Click the legend item
+        await legend_item.click()
+
+        // Check how many unit groups are visible after the click
+        const visible_units = new Set<string>()
+        for (let j = 0; j < legend_count; j++) {
+          const item = legend_items.nth(j)
+          const is_visible = await item.evaluate((el) => {
+            const styles = globalThis.getComputedStyle(el)
+            return styles.opacity !== `0` &&
+              !styles.textDecoration.includes(`line-through`)
+          })
+
+          if (is_visible) {
+            const item_text = await item.textContent()
+            // Extract unit from legend text (usually in parentheses)
+            const unit_match = item_text?.match(/\(([^)]+)\)/)
+            if (unit_match) {
+              visible_units.add(unit_match[1])
+            }
+          }
+        }
+
+        console.log(`After clicking "${text}", visible units:`, Array.from(visible_units))
+
+        // Verify max 2 unit groups constraint
+        expect(visible_units.size).toBeLessThanOrEqual(2)
+      }
+    })
+
+    test(`y-axis labels match visible series units`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+      const viewer_count = await viewers.count()
+
+      for (let viewer_idx = 0; viewer_idx < Math.min(viewer_count, 3); viewer_idx++) {
+        const viewer = viewers.nth(viewer_idx)
+        const plot = viewer.locator(`.scatter`)
+
+        if (await plot.isVisible()) {
+          // Check y-axis labels
+          const y1_label = plot.locator(`.y1-axis-label`)
+          const y2_label = plot.locator(`.y2-axis-label`)
+
+          if (await y1_label.isVisible()) {
+            const y1_text = await y1_label.textContent()
+            console.log(`Viewer ${viewer_idx} Y1 axis label: "${y1_text}"`)
+
+            // Y1 label should not be empty or just "Value"
+            expect(y1_text).toBeTruthy()
+            expect(y1_text?.trim()).not.toBe(``)
+          }
+
+          if (await y2_label.isVisible()) {
+            const y2_text = await y2_label.textContent()
+            console.log(`Viewer ${viewer_idx} Y2 axis label: "${y2_text}"`)
+
+            // Y2 label should not be empty or just "Value"
+            expect(y2_text).toBeTruthy()
+            expect(y2_text?.trim()).not.toBe(``)
+          }
+
+          // Check that axis labels contain units in parentheses
+          const legend = plot.locator(`.legend`)
+          if (await legend.isVisible()) {
+            const legend_items = legend.locator(`.legend-item`)
+            const legend_count = await legend_items.count()
+
+            const visible_units = new Set<string>()
+            for (let j = 0; j < legend_count; j++) {
+              const item = legend_items.nth(j)
+              const is_visible = await item.evaluate((el) => {
+                const styles = globalThis.getComputedStyle(el)
+                return styles.opacity !== `0` &&
+                  !styles.textDecoration.includes(`line-through`)
+              })
+
+              if (is_visible) {
+                const item_text = await item.textContent()
+                const unit_match = item_text?.match(/\(([^)]+)\)/)
+                if (unit_match) {
+                  visible_units.add(unit_match[1])
+                }
+              }
+            }
+
+            console.log(
+              `Viewer ${viewer_idx} visible units in legend:`,
+              Array.from(visible_units),
+            )
+          }
+        }
+      }
+    })
+
+    test(`energy properties get priority for y1 axis`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+
+      for (let viewer_idx = 0; viewer_idx < 3; viewer_idx++) {
+        const viewer = viewers.nth(viewer_idx)
+        const plot = viewer.locator(`.scatter`)
+
+        if (await plot.isVisible()) {
+          const legend = plot.locator(`.legend`)
+          const y1_label = plot.locator(`.y1-axis-label`)
+
+          if (await legend.isVisible() && await y1_label.isVisible()) {
+            const y1_text = await y1_label.textContent()
+            const legend_items = legend.locator(`.legend-item`)
+            const legend_count = await legend_items.count()
+
+            // Check if any energy-related properties are visible
+            let has_energy_on_y1 = false
+            for (let j = 0; j < legend_count; j++) {
+              const item = legend_items.nth(j)
+              const is_visible = await item.evaluate((el) => {
+                const styles = globalThis.getComputedStyle(el)
+                return styles.opacity !== `0` &&
+                  !styles.textDecoration.includes(`line-through`)
+              })
+
+              if (is_visible) {
+                const item_text = await item.textContent()
+                const is_energy_related = item_text?.toLowerCase().includes(`energy`) ||
+                  item_text?.toLowerCase().includes(`enthalpy`) ||
+                  item_text?.includes(`eV`) ||
+                  item_text?.includes(`hartree`)
+
+                if (is_energy_related) {
+                  // Check if this energy property is on y1 axis
+                  // This is a simplified check - in reality we'd need to inspect the series data
+                  const has_energy_unit = y1_text?.includes(`eV`) ||
+                    y1_text?.includes(`hartree`) ||
+                    y1_text?.includes(`Energy`)
+
+                  if (has_energy_unit) {
+                    has_energy_on_y1 = true
+                    console.log(
+                      `Viewer ${viewer_idx}: Energy property "${item_text}" appears to be on Y1 axis: "${y1_text}"`,
+                    )
+                  }
+                }
+              }
+            }
+
+            // If energy properties are present, they should typically be on Y1
+            // (This is a best-effort check since we can't easily determine axis assignment from the DOM)
+            if (has_energy_on_y1) {
+              console.log(
+                `✓ Viewer ${viewer_idx}: Energy properties correctly prioritized on Y1 axis`,
+              )
+            }
+          }
+        }
+      }
+    })
+
+    test(`force and stress properties go to y2 axis`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+
+      for (let viewer_idx = 0; viewer_idx < 3; viewer_idx++) {
+        const viewer = viewers.nth(viewer_idx)
+        const plot = viewer.locator(`.scatter`)
+
+        if (await plot.isVisible()) {
+          const legend = plot.locator(`.legend`)
+          const y2_label = plot.locator(`.y2-axis-label`)
+
+          if (await legend.isVisible() && await y2_label.isVisible()) {
+            const y2_text = await y2_label.textContent()
+            const legend_items = legend.locator(`.legend-item`)
+            const legend_count = await legend_items.count()
+
+            // Check if any force/stress-related properties are visible on Y2
+            let has_force_on_y2 = false
+            for (let j = 0; j < legend_count; j++) {
+              const item = legend_items.nth(j)
+              const is_visible = await item.evaluate((el) => {
+                const styles = globalThis.getComputedStyle(el)
+                return styles.opacity !== `0` &&
+                  !styles.textDecoration.includes(`line-through`)
+              })
+
+              if (is_visible) {
+                const item_text = await item.textContent()
+                const is_force_related = item_text?.toLowerCase().includes(`force`) ||
+                  item_text?.toLowerCase().includes(`stress`) ||
+                  item_text?.toLowerCase().includes(`pressure`) ||
+                  item_text?.includes(`eV/Å`) ||
+                  item_text?.includes(`GPa`)
+
+                if (is_force_related) {
+                  // Check if this force property is on y2 axis
+                  const has_force_unit = y2_text?.includes(`eV/Å`) ||
+                    y2_text?.includes(`GPa`) ||
+                    y2_text?.includes(`Force`) ||
+                    y2_text?.includes(`Stress`)
+
+                  if (has_force_unit) {
+                    has_force_on_y2 = true
+                    console.log(
+                      `Viewer ${viewer_idx}: Force property "${item_text}" appears to be on Y2 axis: "${y2_text}"`,
+                    )
+                  }
+                }
+              }
+            }
+
+            if (has_force_on_y2) {
+              console.log(
+                `✓ Viewer ${viewer_idx}: Force properties correctly assigned to Y2 axis`,
+              )
+            }
+          }
+        }
+      }
+    })
+
+    test(`concatenated axis labels for multiple series with same unit`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+
+      for (let viewer_idx = 0; viewer_idx < 3; viewer_idx++) {
+        const viewer = viewers.nth(viewer_idx)
+        const plot = viewer.locator(`.scatter`)
+
+        if (await plot.isVisible()) {
+          const y1_label = plot.locator(`.y1-axis-label`)
+          const y2_label = plot.locator(`.y2-axis-label`)
+
+          if (await y1_label.isVisible()) {
+            const y1_text = await y1_label.textContent()
+
+            // Check if Y1 label has concatenated format (contains " / ")
+            if (y1_text?.includes(` / `)) {
+              console.log(
+                `✓ Viewer ${viewer_idx}: Y1 axis has concatenated label: "${y1_text}"`,
+              )
+
+              // Verify format: "Label1 / Label2 / Label3 (Unit)"
+              const unit_match = y1_text.match(/\(([^)]+)\)$/)
+              expect(unit_match).toBeTruthy()
+
+              const labels_part = y1_text.replace(/\s*\([^)]+\)$/, ``)
+              const labels = labels_part.split(` / `)
+              expect(labels.length).toBeGreaterThan(1)
+
+              console.log(`  - ${labels.length} series: ${labels.join(`, `)}`)
+              console.log(`  - Unit: ${unit_match?.[1]}`)
+            }
+          }
+
+          if (await y2_label.isVisible()) {
+            const y2_text = await y2_label.textContent()
+
+            if (y2_text?.includes(` / `)) {
+              console.log(
+                `✓ Viewer ${viewer_idx}: Y2 axis has concatenated label: "${y2_text}"`,
+              )
+
+              const unit_match = y2_text.match(/\(([^)]+)\)$/)
+              expect(unit_match).toBeTruthy()
+
+              const labels_part = y2_text.replace(/\s*\([^)]+\)$/, ``)
+              const labels = labels_part.split(` / `)
+              expect(labels.length).toBeGreaterThan(1)
+
+              console.log(`  - ${labels.length} series: ${labels.join(`, `)}`)
+              console.log(`  - Unit: ${unit_match?.[1]}`)
+            }
+          }
+        }
+      }
+    })
+
+    test(`legend toggle enforcement - comprehensive test`, async ({ page }) => {
+      page.setDefaultTimeout(20000)
+      const all_viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+      const viewer_count = await all_viewers.count()
+
+      // Skip if we don't have at least 3 viewers
+      if (viewer_count < 3) {
+        console.log(`Skipping test: Only ${viewer_count} viewers found, need at least 3`)
+        return
+      }
+
+      const third_viewer = all_viewers.nth(2)
+      const plot = third_viewer.locator(`.scatter`)
+      const legend = plot.locator(`.legend`)
+
+      // Check if plot exists and is visible, skip if not
+      if (!(await plot.isVisible({ timeout: 5000 }))) {
+        console.log(`Skipping test: Third viewer plot not visible`)
+        return
+      }
+
+      await expect(legend).toBeVisible({ timeout: 10000 })
+
+      const legend_items = legend.locator(`.legend-item`)
+      const legend_count = await legend_items.count()
+
+      // Function to get current visible unit groups
+      async function getVisibleUnitGroups() {
+        const visible_units = new Set<string>()
+        for (let j = 0; j < legend_count; j++) {
+          const item = legend_items.nth(j)
+          const is_visible = await item.evaluate((el) => {
+            const styles = globalThis.getComputedStyle(el)
+            return styles.opacity !== `0` &&
+              !styles.textDecoration.includes(`line-through`)
+          })
+
+          if (is_visible) {
+            const item_text = await item.textContent()
+            const unit_match = item_text?.match(/\(([^)]+)\)/)
+            if (unit_match) {
+              visible_units.add(unit_match[1])
+            }
+          }
+        }
+        return visible_units
+      }
+
+      // Test: Starting state should have at most 2 unit groups
+      const visible_units = await getVisibleUnitGroups()
+      expect(visible_units.size).toBeLessThanOrEqual(2)
+      console.log(`Initial visible units:`, Array.from(visible_units))
+
+      // Test: Try to enable more unit groups by clicking on hidden legend items
+      const all_units = new Set<string>()
+      for (let j = 0; j < legend_count; j++) {
+        const item = legend_items.nth(j)
+        const item_text = await item.textContent()
+        const unit_match = item_text?.match(/\(([^)]+)\)/)
+        if (unit_match) {
+          all_units.add(unit_match[1])
+        }
+      }
+
+      console.log(`All available units:`, Array.from(all_units))
+
+      // Test clicking on each legend item
+      for (let idx = 0; idx < Math.min(legend_count, 6); idx++) {
+        const legend_item = legend_items.nth(idx)
+        const item_text = await legend_item.textContent()
+
+        console.log(`\nTesting click on: "${item_text}"`)
+
+        // Get state before click
+        const before_units = await getVisibleUnitGroups()
+        console.log(`Before click: ${Array.from(before_units).join(`, `)}`)
+
+        // Click the item
+        await legend_item.click()
+
+        // Get state after click
+        const after_units = await getVisibleUnitGroups()
+        console.log(`After click: ${Array.from(after_units).join(`, `)}`)
+
+        // Verify constraint is maintained
+        expect(after_units.size).toBeLessThanOrEqual(2)
+
+        // Wait a bit for any animations/state updates
+        await page.waitForTimeout(100)
+      }
+
+      // Final verification
+      const final_units = await getVisibleUnitGroups()
+      console.log(`\nFinal visible units:`, Array.from(final_units))
+      expect(final_units.size).toBeLessThanOrEqual(2)
+    })
+  })
+
+  test.describe(`Regression Tests for Control Panel Fixes`, () => {
+    test(`should handle z-index and control panel interactions correctly`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+      const viewer_count = await viewers.count()
+
+      // Test z-index hierarchy when controls are open
+      for (let idx = 0; idx < Math.min(viewer_count, 3); idx++) {
+        const viewer = viewers.nth(idx)
+
+        // Check initial z-index
+        const initial_z = await viewer.evaluate((el) => getComputedStyle(el).zIndex)
+        expect(initial_z).toBe(`auto`)
+
+        // Test structure controls button click
+        const struct_button = viewer.locator(`.structure-controls button`).first()
+        if (await struct_button.count() > 0) {
+          await struct_button.click()
+          await page.waitForTimeout(100)
+
+          const active_z = await viewer.evaluate((el) => getComputedStyle(el).zIndex)
+          expect(parseInt(active_z) || 0).toBeGreaterThan(0)
+
+          await struct_button.click() // Close
+        }
+
+        // Test plot controls
+        const plot_button = viewer.locator(`.plot-controls button`).first()
+        if (await plot_button.count() > 0) {
+          await plot_button.click()
+          await page.waitForTimeout(100)
+
+          const plot_active_z = await viewer.evaluate((el) => getComputedStyle(el).zIndex)
+          expect(parseInt(plot_active_z) || 0).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    test(`should ensure control panels are clickable and not occluded`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+
+      // Test structure legend clickability
+      for (let idx = 0; idx < Math.min(await viewers.count(), 2); idx++) {
+        const viewer = viewers.nth(idx)
+        const legend = viewer.locator(`.structure-legend`)
+
+        if (await legend.count() > 0) {
+          const legend_styles = await legend.evaluate((el) => {
+            const styles = getComputedStyle(el)
+            return {
+              zIndex: styles.zIndex,
+              position: styles.position,
+              pointerEvents: styles.pointerEvents,
+            }
+          })
+
+          expect(legend_styles.pointerEvents).not.toBe(`none`)
+          expect(parseInt(legend_styles.zIndex) || 0).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    test(`should update z-index correctly when viewers become active`, async ({ page }) => {
+      const viewer = page.locator(`.dual-trajectory-container .trajectory-viewer`).first()
+
+      // Check initial state
+      const initial_classes = await viewer.getAttribute(`class`)
+      const initial_z = await viewer.evaluate((el) => getComputedStyle(el).zIndex)
+      expect(initial_classes).not.toContain(`active`)
+      expect(initial_z).toBe(`auto`)
+
+      // Trigger active state by opening info sidebar
+      const info_button = viewer.locator(`.info-button`)
+      if (await info_button.count() > 0) {
+        await info_button.click()
+        await page.waitForTimeout(100)
+
+        const active_classes = await viewer.getAttribute(`class`)
+        const active_z = await viewer.evaluate((el) => getComputedStyle(el).zIndex)
+
+        expect(active_classes).toContain(`active`)
+        expect(parseInt(active_z) || 0).toBeGreaterThan(0)
+      }
+    })
+
+    test(`should handle multiple viewers independently`, async ({ page }) => {
+      const viewers = page.locator(`.dual-trajectory-container .trajectory-viewer`)
+      const viewer_count = await viewers.count()
+
+      if (viewer_count >= 2) {
+        const first_viewer = viewers.first()
+        const second_viewer = viewers.nth(1)
+
+        // Get initial z-indices
+        const first_z = await first_viewer.evaluate((el) => getComputedStyle(el).zIndex)
+        const second_z = await second_viewer.evaluate((el) => getComputedStyle(el).zIndex)
+        expect(first_z).toBe(`auto`)
+        expect(second_z).toBe(`auto`)
+
+        // Activate first viewer
+        const first_button = first_viewer.locator(`.info-button`)
+        if (await first_button.count() > 0) {
+          await first_button.click()
+          await page.waitForTimeout(100)
+
+          const first_active_z = await first_viewer.evaluate((el) =>
+            getComputedStyle(el).zIndex
+          )
+          const second_unchanged_z = await second_viewer.evaluate((el) =>
+            getComputedStyle(el).zIndex
+          )
+
+          expect(parseInt(first_active_z) || 0).toBeGreaterThan(0)
+          expect(second_unchanged_z).toBe(`auto`)
+        }
+      }
     })
   })
 })

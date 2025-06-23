@@ -65,8 +65,8 @@
     d={marker_path}
     stroke={style.stroke ?? `transparent`}
     stroke-width={style.stroke_width ?? 1}
-    fill-opacity={style.fill_opacity}
-    style:stroke-opacity={style.stroke_opacity}
+    fill-opacity={style.fill_opacity ?? 1}
+    stroke-opacity={style.stroke_opacity ?? 1}
     fill="var(--point-fill-color, {style.fill ?? `black`})"
     class="marker"
     class:is-hovered={is_hovered && (hover.enabled ?? true)}

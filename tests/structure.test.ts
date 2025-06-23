@@ -107,7 +107,7 @@ test.describe(`Structure Component Tests`, () => {
     const controls_toggle_button = structure_component.locator(
       `button.controls-toggle`,
     )
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -139,7 +139,7 @@ test.describe(`Structure Component Tests`, () => {
     const controls_toggle_button = structure_component.locator(
       `button.controls-toggle`,
     )
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const outside_area = page.locator(`body`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
@@ -168,7 +168,7 @@ test.describe(`Structure Component Tests`, () => {
 
   test(`show_site_labels defaults to false and can be toggled`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -202,7 +202,7 @@ test.describe(`Structure Component Tests`, () => {
 
   test(`show_site_labels controls are properly labeled`, async ({ page }) => {
     const controls_dialog = page.locator(
-      `#structure-wrapper .structure div.controls`,
+      `#structure-wrapper .structure .controls-panel`,
     )
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
@@ -329,7 +329,7 @@ test.describe(`Structure Component Tests`, () => {
   // SKIPPED: Controls dialog fails to open reliably in test environment
   test.skip(`controls panel stays open when interacting with control inputs`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const controls_open_status = page.locator(
       `[data-testid="controls-open-status"]`,
     )
@@ -428,7 +428,7 @@ test.describe(`Structure Component Tests`, () => {
 
   test(`control inputs have intended effects on structure`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const canvas = structure_component.locator(`canvas`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
@@ -494,7 +494,7 @@ test.describe(`Structure Component Tests`, () => {
     const controls_toggle_button = structure_component.locator(
       `button.controls-toggle`,
     )
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const controls_open_status = page.locator(
       `[data-testid="controls-open-status"]`,
     )
@@ -542,7 +542,7 @@ test.describe(`Structure Component Tests`, () => {
 
   test(`bond controls appear when bonds are enabled`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -605,14 +605,14 @@ test.describe(`Structure Component Tests`, () => {
 
     await test_page_controls_checkbox.check()
     await expect(
-      page.locator(`#structure-wrapper .structure div.controls`),
+      page.locator(`#structure-wrapper .structure .controls-panel`),
     ).toHaveClass(/controls-open/)
 
     const edge_opacity = page.locator(
-      `#structure-wrapper .structure div.controls label:has-text("Edge color") + label input[type="range"]`,
+      `#structure-wrapper .structure .controls-panel label:has-text("Edge color") + label input[type="range"]`,
     )
     const surface_opacity = page.locator(
-      `#structure-wrapper .structure div.controls label:has-text("Surface color") + label input[type="range"]`,
+      `#structure-wrapper .structure .controls-panel label:has-text("Surface color") + label input[type="range"]`,
     )
 
     const initial = await canvas.screenshot()
@@ -1169,7 +1169,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`export buttons are visible when controls panel is open`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1198,7 +1198,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`export buttons are not visible when controls panel is closed`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
 
     await expect(controls_dialog).not.toHaveClass(/controls-open/)
 
@@ -1215,7 +1215,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`JSON export button click does not cause errors`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1234,7 +1234,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`XYZ export button click does not cause errors`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1253,7 +1253,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`PNG export button click does not cause errors`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1275,7 +1275,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`export buttons have correct attributes and styling`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1319,7 +1319,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`export buttons are grouped together in proper layout`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1362,7 +1362,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`DPI input for PNG export works correctly`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1407,7 +1407,7 @@ test.describe(`Export Button Tests`, () => {
 
   test(`multiple export button clicks work correctly`, async ({ page }) => {
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )
@@ -1439,7 +1439,7 @@ test.describe(`Export Button Tests`, () => {
   test(`export buttons work with loaded structure`, async ({ page }) => {
     // Test that export buttons work with the default structure from the test page
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const controls_dialog = structure_component.locator(`div.controls`)
+    const controls_dialog = structure_component.locator(`.controls-panel`)
     const test_page_controls_checkbox = page.locator(
       `label:has-text("Controls Open") input[type="checkbox"]`,
     )

@@ -168,7 +168,7 @@ export function get_elements(structure: AnyStructure): ElementSymbol[] {
 // to grams per cubic centimeter (g/cm^3)
 const uA3_to_gcm3 = 1.66053907
 
-export function density(structure: PymatgenStructure, prec = `.2f`) {
+export function get_density(structure: PymatgenStructure, prec = `.2f`) {
   // calculate the density of a pymatgen Structure in
   const elements = get_elem_amounts(structure)
   let mass = 0

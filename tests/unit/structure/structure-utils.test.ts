@@ -79,34 +79,65 @@ test(`tests are actually running`, () => {
 
 describe.each(structures)(`structure-utils`, (structure) => {
   const { id } = structure
-  const expected = ref_data[id]
+  const expected = id ? ref_data[id] : undefined
 
-  test.runIf(id in ref_data)(
+  test.runIf(id && id in ref_data)(
     `get_elem_amount should return the correct element amounts for a given structure`,
     () => {
       const result = struct_utils.get_elem_amounts(structure)
-      expect(JSON.stringify(result), id).toBe(JSON.stringify(expected.amounts))
+      expect(JSON.stringify(result), id).toBe(JSON.stringify(expected?.amounts))
     },
   )
 
-  test.runIf(id in ref_data)(
+  test.runIf(id && id in ref_data)(
     `get_elements should return the unique elements in a given structure`,
     () => {
       const result = struct_utils.get_elements(structure)
       expect(JSON.stringify(result), id).toBe(
-        JSON.stringify(Object.keys(expected.amounts).sort()),
+        JSON.stringify(Object.keys(expected?.amounts ?? {}).sort()),
       )
     },
   )
 
-  test.runIf(id in ref_data)(
+  test.runIf(id && id in ref_data)(
     `density should return the correct density for a given structure`,
     () => {
-      const result = struct_utils.density(structure)
-      expect(Number(result), id).toBe(expected.density)
+      const result = struct_utils.get_density(structure)
+      expect(result, id).toBeCloseTo(expected?.density ?? 0, 3)
     },
   )
 })
+
+// Consolidated tests for center of mass, formulas, and elements
+test.each(structures.filter((s) => s.id && ref_data[s.id]))(
+  `%s calculations`,
+  (struct) => {
+    const expected_data = ref_data[struct.id as keyof typeof ref_data]
+
+    // Center of mass
+    const com = struct_utils.get_center_of_mass(struct)
+    expect(
+      com.map((val) => Math.round(val * 1e3) / 1e3),
+      `${struct.id} center_of_mass`,
+    ).toEqual(expected_data.center_of_mass)
+
+    // Alphabetical formula
+    const alpha_formula = struct_utils.alphabetical_formula(struct)
+    expect(alpha_formula, `${struct.id} alphabetical_formula`).toEqual(
+      expected_data.alphabetical_formula,
+    )
+
+    // Electronegativity formula
+    const electro_formula = struct_utils.electro_neg_formula(struct)
+    expect(electro_formula, `${struct.id} electro_neg_formula`).toEqual(
+      expected_data.electro_neg_formula,
+    )
+
+    // Elements
+    const elements = struct_utils.get_elements(struct)
+    expect(elements, `${struct.id} elements`).toEqual(expected_data.elements)
+  },
+)
 
 test.each(structures)(`find_image_atoms`, async (structure) => {
   const image_atoms = struct_utils.find_image_atoms(structure)
@@ -143,35 +174,4 @@ test.each(structures)(`symmetrize_structure`, (structure) => {
     const image_atoms = struct_utils.find_image_atoms(structure)
     expect(symmetrized.sites.length, msg).toBe(orig_len + image_atoms.length)
   }
-})
-
-test.each(structures)(`get_center_of_mass for $id`, (struct) => {
-  const com = struct_utils.get_center_of_mass(struct)
-  const expected_com = ref_data[struct.id]?.center_of_mass
-  if (!expected_com) return
-  expect(
-    com.map((val) => Math.round(val * 1e3) / 1e3),
-    struct.id,
-  ).toEqual(expected_com)
-})
-
-test.each(structures)(`alphabetical_formula for $id`, (struct) => {
-  const formula = struct_utils.alphabetical_formula(struct)
-  const expected_formula = ref_data[struct.id]?.alphabetical_formula
-  if (!expected_formula) return
-  expect(formula, struct.id).toEqual(expected_formula)
-})
-
-test.each(structures)(`electro_neg_formula for $id`, (struct) => {
-  const formula = struct_utils.electro_neg_formula(struct)
-  const expected_formula = ref_data[struct.id]?.electro_neg_formula
-  if (!expected_formula) return
-  expect(formula, struct.id).toEqual(expected_formula)
-})
-
-test.each(structures)(`get_elements for $id`, (struct) => {
-  const elements = struct_utils.get_elements(struct)
-  const expected_elements = ref_data[struct.id]?.elements
-  if (!expected_elements) return
-  expect(elements, struct.id).toEqual(expected_elements)
 })

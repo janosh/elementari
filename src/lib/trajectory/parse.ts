@@ -487,26 +487,19 @@ export async function parse_torch_sim_hdf5(
 }
 
 // Check if a file is a torch-sim HDF5 trajectory
-export function is_torch_sim_hdf5(
-  content: unknown,
-  filename?: string,
-): boolean {
+export function is_torch_sim_hdf5(content: unknown, filename?: string): boolean {
   // Check filename extension first
   const has_hdf5_extension = filename &&
     (filename.toLowerCase().endsWith(`.h5`) ||
       filename.toLowerCase().endsWith(`.hdf5`))
 
-  if (filename && !has_hdf5_extension) {
-    return false
-  }
+  if (filename && !has_hdf5_extension) return false
 
   // If we only have filename (no content), return based on extension
   if (
     !content ||
     (content instanceof ArrayBuffer && content.byteLength === 0)
-  ) {
-    return Boolean(has_hdf5_extension)
-  }
+  ) return Boolean(has_hdf5_extension)
 
   // Check if content is binary (HDF5 files are binary)
   if (typeof content === `string`) {
@@ -528,18 +521,13 @@ export function is_torch_sim_hdf5(
 export function parse_vasp_xdatcar(content: string): Trajectory {
   const lines = content.trim().split(/\r?\n/)
   let line_idx = 0
-
-  if (lines.length < 10) {
-    throw new Error(`XDATCAR file too short`)
-  }
+  if (lines.length < 10) throw new Error(`XDATCAR file too short`)
 
   // Parse header
   const title = lines[line_idx++].trim()
   const scale_factor = parseFloat(lines[line_idx++])
 
-  if (isNaN(scale_factor)) {
-    throw new Error(`Invalid scale factor in XDATCAR`)
-  }
+  if (isNaN(scale_factor)) throw new Error(`Invalid scale factor in XDATCAR`)
 
   // Parse lattice vectors (3 lines)
   const lattice_vectors: Matrix3x3 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -581,9 +569,7 @@ export function parse_vasp_xdatcar(content: string): Trajectory {
   while (line_idx < lines.length) {
     // Look for configuration header
     const config_line = lines[line_idx++]
-    if (!config_line || !config_line.includes(`Direct configuration=`)) {
-      continue
-    }
+    if (!config_line || !config_line.includes(`Direct configuration=`)) continue
 
     const config_match = config_line.match(/configuration=\s*(\d+)/)
     const step = config_match ? parseInt(config_match[1]) : frames.length + 1

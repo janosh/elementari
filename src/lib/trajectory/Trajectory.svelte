@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Icon, Spinner, Structure } from '$lib'
   import { decompress_file } from '$lib/io/decompress'
-  import { format_num, trajectory_labels } from '$lib/labels'
+  import { format_num, trajectory_property_config } from '$lib/labels'
   import type { DataSeries, Point } from '$lib/plot'
   import { ScatterPlot } from '$lib/plot'
   import { scaleLinear } from 'd3-scale'
@@ -21,6 +21,7 @@
     generate_axis_labels,
     generate_plot_series,
     should_hide_plot,
+    toggle_series_visibility,
   } from './plotting'
 
   interface Props {
@@ -82,6 +83,9 @@
       temperature?: string
       pressure?: string
       length?: string
+      a?: string
+      b?: string
+      c?: string
       [key: string]: string | undefined
     }
   }
@@ -101,19 +105,7 @@
     show_controls = true,
     show_fullscreen_button = true,
     display_mode = $bindable(`both`),
-    property_labels = trajectory_labels,
-    units = {
-      energy: `eV`,
-      energy_per_atom: `eV/atom`,
-      force_max: `eV/Å`,
-      force_norm: `eV/Å`,
-      stress_max: `GPa`,
-      volume: `Å³`,
-      density: `g/cm³`,
-      temperature: `K`,
-      pressure: `GPa`,
-      length: `Å`,
-    },
+
     step_labels = 5,
   }: Props = $props()
 
@@ -181,15 +173,8 @@
   let plot_series = $derived.by((): DataSeries[] => {
     if (!trajectory) return []
 
-    // Filter out undefined values from units
-    const filtered_units: Record<string, string> = {}
-    for (const [key, value] of Object.entries(units)) {
-      if (value !== undefined) filtered_units[key] = value
-    }
-
     return generate_plot_series(trajectory, data_extractor, {
-      property_labels,
-      units: filtered_units,
+      property_config: trajectory_property_config,
     })
   })
 
@@ -310,6 +295,25 @@
       go_to_step(step_idx)
     }
   }
+
+  // Handle legend toggling with unit-aware visibility management
+  function handle_legend_toggle(series_idx: number): void {
+    plot_series = toggle_series_visibility(plot_series, series_idx)
+  }
+
+  // Legend configuration with unit-aware toggle handlers
+  let legend_config = $derived.by(() => {
+    const config = {
+      responsive: true,
+      layout: `horizontal`,
+      layout_tracks: 3,
+      item_gap: 0,
+      padding: { t: 5, b: 5, l: 5, r: 5 },
+      ...plot_props?.legend,
+      on_toggle: plot_props?.legend?.on_toggle ?? handle_legend_toggle,
+    }
+    return config
+  })
 
   // Play/pause functionality
   function toggle_play() {
@@ -791,17 +795,11 @@
           x_ticks={step_label_positions}
           show_controls
           bind:controls_open={controls_open.plot}
-          legend={{
-            responsive: true,
-            layout: `horizontal`,
-            layout_tracks: 3,
-            item_gap: 0,
-            padding: { t: 5, b: 5, l: 5, r: 5 },
-          }}
           padding={{ t: 20, b: 60, l: 100, r: has_y2_series ? 100 : 20 }}
           range_padding={0}
           style="height: 100%"
           {...plot_props}
+          legend={legend_config}
         >
           {#snippet tooltip({ x, y, metadata })}
             {#if metadata?.series_label}
@@ -871,7 +869,7 @@
     contain: layout;
   }
   .trajectory-viewer.active {
-    z-index: 1;
+    z-index: 2;
   }
   .trajectory-viewer:fullscreen {
     height: 100vh !important;
