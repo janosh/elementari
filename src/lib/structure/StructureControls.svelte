@@ -201,16 +201,16 @@
         Scale
         <input
           type="number"
-          min="0.01"
-          max="1"
-          step="0.01"
+          min="0.001"
+          max="5"
+          step="0.001"
           bind:value={scene_props.force_vector_scale}
         />
         <input
           type="range"
-          min="0.01"
-          max="1"
-          step="0.01"
+          min="0.001"
+          max="5"
+          step="0.001"
           bind:value={scene_props.force_vector_scale}
         />
       </label>

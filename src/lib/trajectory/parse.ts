@@ -889,16 +889,42 @@ export function parse_xyz_trajectory(content: string): Trajectory {
         ? math.mat3x3_vec3_multiply(inv_matrix, xyz)
         : [0, 0, 0]
 
-      // Extract force vector if available (next 3 columns after coordinates)
+      // Extract force vector if available
+      // Need to dynamically determine column positions based on Properties string
       let force_vector: Vec3 | undefined
-      if (has_forces && parts.length >= 7) {
-        const fx = parseFloat(parts[4])
-        const fy = parseFloat(parts[5])
-        const fz = parseFloat(parts[6])
+      if (has_forces) {
+        // Parse Properties string to determine column layout
+        let force_start_col = 4 // Default fallback
 
-        if (!isNaN(fx) && !isNaN(fy) && !isNaN(fz)) {
-          force_vector = [fx, fy, fz]
-          forces_array.push([fx, fy, fz])
+        if (properties_match?.[1]) {
+          const properties_str = properties_match[1]
+          const property_specs = properties_str.split(/\s+/)
+          let col_idx = 1 // Start after element (column 0)
+
+          for (const spec of property_specs) {
+            if (spec.includes(`forces:`)) {
+              force_start_col = col_idx
+              break
+            }
+            // Count columns used by this property
+            const match = spec.match(/:R:(\d+)/)
+            if (match) {
+              col_idx += parseInt(match[1])
+            } else {
+              col_idx += 1 // Default single column
+            }
+          }
+        }
+
+        if (parts.length >= force_start_col + 3) {
+          const fx = parseFloat(parts[force_start_col])
+          const fy = parseFloat(parts[force_start_col + 1])
+          const fz = parseFloat(parts[force_start_col + 2])
+
+          if (!isNaN(fx) && !isNaN(fy) && !isNaN(fz)) {
+            force_vector = [fx, fy, fz]
+            forces_array.push([fx, fy, fz])
+          }
         }
       }
 
