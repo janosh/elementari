@@ -1,6 +1,6 @@
 // Utilities for dealing with pymatgen Structures
 import type { ElementSymbol, Vec3 } from '$lib'
-import { format_num, scale } from '$lib'
+import { scale } from '$lib'
 import element_data from '$lib/element/data'
 import type { Matrix3x3 } from '$lib/math'
 
@@ -168,8 +168,8 @@ export function get_elements(structure: AnyStructure): ElementSymbol[] {
 // to grams per cubic centimeter (g/cm^3)
 const uA3_to_gcm3 = 1.66053907
 
-export function get_density(structure: PymatgenStructure, prec = `.2f`) {
-  // calculate the density of a pymatgen Structure in
+export function get_density(structure: PymatgenStructure): number {
+  // calculate the density of a pymatgen Structure in g/cm³
   const elements = get_elem_amounts(structure)
   let mass = 0
   for (const [el, amt] of Object.entries(elements)) {
@@ -179,8 +179,7 @@ export function get_density(structure: PymatgenStructure, prec = `.2f`) {
       mass += amt * weight
     }
   }
-  const dens = (uA3_to_gcm3 * mass) / structure.lattice.volume
-  return format_num(dens, prec)
+  return (uA3_to_gcm3 * mass) / structure.lattice.volume
 }
 
 export function get_center_of_mass(struct_or_mol: AnyStructure): Vec3 {

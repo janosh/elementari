@@ -17,7 +17,11 @@
     { title: `Formula`, value: electro_neg_formula(structure) },
     { title: `Number of atoms`, value: structure?.sites?.length, fmt: `.0f` },
     { title: `Volume`, value: volume, unit: `Å³` },
-    { title: `Density`, value: get_density(structure), unit: `g/cm³` },
+    {
+      title: `Density`,
+      value: format_num(get_density(structure), `.2f`),
+      unit: `g/cm³`,
+    },
     {
       title: `Lattice lengths a, b, c`,
       value: [a, b, c].map(format_num).join(`, `),

@@ -135,12 +135,9 @@ export const structural_data_extractor: TrajectoryDataExtractor = (
     if (frame.metadata.density && typeof frame.metadata.density === `number`) {
       data.density = frame.metadata.density
     } else if (`lattice` in frame.structure) {
-      try { // Calculate density from structure when not provided in metadata
-        const density_value = parseFloat(
-          get_density(frame.structure as PymatgenStructure, `.6f`),
-        )
-        data.density = density_value
-      } catch (error) { // If density calculation fails, don't include it
+      try {
+        data.density = get_density(frame.structure as PymatgenStructure)
+      } catch (error) {
         console.warn(`Failed to calculate density for frame ${frame.step}:`, error)
       }
     }
@@ -158,12 +155,8 @@ export const structural_data_extractor: TrajectoryDataExtractor = (
   } else if (`lattice` in frame.structure) {
     // Calculate density even when no metadata is available
     try {
-      const density_value = parseFloat(
-        get_density(frame.structure as PymatgenStructure, `.6f`),
-      )
-      data.density = density_value
+      data.density = get_density(frame.structure as PymatgenStructure)
     } catch (error) {
-      // If density calculation fails, don't include it
       console.warn(`Failed to calculate density for frame ${frame.step}:`, error)
     }
   }

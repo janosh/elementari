@@ -21,6 +21,49 @@ export interface UnitGroup {
   is_visible: boolean
 }
 
+// Helper function to extract clean label and unit from property configuration
+function extract_label_and_unit(
+  key: string,
+  property_config: Record<string, { label: string; unit: string }>,
+): { clean_label: string; unit: string } {
+  const lower_key = key.toLowerCase()
+  const config = property_config[key] || property_config[lower_key]
+
+  if (config) {
+    return { clean_label: config.label, unit: config.unit }
+  } else { // Use key as fallback label if no config found
+    return {
+      clean_label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ` `),
+      unit: ``,
+    }
+  }
+}
+
+// Helper function to calculate unit group priority based on unit and series
+function calculate_unit_group_priority(unit: string, group_series: DataSeries[]): number {
+  let priority = 1000 // Default low priority
+
+  // Check for energy units (highest priority)
+  const unit_priority = Y1_PRIORITY_UNITS.indexOf(unit)
+  if (unit_priority !== -1) priority = unit_priority
+
+  // Check for energy properties (high priority)
+  const has_priority_property = group_series.some((s) => {
+    const label_lower = s.label?.toLowerCase() || ``
+    return Y1_PRIORITY_PROPERTIES.some((prop) => label_lower.includes(prop))
+  })
+  if (has_priority_property) priority = Math.min(priority, 10)
+
+  // Force-related properties have medium priority (should go to y2 when energy is present)
+  const has_force_property = group_series.some((s) => {
+    const label_lower = s.label?.toLowerCase() || ``
+    return label_lower.includes(`force`) || label_lower.includes(`f`)
+  })
+  if (has_force_property && priority > 100) priority = 100 // Medium priority, lower than energy
+
+  return priority
+}
+
 // Generate plot data series from trajectory with robust unit-based grouping
 export function generate_plot_series(
   trajectory: Trajectory,
@@ -104,18 +147,7 @@ export function generate_plot_series(
     const color = colors[color_idx % colors.length]
 
     // Extract clean label and unit using structured configuration
-    let clean_label: string
-    let unit: string
-
-    const config = property_config[key] || property_config[lower_key]
-    if (config) {
-      clean_label = config.label
-      unit = config.unit
-    } else {
-      // Use key as fallback label if no config found
-      clean_label = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ` `)
-      unit = ``
-    }
+    const { clean_label, unit } = extract_label_and_unit(key, property_config)
 
     const full_label = unit ? `${clean_label} (${unit})` : clean_label
 
@@ -180,51 +212,20 @@ function group_series_by_units(
   // Create unit groups with priority calculation
   const groups: UnitGroup[] = Array.from(unit_map.entries()).map(
     ([unit, group_series]) => {
-      // Calculate priority (lower = higher priority for y1)
-      let priority = 1000 // Default low priority
-
-      // Check for energy units (highest priority)
-      const unit_priority = Y1_PRIORITY_UNITS.indexOf(unit)
-      if (unit_priority !== -1) {
-        priority = unit_priority
-      }
-
-      // Check for energy properties (high priority)
-      const has_priority_property = group_series.some((s) => {
-        const label_lower = s.label?.toLowerCase() || ``
-        return Y1_PRIORITY_PROPERTIES.some((prop) => label_lower.includes(prop))
-      })
-      if (has_priority_property) {
-        priority = Math.min(priority, 10)
-      }
-
-      // Force-related properties have medium priority (should go to y2 when energy is present)
-      const has_force_property = group_series.some((s) => {
-        const label_lower = s.label?.toLowerCase() || ``
-        return label_lower.includes(`force`) || label_lower.includes(`f`)
-      })
-      if (has_force_property && priority > 100) {
-        priority = 100 // Medium priority, lower than energy
-      }
+      // Calculate priority using shared helper
+      const priority = calculate_unit_group_priority(unit, group_series)
 
       // Check if any series in this group should be visible by default
       const has_default_visible = group_series.some((s) => {
-        const label_lower = s.label?.toLowerCase() || ``
-        const clean_label_lower = s.label?.toLowerCase().replace(/<[^>]*>/g, ``) || `` // Remove HTML tags
-
-        // Check against both original property names and clean labels
-        for (const prop of default_visible_properties) {
+        const label = s.label?.toLowerCase().replace(/<[^>]*>/g, ``) || ``
+        return Array.from(default_visible_properties).some((prop) => {
           const prop_lower = prop.toLowerCase()
-          if (
-            label_lower.includes(prop_lower) ||
-            clean_label_lower.includes(prop_lower) ||
-            prop_lower === `force_max` &&
-              (label_lower.includes(`f`) || clean_label_lower.includes(`fmax`))
-          ) {
-            return true
+          // Special case for force_max which might appear as 'fmax' or just 'f'
+          if (prop_lower === `force_max`) {
+            return label.includes(`force`) || label.includes(`fmax`) || label === `f`
           }
-        }
-        return false
+          return label.includes(prop_lower)
+        })
       })
 
       return {
@@ -292,6 +293,8 @@ export function toggle_series_visibility(
   const target_series = series[target_series_idx]
   const new_visibility = !target_series.visible
 
+  const series_map = new Map(series.map((s, idx) => [`${s.label}|${s.unit}`, idx])) // use map for O(1) series lookup
+
   // Group current series by units, preserve current visibility state
   const unit_groups = series.reduce((groups, s) => {
     const unit = s.unit || `dimensionless`
@@ -301,21 +304,9 @@ export function toggle_series_visibility(
       group = {
         unit,
         series: [],
-        priority: 1000,
+        priority: calculate_unit_group_priority(unit, [s]), // Use shared helper
         is_visible: false,
       }
-
-      // Calculate priority for this unit group
-      if (Y1_PRIORITY_UNITS.includes(unit)) {
-        group.priority = Y1_PRIORITY_UNITS.indexOf(unit)
-      } else if (s.label?.toLowerCase().includes(`energy`)) {
-        group.priority = 10
-      } else if (
-        s.label?.toLowerCase().includes(`force`) || s.label?.toLowerCase().includes(`f`)
-      ) {
-        group.priority = 100
-      }
-
       groups.push(group)
     }
 
@@ -325,6 +316,11 @@ export function toggle_series_visibility(
 
     return groups
   }, [] as UnitGroup[])
+
+  // Update priorities after all series are grouped (more accurate)
+  unit_groups.forEach((group) => {
+    group.priority = calculate_unit_group_priority(group.unit, group.series)
+  })
 
   // Sort by priority
   unit_groups.sort((a, b) => a.priority - b.priority)
@@ -350,10 +346,8 @@ export function toggle_series_visibility(
 
       // Also hide all individual series in this group to prevent recalculation from overriding
       group_to_hide.series.forEach((s) => {
-        const series_idx = series.findIndex((us) =>
-          us.label === s.label && us.unit === s.unit
-        )
-        if (series_idx !== -1) {
+        const series_idx = series_map.get(`${s.label}|${s.unit}`)
+        if (series_idx !== undefined && series_idx !== -1) {
           series[series_idx] = { ...series[series_idx], visible: false }
         }
       })
@@ -371,10 +365,12 @@ export function toggle_series_visibility(
   // Recalculate unit group visibility based on individual series
   unit_groups.forEach((group) => {
     group.is_visible = group.series.some((s) => {
-      const updated_s = updated_series.find((us) =>
-        us.label === s.label && us.unit === s.unit
-      )
-      return updated_s?.visible || false
+      const series_idx = series_map.get(`${s.label}|${s.unit}`)
+      if (series_idx !== undefined) {
+        const updated_s = updated_series[series_idx]
+        return updated_s?.visible || false
+      }
+      return false
     })
   })
 
@@ -389,10 +385,8 @@ export function toggle_series_visibility(
       group.is_visible = false
       // Hide all series in this group
       group.series.forEach((s) => {
-        const idx = updated_series.findIndex((us) =>
-          us.label === s.label && us.unit === s.unit
-        )
-        if (idx !== -1) {
+        const idx = series_map.get(`${s.label}|${s.unit}`)
+        if (idx !== undefined && idx !== -1) {
           updated_series[idx] = { ...updated_series[idx], visible: false }
         }
       })

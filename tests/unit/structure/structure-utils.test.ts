@@ -102,8 +102,8 @@ describe.each(structures)(`structure-utils`, (structure) => {
   test.runIf(id && id in ref_data)(
     `density should return the correct density for a given structure`,
     () => {
-      const result = struct_utils.get_density(structure)
-      expect(result, id).toBeCloseTo(expected?.density ?? 0, 3)
+      const density = struct_utils.get_density(structure)
+      expect(density, id).toBeCloseTo(expected?.density ?? 0, 3)
     },
   )
 })

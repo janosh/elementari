@@ -194,6 +194,72 @@ describe(`generate_plot_series`, () => {
     assert_unit_group_constraints(series)
     expect(series.filter((s) => s.visible).length).toBeGreaterThan(0)
   })
+
+  describe(`unit group priority system`, () => {
+    it(`should prioritize energy units for y1 axis`, () => {
+      const trajectory = create_trajectory([
+        { energy: -10.0, volume: 100.0, pressure: 1.0 },
+        { energy: -10.5, volume: 101.0, pressure: 1.1 },
+      ])
+
+      const series = generate_plot_series(trajectory, test_extractor, {
+        property_config: {
+          energy: { label: `Energy`, unit: `eV` },
+          volume: { label: `Volume`, unit: `Å³` },
+          pressure: { label: `Pressure`, unit: `GPa` },
+        },
+        default_visible_properties: new Set([`energy`, `volume`]),
+      })
+
+      const energy_series = find_series_by_label(series, `energy`)
+      expect(energy_series?.y_axis).toBe(`y1`) // Energy gets highest priority
+      expect(energy_series?.visible).toBe(true)
+    })
+
+    it(`should enforce initial 2-unit-group constraint`, () => {
+      const trajectory = create_trajectory([
+        {
+          energy: -10.0,
+          force_max: 0.1,
+          volume: 100.0,
+          pressure: 1.0,
+          temperature: 300.0,
+        },
+        {
+          energy: -10.5,
+          force_max: 0.2,
+          volume: 101.0,
+          pressure: 1.1,
+          temperature: 301.0,
+        },
+      ])
+
+      const series = generate_plot_series(trajectory, test_extractor, {
+        property_config: {
+          energy: { label: `Energy`, unit: `eV` },
+          force_max: { label: `F<sub>max</sub>`, unit: `eV/Å` },
+          volume: { label: `Volume`, unit: `Å³` },
+          pressure: { label: `Pressure`, unit: `GPa` },
+          temperature: { label: `Temperature`, unit: `K` },
+        },
+        default_visible_properties: new Set([
+          `energy`,
+          `force_max`,
+          `volume`,
+          `pressure`,
+          `temperature`,
+        ]),
+      })
+
+      assert_unit_group_constraints(series)
+
+      // Should prioritize energy and force_max over others
+      const energy_series = find_series_by_label(series, `energy`)
+      const force_series = find_series_by_label(series, `f`)
+      expect(energy_series?.visible).toBe(true)
+      expect(force_series?.visible).toBe(true)
+    })
+  })
 })
 
 describe(`toggle_series_visibility`, () => {
@@ -258,30 +324,51 @@ describe(`toggle_series_visibility`, () => {
     expect(visible_units).toEqual(new Set([`Å`, `eV`]))
   })
 
-  it(`should handle complex smart unit group replacement scenarios`, () => {
-    const initial_series = [
+  describe(`smart unit group replacement`, () => {
+    const create_replacement_test_series = () => [
       create_series([1.0, 2.0], true, `Energy`, `eV`, `y1`),
       create_series([5.0, 5.1], true, `A`, `Å`, `y2`),
       create_series([5.1, 5.2], false, `B`, `Å`, `y2`), // Same unit as A
       create_series([100, 101], false, `Volume`, `Å³`, `y1`),
     ]
 
-    // Show B (same unit as A) - should NOT trigger replacement
-    let updated = toggle_series_visibility(initial_series, 2)
-    expect(updated.find((s) => s.label === `Energy`)?.visible).toBe(true)
-    expect(updated.find((s) => s.label === `A`)?.visible).toBe(true)
-    expect(updated.find((s) => s.label === `B`)?.visible).toBe(true)
-    expect(updated.find((s) => s.label === `Volume`)?.visible).toBe(false)
+    it(`should not trigger replacement when showing series with same unit`, () => {
+      const initial_series = create_replacement_test_series()
+      const updated = toggle_series_visibility(initial_series, 2) // Show B (same unit as A)
 
-    // Show Volume (new unit) - should trigger smart replacement
-    updated = toggle_series_visibility(updated, 3)
-    expect(updated.find((s) => s.label === `Energy`)?.visible).toBe(true)
-    expect(updated.find((s) => s.label === `Volume`)?.visible).toBe(true)
-    expect(updated.find((s) => s.label === `A`)?.visible).toBe(false)
-    expect(updated.find((s) => s.label === `B`)?.visible).toBe(false)
+      expect(updated.find((s) => s.label === `Energy`)?.visible).toBe(true)
+      expect(updated.find((s) => s.label === `A`)?.visible).toBe(true)
+      expect(updated.find((s) => s.label === `B`)?.visible).toBe(true)
+      expect(updated.find((s) => s.label === `Volume`)?.visible).toBe(false)
 
-    const visible_units = new Set(updated.filter((s) => s.visible).map((s) => s.unit))
-    expect(visible_units).toEqual(new Set([`eV`, `Å³`]))
+      const visible_units = new Set(updated.filter((s) => s.visible).map((s) => s.unit))
+      expect(visible_units).toEqual(new Set([`eV`, `Å`]))
+    })
+
+    it(`should trigger smart replacement when showing series with new unit`, () => {
+      const initial_series = create_replacement_test_series()
+      // First show B to have both A and B visible (same unit)
+      let updated = toggle_series_visibility(initial_series, 2)
+      // Then show Volume (new unit) - should trigger smart replacement
+      updated = toggle_series_visibility(updated, 3)
+
+      expect(updated.find((s) => s.label === `Energy`)?.visible).toBe(true)
+      expect(updated.find((s) => s.label === `Volume`)?.visible).toBe(true)
+      expect(updated.find((s) => s.label === `A`)?.visible).toBe(false)
+      expect(updated.find((s) => s.label === `B`)?.visible).toBe(false)
+
+      const visible_units = new Set(updated.filter((s) => s.visible).map((s) => s.unit))
+      expect(visible_units).toEqual(new Set([`eV`, `Å³`]))
+    })
+
+    it(`should maintain 2-unit-group constraint during replacement`, () => {
+      const initial_series = create_replacement_test_series()
+      let updated = toggle_series_visibility(initial_series, 2) // Show B
+      updated = toggle_series_visibility(updated, 3) // Show Volume
+
+      assert_unit_group_constraints(updated)
+      expect(updated.filter((s) => s.visible).length).toBeGreaterThan(0)
+    })
   })
 })
 
