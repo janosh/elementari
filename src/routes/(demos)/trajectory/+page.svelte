@@ -8,6 +8,7 @@
     undefined,
     undefined,
     undefined,
+    undefined,
   ])
   let active_trajectory_files = $state<string[]>([])
 
@@ -15,6 +16,7 @@
     `/trajectories/torch-sim-gold-cluster-55-atoms.h5`,
     `/trajectories/vasp-XDATCAR-traj.gz`,
     `/trajectories/Cr0.25Fe0.25Co0.25Ni0.25-mace-omat-qha.xyz.gz`,
+    `/trajectories/ase-images-Ag-0-to-97.xyz.gz`,
   ])
 
   // Load trajectory files from the trajectories directory

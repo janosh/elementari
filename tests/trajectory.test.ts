@@ -42,9 +42,8 @@ test.describe(`Trajectory Component`, () => {
         const filename_button = filename_section.locator(`button`)
         await expect(filename_button).toBeVisible()
         await expect(filename_button).toBeEnabled()
-
-        // Click to copy filename (no visual feedback expected)
-        await filename_button.click()
+        await expect(filename_button).toHaveAttribute(`title`, `Click to copy filename`)
+        await filename_button.click() // no visual feedback expected
       }
 
       // Navigation controls

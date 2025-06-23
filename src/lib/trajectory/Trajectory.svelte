@@ -608,7 +608,7 @@
             <div class="filename-section">
               <button
                 use:titles_as_tooltips
-                title="Click to copy filename"
+                title="Click to copy filename {current_filename}"
                 onclick={() => {
                   if (current_filename) navigator.clipboard.writeText(current_filename)
                 }}
