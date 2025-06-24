@@ -30,7 +30,18 @@ function get_inverse_matrix(matrix: Matrix3x3): Matrix3x3 {
 // Helper to convert ArrayBuffer to base64 data URL
 export function array_buffer_to_data_url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
-  const base64 = btoa(String.fromCharCode(...bytes))
+
+  // Process bytes in chunks to avoid call stack overflow for large files
+  // Failed to load file water_cluster_basic_arrays.h5: RangeError: Maximum call stack size exceeded
+  const chunk_size = 8192 // 8KB chunks
+  let binary_string = ``
+
+  for (let idx = 0; idx < bytes.length; idx += chunk_size) {
+    const chunk = bytes.slice(idx, idx + chunk_size)
+    binary_string += String.fromCharCode(...chunk)
+  }
+
+  const base64 = btoa(binary_string)
   return `data:application/octet-stream;base64,${base64}`
 }
 
