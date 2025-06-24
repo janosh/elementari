@@ -1,7 +1,7 @@
 <!-- Export default values for use in other components -->
 <script lang="ts">
-  import { add, scale } from '$lib'
   import type { Matrix3x3, Vec3 } from '$lib/math'
+  import * as math from '$lib/math'
   import { T } from '@threlte/core'
   import {
     BoxGeometry,
@@ -37,7 +37,7 @@
   }: Props = $props()
 
   let lattice_center = $derived(
-    matrix ? (scale(add(...matrix), 0.5) as Vec3) : ([0, 0, 0] as Vec3),
+    matrix ? (math.scale(math.add(...matrix), 0.5) as Vec3) : ([0, 0, 0] as Vec3),
   )
 
   // Extract line segments from EdgesGeometry for cylinder-based thick lines

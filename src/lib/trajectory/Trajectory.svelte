@@ -839,7 +839,9 @@
             <li>VASP XDATCAR files</li>
             <li>Compressed files (.gz)</li>
           </ul>
-          <p style="margin-top: 1rem; font-size: 0.9em; color: var(--trajectory-text-muted, #666)">
+          <p
+            style="margin-top: 1rem; font-size: 0.9em; color: var(--trajectory-text-muted, #666)"
+          >
             💡 Force vectors will be automatically displayed when present in trajectory
             data
           </p>
