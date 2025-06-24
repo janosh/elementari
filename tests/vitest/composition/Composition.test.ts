@@ -2,37 +2,7 @@ import { Composition } from '$lib/composition'
 import { mount } from 'svelte'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-// Mock composition parsing utilities
-vi.mock(`$lib/composition/parse`, () => ({
-  parse_composition_input: vi.fn((input: string | Record<string, number>) => {
-    if (typeof input === `string`) {
-      if (input === `H2O`) return { H: 2, O: 1 }
-      if (input === `invalid`) return {}
-      return {}
-    }
-    return input
-  }),
-  get_total_atoms: vi.fn((comp: Record<string, number>) =>
-    Object.values(comp).reduce(
-      (sum: number, val: number) => sum + (val || 0),
-      0,
-    )
-  ),
-  composition_to_percentages: vi.fn((comp: Record<string, number>) => {
-    const total = Object.values(comp).reduce(
-      (sum: number, val: number) => sum + (val || 0),
-      0,
-    )
-    const percentages: Record<string, number> = {}
-    for (const [element, amount] of Object.entries(comp)) {
-      if (typeof amount === `number`) {
-        percentages[element] = (amount / total) * 100
-      }
-    }
-    return percentages
-  }),
-}))
-
+// Mock colors module
 vi.mock(`$lib/colors`, () => ({
   element_color_schemes: {
     Vesta: { H: `#ffffff`, O: `#ff0d0d`, Fe: `#e06633` },
