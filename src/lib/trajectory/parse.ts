@@ -1,6 +1,7 @@
 // Parsing functions for trajectory data from various formats
 import type { AnyStructure, ElementSymbol, Vec3 } from '$lib'
 import { escape_html, is_binary } from '$lib'
+import { atomic_number_to_symbol } from '$lib/composition/parse'
 import { parse_xyz } from '$lib/io/parse'
 import type { Matrix3x3 } from '$lib/math'
 import * as math from '$lib/math'
@@ -25,35 +26,6 @@ function get_inverse_matrix(matrix: Matrix3x3): Matrix3x3 {
   // Cache the result
   matrix_inversion_cache.set(matrix, inverse)
   return inverse
-}
-
-// Helper to convert ArrayBuffer to base64 data URL
-export function array_buffer_to_data_url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-
-  // Process bytes in chunks to avoid call stack overflow for large files
-  // Failed to load file water_cluster_basic_arrays.h5: RangeError: Maximum call stack size exceeded
-  const chunk_size = 8192 // 8KB chunks
-  let binary_string = ``
-
-  for (let idx = 0; idx < bytes.length; idx += chunk_size) {
-    const chunk = bytes.slice(idx, idx + chunk_size)
-    binary_string += String.fromCharCode(...chunk)
-  }
-
-  const base64 = btoa(binary_string)
-  return `data:application/octet-stream;base64,${base64}`
-}
-
-// Helper to convert base64 data URL back to ArrayBuffer
-export function data_url_to_array_buffer(data_url: string): ArrayBuffer {
-  const base64 = data_url.replace(`data:application/octet-stream;base64,`, ``)
-  const binary_string = atob(base64)
-  const bytes = new Uint8Array(binary_string.length)
-  for (let i = 0; i < binary_string.length; i++) {
-    bytes[i] = binary_string.charCodeAt(i)
-  }
-  return bytes.buffer
 }
 
 // Utility function to load trajectory from URL with automatic format detection
@@ -98,130 +70,6 @@ export async function load_trajectory_from_url(
     return await parse_trajectory_data(result.content, result.filename)
   }
 }
-
-// Atomic number to element symbol mapping
-const ATOMIC_NUMBER_TO_SYMBOL: Record<number, ElementSymbol> = {
-  1: `H`,
-  2: `He`,
-  3: `Li`,
-  4: `Be`,
-  5: `B`,
-  6: `C`,
-  7: `N`,
-  8: `O`,
-  9: `F`,
-  10: `Ne`,
-  11: `Na`,
-  12: `Mg`,
-  13: `Al`,
-  14: `Si`,
-  15: `P`,
-  16: `S`,
-  17: `Cl`,
-  18: `Ar`,
-  19: `K`,
-  20: `Ca`,
-  21: `Sc`,
-  22: `Ti`,
-  23: `V`,
-  24: `Cr`,
-  25: `Mn`,
-  26: `Fe`,
-  27: `Co`,
-  28: `Ni`,
-  29: `Cu`,
-  30: `Zn`,
-  31: `Ga`,
-  32: `Ge`,
-  33: `As`,
-  34: `Se`,
-  35: `Br`,
-  36: `Kr`,
-  37: `Rb`,
-  38: `Sr`,
-  39: `Y`,
-  40: `Zr`,
-  41: `Nb`,
-  42: `Mo`,
-  43: `Tc`,
-  44: `Ru`,
-  45: `Rh`,
-  46: `Pd`,
-  47: `Ag`,
-  48: `Cd`,
-  49: `In`,
-  50: `Sn`,
-  51: `Sb`,
-  52: `Te`,
-  53: `I`,
-  54: `Xe`,
-  55: `Cs`,
-  56: `Ba`,
-  57: `La`,
-  58: `Ce`,
-  59: `Pr`,
-  60: `Nd`,
-  61: `Pm`,
-  62: `Sm`,
-  63: `Eu`,
-  64: `Gd`,
-  65: `Tb`,
-  66: `Dy`,
-  67: `Ho`,
-  68: `Er`,
-  69: `Tm`,
-  70: `Yb`,
-  71: `Lu`,
-  72: `Hf`,
-  73: `Ta`,
-  74: `W`,
-  75: `Re`,
-  76: `Os`,
-  77: `Ir`,
-  78: `Pt`,
-  79: `Au`,
-  80: `Hg`,
-  81: `Tl`,
-  82: `Pb`,
-  83: `Bi`,
-  84: `Po`,
-  85: `At`,
-  86: `Rn`,
-  87: `Fr`,
-  88: `Ra`,
-  89: `Ac`,
-  90: `Th`,
-  91: `Pa`,
-  92: `U`,
-  93: `Np`,
-  94: `Pu`,
-  95: `Am`,
-  96: `Cm`,
-  97: `Bk`,
-  98: `Cf`,
-  99: `Es`,
-  100: `Fm`,
-  101: `Md`,
-  102: `No`,
-  103: `Lr`,
-  104: `Rf`,
-  105: `Db`,
-  106: `Sg`,
-  107: `Bh`,
-  108: `Hs`,
-  109: `Mt`,
-  110: `Ds`,
-  111: `Rg`,
-  112: `Cn`,
-  113: `Nh`,
-  114: `Fl`,
-  115: `Mc`,
-  116: `Lv`,
-  117: `Ts`,
-  118: `Og`,
-}
-
-// Parse torch-sim HDF5 trajectory file
 
 export async function parse_torch_sim_hdf5(
   buffer: ArrayBuffer,
@@ -282,7 +130,7 @@ export async function parse_torch_sim_hdf5(
         const atomic_numbers_data = atomic_numbers_dataset.to_array() as number[][]
         const atom_numbers = atomic_numbers_data[0] // First (and only) row
         elements = atom_numbers.map((num: number) => {
-          return ATOMIC_NUMBER_TO_SYMBOL[num] || (`X` as ElementSymbol)
+          return atomic_number_to_symbol[num] || (`X` as ElementSymbol)
         })
       } else {
         // No atomic numbers available - use generic placeholder

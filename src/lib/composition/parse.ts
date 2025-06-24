@@ -3,12 +3,12 @@ import { elem_symbols } from '$lib'
 import element_data from '$lib/element/data'
 
 // Create a mapping from atomic numbers to element symbols
-const atomic_number_to_symbol: Partial<Record<number, ElementSymbol>> = {}
-const symbol_to_atomic_number: Partial<Record<ElementSymbol, number>> = {}
+export const atomic_number_to_symbol: Partial<Record<number, ElementSymbol>> = {}
+export const symbol_to_atomic_number: Partial<Record<ElementSymbol, number>> = {}
 
 // Create mass/electronegativity maps for O(1) lookups in loops below
-const element_atomic_mass_map = new Map<ElementSymbol, number>()
-const element_electronegativity_map = new Map<ElementSymbol, number>()
+export const element_atomic_mass_map = new Map<ElementSymbol, number>()
+export const element_electronegativity_map = new Map<ElementSymbol, number>()
 
 // Populate maps at module load time
 for (const element of element_data) {

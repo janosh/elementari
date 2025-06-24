@@ -1,6 +1,7 @@
 // Utilities for dealing with pymatgen Structures
 import type { ElementSymbol, Vec3 } from '$lib'
 import { scale } from '$lib'
+import { element_atomic_mass_map } from '$lib/composition/parse'
 import element_data from '$lib/element/data'
 import type { Matrix3x3 } from '$lib/math'
 
@@ -156,7 +157,7 @@ export const atomic_radii: Partial<Record<ElementSymbol, number>> = Object.fromE
 )
 
 export const atomic_weights: Partial<Record<ElementSymbol, number>> = Object.fromEntries(
-  element_data.map((el) => [el.symbol, el.atomic_mass]),
+  Array.from(element_atomic_mass_map.entries()),
 )
 
 export function get_elements(structure: AnyStructure): ElementSymbol[] {
