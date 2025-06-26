@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="static/logo.svg" alt="Logo" height="100">
+  <sub><img src="static/favicon.svg" alt="Logo" height="40"></sub> MatterViz
 </h1>
 
 <h4 align="center">
@@ -12,6 +12,23 @@
 </h4>
 
 `matterviz` is a toolkit for building interactive web UIs for materials science: periodic tables, 3d crystal structures (and molecules, though needs some improvements!), Bohr atoms, nuclei, heatmaps, scatter plots. It's under active development and not yet ready for production use but we appreciate any feedback from beta testers! 🙏
+
+## 🔌 &thinsp; VSCode Extension
+
+Visualize crystal structures and molecular dynamics trajectories directly in VSCode with the [MatterViz extension](https://marketplace.visualstudio.com/items?itemName=janosh.matterviz). Features include:
+
+- Native support for common file formats (CIF, POSCAR, XYZ, TRAJ, HDF5, etc.)
+- Context menu and keyboard shortcuts for quick access
+- Custom editor for MD trajectory/geometry optimization files
+
+## 🗺️ &thinsp; Roadmap
+
+We're actively working on expanding the MatterViz ecosystem:
+
+- **✅ MatterViz Web**: Full-featured web application at [matterviz.janosh.dev](https://matterviz.janosh.dev)
+- **✅ MatterViz VSCode**: Extension for visualizing structures and trajectories in VSCode
+- **🚧 MatterViz CLI**: Command-line interface for batch processing and automated visualization workflows
+- **🚧 MatterViz iPython**: [Jupyter](https://jupyter.org)/[Marimo](https://marimo.io) extension for interactive Python-based visualization in notebooks
 
 ![Screenshot of landing page](static/2023-02-13-landing-page.webp)
 
