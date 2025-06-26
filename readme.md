@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="static/logo.svg" alt="Logo" height="100">
+  <img src="static/favicon.svg" alt="Logo" height="25"> MatterViz
 </h1>
 
 <h4 align="center">

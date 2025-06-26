@@ -5,7 +5,29 @@
   "version": "0.1.0-beta.1",
   "publisher": "matterviz",
   "type": "module",
-  "engines": { "vscode": "^1.74.0" },
+  "icon": "icon.png",
+  "repository": "https://github.com/janosh/matterviz",
+  "bugs": "https://github.com/janosh/matterviz/issues",
+  "license": "MIT",
+  "keywords": [
+    "chemistry",
+    "materials",
+    "visualization",
+    "structure",
+    "trajectory",
+    "3d",
+    "molecular dynamics",
+    "crystallography"
+  ],
+  "categories": [
+    "Data Visualization",
+    "Materials Science",
+    "Chemistry",
+    "Crystallography",
+    "Molecular Dynamics",
+    "Science"
+  ],
+  "engines": { "vscode": "^1.101.0" },
   "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [{
