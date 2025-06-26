@@ -128,7 +128,7 @@
     bind:width={canvas.width}
     bind:height={canvas.height}
     {background_color}
-    reveal_buttons={true}
+    show_buttons
     scene_props={{ gizmo }}
     {lattice_props}
   />
