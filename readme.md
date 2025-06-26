@@ -15,13 +15,11 @@
 
 ## 🔌 &thinsp; VSCode Extension
 
-Visualize crystal structures and molecular dynamics trajectories directly in VSCode with the [MatterViz extension](https://marketplace.visualstudio.com/items?itemName=matterviz.matterviz). Features include:
+Visualize crystal structures and molecular dynamics trajectories directly in VSCode with the [MatterViz extension](https://marketplace.visualstudio.com/items?itemName=janosh.matterviz). Features include:
 
 - Native support for common file formats (CIF, POSCAR, XYZ, TRAJ, HDF5, etc.)
 - Context menu and keyboard shortcuts for quick access
 - Custom editor for MD trajectory/geometry optimization files
-
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=janosh.matterviz).
 
 ## 🗺️ &thinsp; Roadmap
 
