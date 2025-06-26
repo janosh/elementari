@@ -129,7 +129,7 @@
     bind:height={canvas.height}
     {background_color}
     show_buttons
-    scene_props={{ gizmo }}
+    scene_props={{ gizmo, show_atoms: true }}
     {lattice_props}
   />
 </div>
