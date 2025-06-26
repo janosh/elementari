@@ -2,8 +2,8 @@
   "name": "matterviz",
   "displayName": "MatterViz",
   "description": "Visualize crystal structures and MD trajectories in VSCode",
-  "version": "0.1.0-beta.1",
-  "publisher": "matterviz",
+  "version": "0.1.0",
+  "publisher": "janosh",
   "type": "module",
   "icon": "icon.png",
   "repository": "https://github.com/janosh/matterviz",
@@ -20,14 +20,13 @@
     "crystallography"
   ],
   "categories": [
-    "Data Visualization",
-    "Materials Science",
-    "Chemistry",
-    "Crystallography",
-    "Molecular Dynamics",
-    "Science"
+    "Data Science",
+    "Machine Learning",
+    "Visualization",
+    "Notebooks",
+    "Education"
   ],
-  "engines": { "vscode": "^1.101.0" },
+  "engines": { "vscode": "^1.96.0" },
   "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [{
@@ -55,11 +54,11 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc && mv dist/extension.{,c}js && vite build",
-    "dev": "tsc --watch & vite build --watch"
+    "dev": "tsc --watch & vite build --watch & mv dist/extension.{,c}js"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
-    "@types/vscode": "^1.101.0",
+    "@types/vscode": "^1.96.0",
     "svelte": "^5.34.8",
     "typescript": "^5.8.3",
     "vite": "^7.0.0"

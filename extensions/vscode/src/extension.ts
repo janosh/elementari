@@ -191,11 +191,7 @@ class Provider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocum
         this.context,
         {
           type: is_trajectory_file(filename) ? `trajectory` : `structure`,
-          data: {
-            filename,
-            content: fs.readFileSync(document.uri.fsPath).toString(`base64`),
-            isCompressed: true,
-          },
+          data: read_file(document.uri.fsPath),
         },
       )
       webviewPanel.webview.onDidReceiveMessage(

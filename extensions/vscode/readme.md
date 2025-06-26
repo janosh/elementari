@@ -102,5 +102,3 @@ This extension is [MIT-Licensed](./license).
 - **MatterViz Web**: Full-featured web application at [matterviz.janosh.dev](https://matterviz.janosh.dev)
 - (TODO) **MatterViz CLI**: Command-line interface for batch processing
 - (TODO) **MatterViz iPython**: [Jupyter](https://jupyter.org)/[Marimo](https://marimo.io) extension for interactive Python-based visualization
-
-![File size treemap of MatterViz VS Code Extension](https://github.com/user-attachments/assets/a1f9469b-5535-4daf-a3e7-86e447f6b853)
