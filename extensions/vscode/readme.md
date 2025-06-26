@@ -1,6 +1,6 @@
 # MatterViz VS Code Extension
 
-**MatterViz** is a powerful Visual Studio Code extension for visualizing and analyzing crystal structures and molecular dynamics (MD) trajectories directly in the editor to speed up typical materials science/computational chemistry workflows.
+**MatterViz** offers a VSCode extension for rendering crystal structures and molecular dynamics (MD) or geometry optimization trajectories directly in the editor to speed up typical materials science/computational chemistry workflows.
 
 ## ✨ Features
 
@@ -20,7 +20,7 @@
 
 ### 🎨 **Customization**
 
-- **Color Schemes**: Multiple built-in color schemes (Jmol, VESTA, CPK, etc.)
+- **Color Schemes**: Multiple built-in color schemes (Jmol, VESTA, Alloy, Pastel, etc.)
 - **Visualization Modes**: Ball-and-stick, space-filling, wireframe representations
 - **Export Options**: Save visualizations to PNG or export structure data to ASE XYZ and pymatgen JSON
 

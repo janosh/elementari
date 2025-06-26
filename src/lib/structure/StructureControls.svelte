@@ -94,6 +94,21 @@
     }
   })
 
+  // Copy button feedback state
+  let copy_status = $state<{ json: boolean; xyz: boolean }>({
+    json: false,
+    xyz: false,
+  })
+
+  // Dynamic button text based on copy status
+  const copy_confirm = `✅ Copied!`
+  let current_copy_json_btn_text = $derived(
+    copy_status.json ? copy_confirm : copy_json_btn_text,
+  )
+  let current_copy_xyz_btn_text = $derived(
+    copy_status.xyz ? copy_confirm : copy_xyz_btn_text,
+  )
+
   // Detect if structure has force data
   let has_forces = $derived(
     structure?.sites?.some((site) =>
@@ -124,6 +139,11 @@
 
   // Handle clipboard copy with user feedback
   async function handle_copy(format: `json` | `xyz`) {
+    if (!structure) {
+      console.warn(`No structure available for copying`)
+      return
+    }
+
     try {
       let content: string
       if (format === `json`) content = exports.generate_json_content(structure)
@@ -132,16 +152,13 @@
 
       await exports.copy_to_clipboard(content)
 
-      // Provide visual feedback (you could also use a toast notification)
-      const event_type = `${format.toUpperCase()} copied to clipboard!`
-      console.log(event_type)
-
-      // Optional: Show temporary feedback in button text
-      // This would require additional state management if you want it
+      // Show temporary feedback in button text
+      copy_status[format] = true
+      setTimeout(() => {
+        copy_status[format] = false
+      }, 1000)
     } catch (error) {
-      const msg = `Failed to copy ${format.toUpperCase()} to clipboard`
-      console.error(msg, error)
-      alert(msg)
+      console.error(`Failed to copy ${format.toUpperCase()} to clipboard`, error)
     }
   }
 </script>
@@ -533,9 +550,9 @@
       <button
         type="button"
         onclick={() => handle_copy(`json`)}
-        title={copy_json_btn_text}
+        title={current_copy_json_btn_text}
       >
-        {copy_json_btn_text}
+        {current_copy_json_btn_text}
       </button>
       <button
         type="button"
@@ -547,9 +564,9 @@
       <button
         type="button"
         onclick={() => handle_copy(`xyz`)}
-        title={copy_xyz_btn_text}
+        title={current_copy_xyz_btn_text}
       >
-        {copy_xyz_btn_text}
+        {current_copy_xyz_btn_text}
       </button>
       <button
         type="button"

@@ -38,11 +38,11 @@ function default_download(data: string | Blob, filename: string, type: string) {
 }
 
 // Function to download data to a file - checks for global override first
-export function download(data: string | Blob, filename: string, type: string) {
+export function download(data: string | Blob, filename: string, type: string): void {
   // Check if there's a global download override (used by VSCode extension)
   const global_download = (globalThis as Record<string, unknown>).download
   if (typeof global_download === `function` && global_download !== download) {
-    return global_download(data, filename, type)
+    return (global_download as typeof download)(data, filename, type)
   }
 
   // Use default browser download

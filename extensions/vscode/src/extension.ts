@@ -24,7 +24,7 @@ interface MessageData {
 function is_trajectory_file(filename: string): boolean {
   const name = filename.toLowerCase()
   return (
-    name.match(/\.(traj|extxyz|h5|hdf5)$/) !== null ||
+    name.match(/\.(traj|xyz|extxyz|h5|hdf5)$/) !== null ||
     /(xdatcar|trajectory|traj|md|relax)/.test(name) ||
     /\.(xyz|extxyz|traj)\.gz$/.test(name) ||
     (name.endsWith(`.gz`) && /(traj|xdatcar|trajectory|relax|xyz)/.test(name))

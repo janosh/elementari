@@ -388,9 +388,13 @@
     gap: var(--struct-buttons-gap, 3pt);
     z-index: var(--struct-buttons-z-index, 1);
   }
-  section button {
+  section.control-buttons button {
     pointer-events: auto;
     font-size: 1em;
+    background-color: transparent;
+  }
+  section.control-buttons button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   p.warn {
     text-align: center;
