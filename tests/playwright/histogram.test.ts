@@ -31,12 +31,6 @@ const get_bar_count = async (histogram_locator: Locator): Promise<number> => {
   return await histogram_locator.locator(`rect[fill]:not([fill="none"])`).count()
 }
 
-const get_axis_tick_values = async (axis_locator: Locator): Promise<string[]> => {
-  const tick_elements = await axis_locator.locator(`.tick text`).all()
-  const tick_texts = await Promise.all(tick_elements.map((tick) => tick.textContent()))
-  return tick_texts.filter((text): text is string => text !== null)
-}
-
 test.describe(`Histogram Component Tests`, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`/test/histogram`, { waitUntil: `load` })
@@ -185,17 +179,25 @@ test.describe(`Histogram Component Tests`, () => {
       await click_radio(page, `#logarithmic-scales input[value="${x_scale}"][name*="x"]`)
       await click_radio(page, `#logarithmic-scales input[value="${y_scale}"][name*="y"]`)
 
-      // Wait for histogram to re-render with new scale
+      // Wait for histogram to re-render with new scale and for axes to be visible
       await page.waitForTimeout(500)
 
-      const [x_ticks, y_ticks, bar_count] = await Promise.all([
-        get_axis_tick_values(histogram.locator(`g.x-axis`)),
-        get_axis_tick_values(histogram.locator(`g.y-axis`)),
+      // Wait for axes to be rendered with ticks
+      await expect(histogram.locator(`g.x-axis .tick`).first()).toBeVisible({
+        timeout: 3000,
+      })
+      await expect(histogram.locator(`g.y-axis .tick`).first()).toBeVisible({
+        timeout: 3000,
+      })
+
+      const [x_tick_count, y_tick_count, bar_count] = await Promise.all([
+        histogram.locator(`g.x-axis .tick`).count(),
+        histogram.locator(`g.y-axis .tick`).count(),
         get_bar_count(histogram),
       ])
 
-      expect(x_ticks.length).toBeGreaterThan(0)
-      expect(y_ticks.length).toBeGreaterThan(0)
+      expect(x_tick_count).toBeGreaterThan(0)
+      expect(y_tick_count).toBeGreaterThan(0)
       expect(bar_count).toBeGreaterThan(0)
     }
   })
