@@ -1386,160 +1386,31 @@ test.describe(`Trajectory Demo Page - Unit-Aware Plotting`, () => {
   })
 
   test.describe(`Progress Reporting`, () => {
-    test(`should show loading states during trajectory parsing`, async ({ page }) => {
+    test(`should display loading indicators and accessibility features`, async ({ page }) => {
       await page.goto(`/test/trajectory`, { waitUntil: `load` })
 
-      // Look for trajectory viewers that show loading states
-      const trajectory_viewers = page.locator(`.trajectory-viewer`)
-      const viewer_count = await trajectory_viewers.count()
+      const viewers = page.locator(`.trajectory-viewer`)
 
-      // Find a viewer that might show loading states
-      for (let idx = 0; idx < viewer_count; idx++) {
-        const viewer = trajectory_viewers.nth(idx)
-
-        // Check if this viewer has any loading indicators
-        const spinner = viewer.locator(`.spinner`)
-        const loading_text = viewer.locator(`.loading`)
-        const progress_bar = viewer.locator(`.progress-bar`)
-
-        // If any loading elements exist, verify they're properly structured
-        if (await spinner.count() > 0) {
-          await expect(spinner).toBeAttached()
-          // Spinner should have proper accessibility attributes
-          const spinner_element = spinner.first()
-          if (await spinner_element.isVisible()) {
-            await expect(spinner_element).toBeVisible()
+      // Test loading elements and accessibility in all viewers
+      for (const viewer of await viewers.all()) {
+        // Check loading indicators exist and are properly accessible
+        const loading_selectors = [`.spinner`, `.loading`, `.progress-bar`]
+        for (const selector of loading_selectors) {
+          const element = viewer.locator(selector).first()
+          if (await element.count() > 0 && await element.isVisible()) {
+            await expect(element).toBeVisible()
+            if (selector === `.progress-bar`) {
+              await expect(element).toHaveAttribute(`role`, `progressbar`)
+            }
           }
         }
 
-        if (await loading_text.count() > 0) {
-          const loading_element = loading_text.first()
-          if (await loading_element.isVisible()) {
-            await expect(loading_element).toBeVisible()
-          }
-        }
-
-        if (await progress_bar.count() > 0) {
-          const progress_element = progress_bar.first()
-          if (await progress_element.isVisible()) {
-            await expect(progress_element).toBeVisible()
-            await expect(progress_element).toHaveAttribute(`role`, `progressbar`)
-          }
-        }
-      }
-    })
-
-    test(`should handle file upload progress correctly`, async ({ page }) => {
-      await page.goto(`/test/trajectory`, { waitUntil: `load` })
-
-      // Find empty trajectory viewer for file upload testing
-      const empty_viewer = page.locator(`#empty-state .trajectory-viewer`)
-
-      if (await empty_viewer.isVisible()) {
-        await expect(empty_viewer).toBeVisible()
-        await expect(empty_viewer).toHaveAttribute(
-          `aria-label`,
-          `Drop trajectory file here to load`,
-        )
-
-        // Test file input handling
-        const file_input = empty_viewer.locator(`input[type="file"]`)
-
-        if (await file_input.count() > 0) {
-          // Test file input accessibility and functionality
-          await expect(file_input).toBeAttached()
-          await expect(file_input).toHaveAttribute(`type`, `file`)
-          await expect(file_input).toBeEnabled()
-
-          // Note: File upload simulation with actual content would require Node.js Buffer
-          // which isn't available in browser context, so we verify UI elements instead
-        }
-      }
-    })
-
-    test(`should show appropriate error states for invalid trajectories`, async ({ page }) => {
-      await page.goto(`/test/trajectory`, { waitUntil: `load` })
-
-      // Look for any error states in existing trajectory viewers
-      const error_viewers = page.locator(`.trajectory-error`)
-      const error_count = await error_viewers.count()
-
-      if (error_count > 0) {
-        const error_viewer = error_viewers.first()
-        await expect(error_viewer).toBeVisible()
-
-        // Error messages should be informative
-        const error_message = error_viewer.locator(`.error-message`)
-        if (await error_message.count() > 0) {
-          const error_text = await error_message.textContent()
-          expect(error_text).toBeTruthy()
-          expect(error_text?.length).toBeGreaterThan(0)
-        }
-      }
-    })
-
-    test(`should handle trajectory URL loading with progress indication`, async ({ page }) => {
-      await page.goto(`/test/trajectory`, { waitUntil: `load` })
-
-      const url_trajectory = page.locator(`#trajectory-url .trajectory-viewer`)
-
-      if (await url_trajectory.isVisible()) {
-        await expect(url_trajectory).toBeVisible()
-
-        // Check for loading states during URL loading
-        const loading_elements = [
-          url_trajectory.locator(`.spinner`),
-          url_trajectory.locator(`.loading`),
-          url_trajectory.locator(`[aria-busy="true"]`),
-        ]
-
-        let found_loading_state = false
-        for (const element of loading_elements) {
-          if (await element.count() > 0) {
-            found_loading_state = true
-            break
-          }
-        }
-
-        // Should eventually settle into a final state
-        await page.waitForTimeout(1000)
-
-        const final_states = [
-          url_trajectory.locator(`.content-area`),
-          url_trajectory.locator(`.trajectory-error`),
-          url_trajectory.locator(`.empty-state`),
-        ]
-
-        let found_final_state = false
-        for (const state of final_states) {
-          if (await state.isVisible()) {
-            found_final_state = true
-            break
-          }
-        }
-
-        // Should have either loading indication or final state
-        expect(found_loading_state || found_final_state).toBe(true)
-      }
-    })
-
-    test(`should provide accessibility features for loading states`, async ({ page }) => {
-      await page.goto(`/test/trajectory`, { waitUntil: `load` })
-
-      const trajectory_viewers = page.locator(`.trajectory-viewer`)
-      const viewer_count = await trajectory_viewers.count()
-
-      // Check accessibility features in trajectory viewers
-      for (let idx = 0; idx < viewer_count; idx++) {
-        const viewer = trajectory_viewers.nth(idx)
-
-        // Check for proper ARIA attributes on loading elements
-        const loading_elements = await viewer.locator(`[aria-busy]`).count()
+        // Test ARIA attributes when present
+        const aria_elements = await viewer.locator(`[aria-busy]`).count()
         const progress_elements = await viewer.locator(`[role="progressbar"]`).count()
         const status_elements = await viewer.locator(`[role="status"]`).count()
 
-        // If any accessibility attributes exist, verify they're properly set
-        if (loading_elements > 0) {
+        if (aria_elements > 0) {
           const busy_element = viewer.locator(`[aria-busy]`).first()
           const aria_busy = await busy_element.getAttribute(`aria-busy`)
           expect([`true`, `false`]).toContain(aria_busy)
@@ -1548,13 +1419,11 @@ test.describe(`Trajectory Demo Page - Unit-Aware Plotting`, () => {
         if (progress_elements > 0) {
           const progress_element = viewer.locator(`[role="progressbar"]`).first()
           await expect(progress_element).toBeAttached()
-
-          // Progress bars should have proper value attributes
-          const aria_valuenow = await progress_element.getAttribute(`aria-valuenow`)
-          if (aria_valuenow) {
-            const value = parseInt(aria_valuenow)
-            expect(value).toBeGreaterThanOrEqual(0)
-            expect(value).toBeLessThanOrEqual(100)
+          const value = await progress_element.getAttribute(`aria-valuenow`)
+          if (value) {
+            const parsed_value = parseInt(value)
+            expect(parsed_value).toBeGreaterThanOrEqual(0)
+            expect(parsed_value).toBeLessThanOrEqual(100)
           }
         }
 
@@ -1563,6 +1432,60 @@ test.describe(`Trajectory Demo Page - Unit-Aware Plotting`, () => {
           await expect(status_element).toBeAttached()
         }
       }
+    })
+
+    test(`should handle file upload and error states correctly`, async ({ page }) => {
+      await page.goto(`/test/trajectory`, { waitUntil: `load` })
+
+      // Test file upload UI
+      const empty_viewer = page.locator(`#empty-state .trajectory-viewer`)
+      if (await empty_viewer.isVisible()) {
+        await expect(empty_viewer).toHaveAttribute(
+          `aria-label`,
+          `Drop trajectory file here to load`,
+        )
+
+        const file_input = empty_viewer.locator(`input[type="file"]`)
+        if (await file_input.count() > 0) {
+          await expect(file_input).toBeAttached()
+          await expect(file_input).toHaveAttribute(`type`, `file`)
+          await expect(file_input).toBeEnabled()
+        }
+      }
+
+      // Test error states
+      const error_viewers = page.locator(`.trajectory-error`)
+      if (await error_viewers.count() > 0) {
+        const error_message = error_viewers.first().locator(`.error-message`)
+        if (await error_message.count() > 0) {
+          const error_text = await error_message.textContent()
+          expect(error_text?.length).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    test(`should show proper states during URL loading`, async ({ page }) => {
+      await page.goto(`/test/trajectory`, { waitUntil: `load` })
+
+      const url_section = page.locator(`#trajectory-url`)
+      await expect(url_section).toBeVisible()
+
+      // The trajectory viewer should exist
+      const url_trajectory = url_section.locator(`.trajectory-viewer`)
+      await expect(url_trajectory).toBeVisible()
+
+      // Wait for any async operations to complete
+      await page.waitForTimeout(2000)
+
+      // Check for various possible states (URL likely returns 404, so expect error state)
+      const has_loading = await url_trajectory.locator(`.spinner`).count() > 0
+      const has_error = await url_trajectory.locator(`.trajectory-error`).count() > 0
+      const has_content = await url_trajectory.locator(`.trajectory-controls`).count() > 0
+      const has_drop_zone = await url_trajectory.getAttribute(`aria-label`) ===
+        `Drop trajectory file here to load`
+
+      // At least one state should be present (most likely error state due to 404)
+      expect(has_loading || has_error || has_content || has_drop_zone).toBe(true)
     })
   })
 

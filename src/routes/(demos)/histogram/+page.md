@@ -7,18 +7,7 @@ A simple histogram showing the distribution of values from a single data series.
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  // Shared data generation utilities
-  function box_muller(mean = 0, std_dev = 1) {
-    const u1 = Math.random()
-    const u2 = Math.random()
-    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-    return mean + z0 * std_dev
-  }
-
-  function generate_normal(count, mean = 0, std_dev = 1) {
-    return Array.from({ length: count }, () => box_muller(mean, std_dev))
-  }
+  import { generate_normal } from '$site/plot-utils'
 
   let bin_count = $state(20)
   let sample_size = $state(1000)
@@ -65,28 +54,7 @@ Compare multiple data distributions by overlaying them in the same histogram. To
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  // Shared utilities
-  function box_muller(mean = 0, std_dev = 1) {
-    const u1 = Math.random()
-    const u2 = Math.random()
-    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-    return mean + z0 * std_dev
-  }
-
-  function generate_normal(count, mean = 0, std_dev = 1) {
-    return Array.from({ length: count }, () => box_muller(mean, std_dev))
-  }
-
-  function generate_exponential(count, lambda) {
-    return Array.from({ length: count }, () => -Math.log(1 - Math.random()) / lambda)
-  }
-
-  function generate_uniform(count, min_val, max_val) {
-    return Array.from({ length: count }, () =>
-      min_val + Math.random() * (max_val - min_val)
-    )
-  }
+  import { generate_normal, generate_exponential, generate_uniform } from '$site/plot-utils'
 
   let bar_opacity = $state(0.6)
   let stroke_width = $state(1)
@@ -174,25 +142,7 @@ For data that spans multiple orders of magnitude, logarithmic scales can be usef
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  // Shared utilities
-  function box_muller(mean = 0, std_dev = 1) {
-    const u1 = Math.random()
-    const u2 = Math.random()
-    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-    return mean + z0 * std_dev
-  }
-
-  function generate_log_normal(count, mu, sigma) {
-    return Array.from({ length: count }, () => Math.exp(box_muller(mu, sigma)))
-  }
-
-  function generate_power_law(count, alpha, x_min = 1) {
-    return Array.from({ length: count }, () => {
-      const u = Math.random()
-      return x_min * Math.pow(1 - u, -1 / (alpha - 1))
-    })
-  }
+  import { generate_log_normal, generate_power_law } from '$site/plot-utils'
 
   let x_scale = $state(`linear`)
   let y_scale = $state(`linear`)
@@ -258,62 +208,12 @@ This example demonstrates histograms with different types of real-world data pat
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  // Shared utilities
-  function box_muller(mean = 0, std_dev = 1) {
-    const u1 = Math.random()
-    const u2 = Math.random()
-    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-    return mean + z0 * std_dev
-  }
-
-  function weighted_choice(weights) {
-    const rand = Math.random()
-    let cumulative = 0
-    for (let idx = 0; idx < weights.length; idx++) {
-      cumulative += weights[idx]
-      if (rand <= cumulative) return idx
-    }
-    return weights.length - 1
-  }
-
-  function generate_bimodal(count) {
-    return Array.from({ length: count }, () => {
-      const use_first_mode = Math.random() < 0.6
-      const mean = use_first_mode ? 20 : 60
-      const std_dev = use_first_mode ? 8 : 12
-      return box_muller(mean, std_dev)
-    })
-  }
-
-  function generate_skewed(count) {
-    return Array.from({ length: count }, () => {
-      // Sum of exponentials approximates gamma
-      let sum = 0
-      for (let k = 0; k < 3; k++) {
-        sum += -Math.log(Math.random()) * 5
-      }
-      return sum
-    })
-  }
-
-  function generate_discrete(count) {
-    const weights = [0.05, 0.08, 0.12, 0.15, 0.18, 0.2, 0.15, 0.05, 0.015, 0.005]
-    return Array.from({ length: count }, () => {
-      const choice = weighted_choice(weights)
-      return choice + 1 + Math.random() * 0.8 - 0.4 // Add jitter
-    })
-  }
-
-  function generate_age_distribution(count) {
-    return Array.from({ length: count }, () => {
-      const rand = Math.random()
-      if (rand < 0.25) return Math.random() * 18 // 0-18
-      if (rand < 0.6) return Math.random() * 25 + 18 // 18-43
-      if (rand < 0.85) return Math.random() * 22 + 43 // 43-65
-      return Math.random() * 25 + 65 // 65-90
-    })
-  }
+  import {
+    generate_age_distribution,
+    generate_bimodal,
+    generate_discrete,
+    generate_skewed,
+  } from '$site/plot-utils'
 
   let selected_distribution = $state(`bimodal`)
 
@@ -403,15 +303,7 @@ This example shows how different bin sizes affect the same data visualization. U
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  function generate_mixed_data(count) {
-    return Array.from({ length: count }, () => {
-      const rand = Math.random()
-      if (rand < 0.3) return 10 + (Math.random() - 0.5) * 6 // Small peak around 10
-      if (rand < 0.7) return 40 + (Math.random() - 0.5) * 20 // Large peak around 40
-      return Math.random() * 80 // Uniform background
-    })
-  }
+  import { generate_mixed_data } from '$site/plot-utils'
 
   let bin_counts = $state([10, 25, 50])
   let show_overlay = $state(false)
@@ -447,13 +339,13 @@ This example shows how different bin sizes affect the same data visualization. U
 
     {#if !show_overlay}
       <label>
-        Bins: {bin_counts[1]}
+        Bins: {current_bins}
         <input type="range" bind:value={bin_counts[1]} min="5" max="100" step="5" />
       </label>
     {:else}
-      {#each bin_counts as bins, idx}
-        <label>
-          Bins {idx + 1}: {bins}
+      {#each bin_counts as bin_count, idx}
+        <label style="color: {colors[idx]}">
+          {bin_count} bins:
           <input type="range" bind:value={bin_counts[idx]} min="5" max="100" step="5" />
         </label>
       {/each}
@@ -462,41 +354,19 @@ This example shows how different bin sizes affect the same data visualization. U
 
   <Histogram
     series={histogram_series}
-    mode={show_overlay ? `overlay` : `single`}
     bins={current_bins}
-    bar_opacity={show_overlay ? 0.5 : 0.8}
-    bar_stroke_width={show_overlay ? 1.5 : 0}
+    mode={show_overlay ? `overlay` : `grouped`}
+    bar_opacity={show_overlay ? 0.6 : 0.8}
     x_label="Value"
-    y_label="Frequency"
+    y_label="Count"
     style="height: 400px"
   >
     {#snippet tooltip({ value, count, property })}
       <strong>{property}</strong><br>
-      Value: {value.toFixed(1)}<br>
+      Range: {value.toFixed(1)}<br>
       Count: {count}
-      {#if show_overlay}<br>Bin Size Effect{/if}
     {/snippet}
   </Histogram>
-
-  <div
-    style="margin-top: 1em; padding: 1em; background: rgba(0, 0, 0, 0.05); border-radius: 4px"
-  >
-    <strong>Bin Size Effects:</strong>
-    <ul style="margin: 0.5em 0">
-      <li>
-        <strong>Too few bins:</strong> May hide important patterns and make distribution
-        appear smoother than it is
-      </li>
-      <li>
-        <strong>Too many bins:</strong> May show noise as patterns and make it harder to
-        see overall shape
-      </li>
-      <li>
-        <strong>Just right:</strong> Reveals true distribution patterns without
-        over-fitting to noise
-      </li>
-    </ul>
-  </div>
 </div>
 ```
 
@@ -507,22 +377,7 @@ Demonstrate various styling options including custom colors, axis formatting, an
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
-
-  // Shared utilities
-  function box_muller(mean = 0, std_dev = 1) {
-    const u1 = Math.random()
-    const u2 = Math.random()
-    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-    return mean + z0 * std_dev
-  }
-
-  function generate_financial_data(count) {
-    return Array.from({ length: count }, () => {
-      const exponent = 4.5 + box_muller(0, 0.5)
-      // Clamp to prevent overflow (exp(709) is near JS max safe float)
-      return Math.exp(Math.min(exponent, 700))
-    })
-  }
+  import { generate_financial_data } from '$site/plot-utils'
 
   let color_scheme = $state(`default`)
   let x_format_type = $state(`number`)
@@ -637,86 +492,44 @@ This example shows how to create histograms from time-based data, useful for ana
 ```svelte example stackblitz
 <script>
   import { Histogram } from '$lib'
+  import { generate_time_data } from '$site/plot-utils'
 
-  function weighted_choice(weights) {
-    const rand = Math.random()
-    let cumulative = 0
-    for (let idx = 0; idx < weights.length; idx++) {
-      cumulative += weights[idx]
-      if (rand <= cumulative) return idx
-    }
-    return weights.length - 1
-  }
-
-  function generate_time_data(type, unit) {
-    const count = 1000
-
-    if (type === `website_traffic`) {
-      if (unit === `hour`) {
-        // Business hours pattern
-        const weights = [
-          0.5,
-          0.3,
-          0.2,
-          0.2,
-          0.3,
-          0.5,
-          1.0,
-          2.0,
-          3.0,
-          3.5,
-          3.0,
-          2.5,
-          2.0,
-          2.5,
-          3.0,
-          3.5,
-          4.0,
-          3.5,
-          2.0,
-          1.5,
-          1.0,
-          0.8,
-          0.6,
-          0.4,
-        ]
-        return Array.from({ length: count }, () => weighted_choice(weights))
-      } else {
-        // Day of week pattern (Mon-Sun)
-        const weights = [0.8, 1.2, 1.3, 1.4, 1.5, 1.0, 0.6]
-        return Array.from({ length: count }, () => weighted_choice(weights))
-      }
-    } else {
-      // Server response times - mostly fast with outliers
-      return Array.from({ length: count }, () => {
-        const rand = Math.random()
-        if (rand < 0.85) return Math.random() * 200 // Fast responses
-        if (rand < 0.95) return 200 + Math.random() * 800 // Slow responses
-        return 1000 + Math.random() * 4000 // Very slow responses
-      })
-    }
-  }
-
-  let time_unit = $state(`hour`)
   let data_type = $state(`website_traffic`)
+  let time_unit = $state(`hour`)
 
-  let time_series_data = $derived(generate_time_data(data_type, time_unit))
-
-  let config = $derived({
-    labels: data_type === `website_traffic`
-      ? {
-        x: time_unit === `hour` ? `Hour of Day` : `Day of Week`,
-        y: `Page Views`,
-        format: `d`,
-      }
-      : { x: `Response Time (ms)`, y: `Number of Requests`, format: `.0f` },
-    bins: data_type === `website_traffic` && time_unit === `hour`
-      ? 24
-      : data_type === `website_traffic`
-      ? 7
-      : 30,
-    color: data_type === `website_traffic` ? `#3498db` : `#e74c3c`,
+  let time_series = $derived({
+    website_traffic: {
+      hour: {
+        data: generate_time_data(`website_traffic`, `hour`),
+        label: `Website Traffic by Hour`,
+        x_label: `Hour of Day`,
+        bins: 24,
+        x_format: `d`,
+        description:
+          `Shows typical business hours pattern with peaks during working hours`,
+      },
+      day: {
+        data: generate_time_data(`website_traffic`, `day`),
+        label: `Website Traffic by Day`,
+        x_label: `Day of Week`,
+        bins: 7,
+        x_format: `d`,
+        description: `Shows weekday vs weekend patterns`,
+      },
+    },
+    response_times: {
+      hour: {
+        data: generate_time_data(`response_times`, `hour`),
+        label: `Server Response Times`,
+        x_label: `Response Time (ms)`,
+        bins: 50,
+        x_format: `.0f`,
+        description: `Most responses are fast with occasional slow outliers`,
+      },
+    },
   })
+
+  let current_series = $derived(time_series[data_type][time_unit])
 </script>
 
 <div>
@@ -725,7 +538,7 @@ This example shows how to create histograms from time-based data, useful for ana
       Data Type:
       <select bind:value={data_type}>
         <option value="website_traffic">Website Traffic</option>
-        <option value="server_response">Server Response Times</option>
+        <option value="response_times">Response Times</option>
       </select>
     </label>
 
@@ -733,56 +546,38 @@ This example shows how to create histograms from time-based data, useful for ana
       <label>
         Time Unit:
         <select bind:value={time_unit}>
-          <option value="hour">Hour of Day</option>
-          <option value="day">Day of Week</option>
+          <option value="hour">Hour</option>
+          <option value="day">Day</option>
         </select>
       </label>
     {/if}
   </div>
 
+  <p style="margin-bottom: 1em; font-style: italic; color: #666">
+    {current_series.description}
+  </p>
+
   <Histogram
     series={[{
-      y: time_series_data,
-      label: data_type === `website_traffic` ? `Website Traffic` : `Response Times`,
-      line_style: { stroke: config.color },
+      y: current_series.data,
+      label: current_series.label,
+      line_style: { stroke: `#3498db` },
     }]}
-    bins={config.bins}
-    x_label={config.labels.x}
-    y_label={config.labels.y}
-    x_format={config.labels.format}
+    bins={current_series.bins}
+    x_label={current_series.x_label}
+    y_label="Count"
+    x_format={current_series.x_format}
     style="height: 400px"
   >
     {#snippet tooltip({ value, count, property })}
       <strong>{property}</strong><br>
-      {#if data_type === `website_traffic`}
-        {#if time_unit === `hour`}
-          Hour: {Math.floor(value)}:00
-        {:else}
-          Day: {[`Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`, `Sun`][Math.floor(value)]}
-        {/if}
-      {:else}
-        Response Time: {value.toFixed(0)}ms
-      {/if}
-      <br>Count: {count}
+      {current_series.x_label}: {
+        time_unit === `day`
+        ? [`Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`, `Sun`][Math.floor(value)]
+        : value.toFixed(current_series.x_format === `d` ? 0 : 1)
+      }<br>
+      Count: {count}
     {/snippet}
   </Histogram>
-
-  <div
-    style="margin-top: 1em; padding: 1em; background: rgba(0, 0, 0, 0.05); border-radius: 4px"
-  >
-    {#if data_type === `website_traffic`}
-      <strong>Traffic Pattern Analysis:</strong>
-      {#if time_unit === `hour`}
-        Notice the typical business hours pattern with peaks during 9-17h and lower
-        activity at night.
-      {:else}
-        Weekday traffic is higher than weekend traffic, with Friday being the peak day.
-      {/if}
-    {:else}
-      <strong>Performance Analysis:</strong>
-      Most requests complete quickly (&lt;200ms), with a small percentage of slower
-      requests creating a long tail distribution.
-    {/if}
-  </div>
 </div>
 ```
