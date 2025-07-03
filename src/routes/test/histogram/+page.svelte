@@ -120,43 +120,35 @@
   // Real-world distributions
   let distribution_type = $state(`bimodal`)
   let distribution_description = $derived(() => {
-    switch (distribution_type) {
-      case `bimodal`:
-        return `Two distinct peaks representing different populations`
-      case `skewed`:
-        return `Long tail extending to the right, common in income data`
-      case `discrete`:
-        return `Discrete values only (integers), like survey responses`
-      case `age`:
-        return `Multi-modal age groups in a population`
-      default:
-        return `Unknown distribution`
-    }
+    if (distribution_type === `bimodal`) {
+      return `Two distinct peaks representing different populations`
+    } else if (distribution_type === `skewed`) {
+      return `Long tail extending to the right, common in income data`
+    } else if (distribution_type === `discrete`) {
+      return `Discrete values only (integers), like survey responses`
+    } else if (distribution_type === `age`) {
+      return `Multi-modal age groups in a population`
+    } else return `Unknown distribution`
   })
 
   let real_world_data = $derived.by(() => {
     let values: number[] = []
 
-    switch (distribution_type) {
-      case `bimodal`:
-        values = [
-          ...generate_normal_data(300, 20, 3),
-          ...generate_normal_data(300, 50, 4),
-        ]
-        break
-      case `skewed`:
-        values = Array.from({ length: 500 }, () => Math.pow(Math.random(), 3) * 100)
-        break
-      case `discrete`:
-        values = Array.from({ length: 200 }, () => Math.floor(Math.random() * 6) + 1)
-        break
-      case `age`:
-        values = [
-          ...generate_normal_data(100, 25, 5),
-          ...generate_normal_data(150, 45, 8),
-          ...generate_normal_data(100, 65, 6),
-        ]
-        break
+    if (distribution_type === `bimodal`) {
+      values = [
+        ...generate_normal_data(300, 20, 3),
+        ...generate_normal_data(300, 50, 4),
+      ]
+    } else if (distribution_type === `skewed`) {
+      values = Array.from({ length: 500 }, () => Math.pow(Math.random(), 3) * 100)
+    } else if (distribution_type === `discrete`) {
+      values = Array.from({ length: 200 }, () => Math.floor(Math.random() * 6) + 1)
+    } else if (distribution_type === `age`) {
+      values = [
+        ...generate_normal_data(100, 25, 5),
+        ...generate_normal_data(150, 45, 8),
+        ...generate_normal_data(100, 65, 6),
+      ]
     }
 
     return [{
