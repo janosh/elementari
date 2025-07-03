@@ -42,6 +42,9 @@ export function create_data_points(
 ): Point[] {
   return series
     .filter(filter_fn || ((s) => s.visible ?? true))
-    .filter(Boolean)
-    .flatMap(({ x: xs, y: ys }) => xs.map((x, idx) => ({ x, y: ys[idx] })))
+    .flatMap(({ x: xs, y: ys }) => {
+      const length = Math.min(xs.length, ys.length)
+      console.error(`length mismatch: x.length=${xs.length} vs y.length=${ys.length}`)
+      return xs.slice(0, length).map((x, idx) => ({ x, y: ys[idx] }))
+    })
 }

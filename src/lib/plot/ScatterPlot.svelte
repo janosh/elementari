@@ -2,6 +2,7 @@
   import { cells_3x3, corner_cells, Line, symbol_names } from '$lib'
   import type { D3ColorSchemeName, D3InterpolateName } from '$lib/colors'
   import { luminance } from '$lib/labels'
+  import * as math from '$lib/math'
   import type {
     AnchorNode,
     Cell3x3,
@@ -37,7 +38,7 @@
   import { Tween } from 'svelte/motion'
   import { format_value } from './formatting'
   import { get_relative_coords } from './interactions'
-  import { generate_log_ticks, get_nice_data_range, LOG_MIN_EPS } from './scales'
+  import { generate_log_ticks, get_nice_data_range } from './scales'
 
   // Local type definition since TweenedOptions is not exported
   type LocalTweenedOptions<T> = {
@@ -524,7 +525,7 @@
     return size_scale.type === `log`
       ? scaleLog()
         .domain([
-          Math.max(safe_min_val, LOG_MIN_EPS),
+          Math.max(safe_min_val, math.LOG_MIN_EPS),
           Math.max(safe_max_val, safe_min_val * 1.1),
         ])
         .range([min_radius, max_radius])
@@ -547,7 +548,7 @@
 
     return color_scale.type === `log`
       ? scaleSequentialLog(interpolator).domain([
-        Math.max(min_val, LOG_MIN_EPS),
+        Math.max(min_val, math.LOG_MIN_EPS),
         Math.max(max_val, min_val * 1.1),
       ])
       : scaleSequential(interpolator).domain([min_val, max_val])

@@ -19,8 +19,18 @@ import vasp4_format from '$site/structures/vasp4-format.poscar?raw'
 import { readFileSync } from 'fs'
 import process from 'node:process'
 import { join } from 'path'
-import { describe, expect, it, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest'
 import { gunzipSync } from 'zlib'
+
+// Suppress console.error for the entire test file since parse functions
+// are expected to handle invalid input gracefully and log errors
+let console_error_spy: ReturnType<typeof vi.spyOn>
+beforeEach(() => {
+  console_error_spy = vi.spyOn(console, `error`).mockImplementation(() => {})
+})
+afterEach(() => {
+  console_error_spy.mockRestore()
+})
 
 // Load compressed phonopy files using Node.js built-in decompression
 const agi_compressed = readFileSync(
@@ -118,18 +128,12 @@ describe(`POSCAR Parser`, () => {
   ])(
     `should reject lattice vectors with $name`,
     ({ content, expected_error }) => {
-      const console_error_spy = vi
-        .spyOn(console, `error`)
-        .mockImplementation(() => {})
-
       const result = parse_poscar(content)
       expect(result).toBeNull()
       expect(console_error_spy).toHaveBeenCalledWith(
         `Error parsing POSCAR file:`,
         expected_error,
       )
-
-      console_error_spy.mockRestore()
     },
   )
 })

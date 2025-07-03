@@ -230,6 +230,3 @@ export interface LegendItem {
     line_dash?: string
   }
 }
-
-// Small value to substitute for non-positive minimum in log scales
-export const LOG_MIN_EPS = 1e-9

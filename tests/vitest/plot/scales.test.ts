@@ -1,10 +1,10 @@
+import * as math from '$lib/math'
 import {
   calculate_domain,
   create_scale,
   create_time_scale,
   generate_log_ticks,
   get_nice_data_range,
-  LOG_MIN_EPS,
   type ScaleType,
 } from '$lib/plot/scales'
 import { describe, expect, test } from 'vitest'
@@ -33,14 +33,16 @@ describe(`scales`, () => {
 
       expect(scale).toBeDefined()
       expect(scale.domain()).toEqual(
-        scale_type === `log` ? [Math.max(domain[0], LOG_MIN_EPS), domain[1]] : domain,
+        scale_type === `log`
+          ? [Math.max(domain[0], math.LOG_MIN_EPS), domain[1]]
+          : domain,
       )
       expect(scale.range()).toEqual(range)
     })
 
     test(`log scale with negative domain`, () => {
       const scale = create_scale(`log`, [-5, 100], [0, 500])
-      expect(scale.domain()).toEqual([LOG_MIN_EPS, 100])
+      expect(scale.domain()).toEqual([math.LOG_MIN_EPS, 100])
     })
   })
 
@@ -58,13 +60,13 @@ describe(`scales`, () => {
       [[1, 2, 3, 4, 5], `linear`, [1, 5]],
       [[10, 100, 1000], `log`, [10, 1000]],
       [[0.001, 0.1, 1], `log`, [0.001, 1]],
-      [[-5, 0, 5], `log`, [LOG_MIN_EPS, 5]],
+      [[-5, 0, 5], `log`, [math.LOG_MIN_EPS, 5]],
       [[], `linear`, [0, 1]],
       [[42], `linear`, [42, 42]],
     ])(`%s %s scale`, (values, scale_type, expected) => {
       const domain = calculate_domain(values, scale_type as ScaleType)
-      if (scale_type === `log` && expected[0] === LOG_MIN_EPS) {
-        expect(domain).toEqual([LOG_MIN_EPS, expected[1]])
+      if (scale_type === `log` && expected[0] === math.LOG_MIN_EPS) {
+        expect(domain).toEqual([math.LOG_MIN_EPS, expected[1]])
       } else {
         expect(domain).toEqual(expected)
       }
@@ -180,7 +182,7 @@ describe(`scales`, () => {
 
     test(`negative values clamped`, () => {
       const result = generate_log_ticks(-10, 100, 5)
-      expect(result.some((t) => t >= LOG_MIN_EPS)).toBe(true)
+      expect(result.some((t) => t >= math.LOG_MIN_EPS)).toBe(true)
       expect(result).toContain(100)
     })
   })

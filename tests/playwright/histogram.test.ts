@@ -457,7 +457,7 @@ test.describe(`Histogram Component Tests`, () => {
 
     expect(basic_bars).toBeGreaterThan(0)
     expect(log_bars).toBeGreaterThan(0)
-    expect(page_errors.length).toBeLessThan(25) // Allow some errors during rapid changes
+    expect(page_errors.length).toBeLessThan(5) // Allow some errors during rapid changes
   })
 
   test(`performance with large datasets and extreme values`, async ({ page }) => {

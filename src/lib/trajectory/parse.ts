@@ -206,8 +206,8 @@ const is_xyz_multi_frame = (content: string, filename?: string): boolean => {
     line_idx += 2 // Skip comment line
     let valid_coords = 0
 
-    for (let i = 0; i < Math.min(num_atoms, 5); i++) {
-      const parts = lines[line_idx + i]?.trim().split(/\s+/)
+    for (let idx = 0; idx < Math.min(num_atoms, 5); idx++) {
+      const parts = lines[line_idx + idx]?.trim().split(/\s+/)
       if (parts?.length >= 4 && isNaN(parseInt(parts[0])) && parts[0].length <= 3) {
         if (parts.slice(1, 4).every((coord) => !isNaN(parseFloat(coord)))) {
           valid_coords++
@@ -270,7 +270,7 @@ const parse_torch_sim_hdf5 = async (
     const pbc_data = is_hdf5_dataset(pbc_dataset)
       ? pbc_dataset.to_array() as number[]
       : null
-    const pbc = pbc_data
+    const pbc = pbc_data && pbc_data.length === 3
       ? [!!pbc_data[0], !!pbc_data[1], !!pbc_data[2]] as [boolean, boolean, boolean]
       : [false, false, false] as [boolean, boolean, boolean]
 
@@ -306,10 +306,10 @@ const parse_torch_sim_hdf5 = async (
         num_frames: frames.length,
         periodic_boundary_conditions: cells ? pbc : [false, false, false],
         has_cell_info: Boolean(cells),
-        element_counts: elements.reduce(
-          (acc, el) => ({ ...acc, [el]: (acc[el] || 0) + 1 }),
-          {} as Record<string, number>,
-        ),
+        element_counts: elements.reduce((acc, el) => {
+          acc[el] = (acc[el] || 0) + 1
+          return acc
+        }, {} as Record<string, number>),
       },
     }
   } finally {
@@ -461,7 +461,7 @@ const parse_xyz_trajectory = (content: string): Trajectory => {
     const forces: number[][] = []
     const has_forces = comment.includes(`forces:R:3`)
 
-    for (let i = 0; i < num_atoms && line_idx < lines.length; i++) {
+    for (let idx = 0; idx < num_atoms && line_idx < lines.length; idx++) {
       const parts = lines[line_idx].trim().split(/\s+/)
       if (parts.length >= 4) {
         elements.push(parts[0] as ElementSymbol)
@@ -472,7 +472,10 @@ const parse_xyz_trajectory = (content: string): Trajectory => {
         ]
         positions.push(pos)
 
-        if (has_forces && parts.length >= 7) {
+        if (
+          has_forces && parts.length >= 7 &&
+          parts.slice(4, 7).every((x) => !isNaN(parseFloat(x)))
+        ) {
           forces.push([parseFloat(parts[4]), parseFloat(parts[5]), parseFloat(parts[6])])
         }
       }
@@ -657,7 +660,8 @@ const parse_ase_trajectory = (buffer: ArrayBuffer, filename?: string): Trajector
       periodic_boundary_conditions: [true, true, true],
       element_counts: global_numbers?.reduce((acc, num) => {
         const el = atomic_number_to_symbol[num] || `X`
-        return { ...acc, [el]: (acc[el] || 0) + 1 }
+        acc[el] = (acc[el] || 0) + 1
+        return acc
       }, {} as Record<string, number>),
       ...(frame_data.calculator && { ...frame_data.calculator }),
       ...(frame_data.info && { ...frame_data.info }),
@@ -684,7 +688,8 @@ const parse_ase_trajectory = (buffer: ArrayBuffer, filename?: string): Trajector
       periodic_boundary_conditions: [true, true, true],
       element_counts: global_numbers?.reduce((acc, num) => {
         const el = atomic_number_to_symbol[num] || `X`
-        return { ...acc, [el]: (acc[el] || 0) + 1 }
+        acc[el] = (acc[el] || 0) + 1
+        return acc
       }, {} as Record<string, number>),
     },
   }
@@ -828,17 +833,64 @@ export async function parse_trajectory_async(
   filename: string,
   on_progress?: (progress: ParseProgress) => void,
 ): Promise<Trajectory> {
-  const stages = [`Reading...`, `Detecting...`, `Parsing...`, `Processing...`]
+  const update_progress = (current: number, stage: string) =>
+    on_progress?.({ current, total: 100, stage })
 
-  // Replace await in loop with Promise.all
-  const progress_promises = stages.map((stage, idx) => {
-    on_progress?.({ current: idx * 25, total: 100, stage })
-    return new Promise((resolve) => setTimeout(resolve, 10))
-  })
+  try {
+    update_progress(0, `Detecting format...`)
 
-  await Promise.all(progress_promises)
+    // Format detection and parsing in one step
+    let result: Trajectory
+    if (data instanceof ArrayBuffer) {
+      if (is_ase_format(data, filename)) {
+        update_progress(50, `Parsing ASE trajectory...`)
+        result = parse_ase_trajectory(data, filename)
+      } else if (is_torch_sim_hdf5(data, filename)) {
+        update_progress(50, `Parsing TorchSim HDF5...`)
+        result = await parse_torch_sim_hdf5(data, filename)
+      } else {
+        throw new Error(`Unsupported binary format`)
+      }
+    } else {
+      const content = data.trim()
+      if (is_xyz_multi_frame(content, filename)) {
+        update_progress(50, `Parsing XYZ trajectory...`)
+        result = parse_xyz_trajectory(content)
+      } else if (is_vasp_format(content, filename)) {
+        update_progress(50, `Parsing VASP XDATCAR...`)
+        result = parse_vasp_xdatcar(content, filename)
+      } else if (filename?.toLowerCase().match(/\.(?:xyz|extxyz)$/)) {
+        update_progress(50, `Parsing single XYZ...`)
+        const { parse_xyz } = await import(`../io/parse`)
+        const structure = parse_xyz(content)
+        if (!structure) throw new Error(`Failed to parse XYZ structure`)
+        result = {
+          frames: [{ structure, step: 0, metadata: {} }],
+          metadata: { source_format: `single_xyz`, frame_count: 1 },
+        }
+      } else {
+        update_progress(50, `Parsing JSON trajectory...`)
+        try {
+          result = await parse_trajectory_data(JSON.parse(content), filename)
+        } catch {
+          result = await parse_trajectory_data(data, filename)
+        }
+      }
+    }
 
-  const result = await parse_trajectory_data(data, filename)
-  on_progress?.({ current: 100, total: 100, stage: `Complete` })
-  return result
+    update_progress(85, `Validating frames...`)
+    if (!result.frames?.length) throw new Error(`No valid frames found`)
+
+    if (result.metadata) {
+      result.metadata.frame_count ??= result.frames.length
+    }
+    update_progress(100, `Complete`)
+    return result
+  } catch (error) {
+    update_progress(
+      100,
+      `Error: ${error instanceof Error ? error.message : `Unknown error`}`,
+    )
+    throw error
+  }
 }

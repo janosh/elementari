@@ -517,9 +517,11 @@ Demonstrate various styling options including custom colors, axis formatting, an
   }
 
   function generate_financial_data(count) {
-    return Array.from({ length: count }, () =>
-      Math.exp(4.5 + box_muller(0, 0.5)) // Log-normal for stock prices
-    )
+    return Array.from({ length: count }, () => {
+      const exponent = 4.5 + box_muller(0, 0.5)
+      // Clamp to prevent overflow (exp(709) is near JS max safe float)
+      return Math.exp(Math.min(exponent, 700))
+    })
   }
 
   let color_scheme = $state(`default`)
