@@ -844,6 +844,67 @@ export function parse_phonopy_yaml(
   }
 }
 
+// Recursively search for a valid structure object in nested JSON
+function find_structure_in_json(obj: unknown): ParsedStructure | null {
+  // Check if current object is null or undefined
+  if (obj === null || obj === undefined) {
+    return null
+  }
+
+  // If it's not an object, skip it
+  if (typeof obj !== `object`) {
+    return null
+  }
+
+  // If it's an array, search through each element
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const result = find_structure_in_json(item)
+      if (result) return result
+    }
+    return null
+  }
+
+  // Check if this object looks like a valid structure
+  const potential_structure = obj as Record<string, unknown>
+  if (is_valid_structure_object(potential_structure)) {
+    return potential_structure as unknown as ParsedStructure
+  }
+
+  // Otherwise, recursively search through all properties
+  for (const value of Object.values(potential_structure)) {
+    const result = find_structure_in_json(value)
+    if (result) return result
+  }
+
+  return null
+}
+
+// Check if an object looks like a valid structure
+function is_valid_structure_object(obj: Record<string, unknown>): boolean {
+  // Must have sites array
+  if (!obj.sites || !Array.isArray(obj.sites)) {
+    return false
+  }
+
+  // Sites array must not be empty and contain valid site objects
+  if (obj.sites.length === 0) {
+    return false
+  }
+
+  // Check if first site looks valid (has species and coordinates)
+  const first_site = obj.sites[0] as Record<string, unknown>
+  if (!first_site || typeof first_site !== `object`) {
+    return false
+  }
+
+  // Must have species (array) and either abc or xyz coordinates
+  const has_species = Array.isArray(first_site.species) && first_site.species.length > 0
+  const has_coordinates = Array.isArray(first_site.abc) || Array.isArray(first_site.xyz)
+
+  return has_species && has_coordinates
+}
+
 // Auto-detect file format and parse accordingly
 export function parse_structure_file(
   content: string,
@@ -867,13 +928,13 @@ export function parse_structure_file(
       return parse_cif(content)
     }
 
-    // JSON files (pymatgen structures) - just parse directly
+    // JSON files (pymatgen structures) - parse and search for nested structures
     if (ext === `json`) {
       try {
         const parsed = JSON.parse(content)
-        // Validate that it has the required structure format
-        if (parsed.sites && Array.isArray(parsed.sites)) {
-          return parsed as ParsedStructure
+        const structure = find_structure_in_json(parsed)
+        if (structure) {
+          return structure
         }
         console.error(`JSON file does not contain a valid structure format`)
         return null
@@ -903,9 +964,10 @@ export function parse_structure_file(
   // JSON format detection: try to parse as JSON first
   try {
     const parsed = JSON.parse(content)
-    // If it parses as JSON, validate that it's a structure
-    if (parsed.sites && Array.isArray(parsed.sites)) {
-      return parsed as ParsedStructure
+    // If it parses as JSON, search for a valid structure
+    const structure = find_structure_in_json(parsed)
+    if (structure) {
+      return structure
     }
   } catch {
     // Not JSON, continue with other format detection

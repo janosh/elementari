@@ -190,9 +190,27 @@
     content: string,
     filename: string,
   ): AnyStructure | null => {
-    // Try JSON first
+    // Try JSON first, but handle nested structures properly
     try {
-      return JSON.parse(content) as AnyStructure
+      const parsed = JSON.parse(content)
+
+      // Check if it's already a valid structure
+      if (parsed.sites && Array.isArray(parsed.sites)) {
+        return parsed as AnyStructure
+      }
+
+      // If not, use parse_structure_file to find nested structures
+      const structure = parse_structure_file(content, filename)
+
+      if (structure) {
+        return {
+          sites: structure.sites,
+          charge: 0,
+          ...(structure.lattice && {
+            lattice: { ...structure.lattice, pbc: [true, true, true] },
+          }),
+        }
+      } else return null
     } catch {
       // Try structure file formats
       const parsed = parse_structure_file(content, filename)
