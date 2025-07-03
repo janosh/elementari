@@ -857,7 +857,7 @@ test.describe(`Reset Camera Button Tests`, () => {
   test(`reset camera button structure and styling are correct`, async ({ page }) => {
     // Since OrbitControls events don't fire in test environment, we'll test the static structure
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const button_section = structure_component.locator(`section`)
+    const button_section = structure_component.locator(`section.control-buttons`)
 
     await expect(button_section).toBeVisible()
 
@@ -1467,7 +1467,7 @@ test.describe(`Export Button Tests`, () => {
   test(`reset camera button integration with existing UI elements`, async ({ page }) => {
     // Test that the reset camera button integrates properly with other UI elements
     const structure_component = page.locator(`#structure-wrapper .structure`)
-    const button_section = structure_component.locator(`section`)
+    const button_section = structure_component.locator(`section.control-buttons`)
 
     // Verify the button section exists and has the right structure
     await expect(button_section).toBeVisible()
