@@ -783,13 +783,13 @@ test.describe(`ScatterPlot Component Tests`, () => {
     await expect(series_a_item).not.toHaveClass(/hidden/)
     await expect(series_b_item).toHaveClass(/hidden/)
 
-    // Double click A again (current behavior: only restores clicked series)
+    // Double click A again should restore all series
     await series_a_item.dblclick()
     await page.waitForTimeout(200)
     const final_markers = plot_locator.locator(`g[data-series-id] .marker`)
-    await expect(final_markers).toHaveCount(2) // Current expected behavior
+    await expect(final_markers).toHaveCount(4) // Both series should be visible after second double-click
     await expect(series_a_item).not.toHaveClass(/hidden/)
-    await expect(series_b_item).toHaveClass(/hidden/) // Remains hidden
+    await expect(series_b_item).not.toHaveClass(/hidden/) // Should be restored
   })
 
   test(`legend positioning and dragging functionality`, async ({ page }) => {

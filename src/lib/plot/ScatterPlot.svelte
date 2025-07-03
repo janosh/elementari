@@ -22,16 +22,9 @@
     TooltipProps,
     XyObj,
   } from '$lib/plot'
-  import {
-    ColorBar,
-    LOG_MIN_EPS,
-    PlotLegend,
-    ScatterPlotControls,
-    ScatterPoint,
-  } from '$lib/plot'
+  import { ColorBar, PlotLegend, ScatterPlotControls, ScatterPoint } from '$lib/plot'
   import { extent, range } from 'd3-array'
   import { forceCollide, forceLink, forceSimulation } from 'd3-force'
-  import { format } from 'd3-format'
   import {
     scaleLinear,
     scaleLog,
@@ -40,9 +33,11 @@
     scaleTime,
   } from 'd3-scale'
   import * as d3_sc from 'd3-scale-chromatic'
-  import { timeFormat } from 'd3-time-format'
   import type { ComponentProps, Snippet } from 'svelte'
   import { Tween } from 'svelte/motion'
+  import { format_value } from './formatting'
+  import { get_relative_coords } from './interactions'
+  import { generate_log_ticks, get_nice_data_range, LOG_MIN_EPS } from './scales'
 
   // Local type definition since TweenedOptions is not exported
   type LocalTweenedOptions<T> = {
@@ -395,74 +390,6 @@
     ),
   )
 
-  // Helper for computing nice data ranges with D3's nice() function
-  function get_nice_data_range(
-    points: Point[],
-    get_value: (p: Point) => number,
-    lim: [number | null, number | null],
-    scale_type: ScaleType,
-    is_time = false,
-    padding_factor: number,
-  ) {
-    const [min_lim, max_lim] = lim
-    const [min_ext, max_ext] = extent(points, get_value)
-    let data_min = min_lim ?? min_ext ?? 0
-    let data_max = max_lim ?? max_ext ?? 1
-
-    // Apply padding *only if* limits were NOT provided
-    if (min_lim === null && max_lim === null && points.length > 0) {
-      if (data_min !== data_max) {
-        // Apply percentage padding based on scale type if there's a range
-        const span = data_max - data_min
-        if (is_time) {
-          const padding_ms = span * padding_factor
-          data_min = data_min - padding_ms
-          data_max = data_max + padding_ms
-        } else if (scale_type === `log`) {
-          const log_min = Math.log10(Math.max(data_min, 1e-10))
-          const log_max = Math.log10(Math.max(data_max, 1e-10))
-          const log_span = log_max - log_min
-          data_min = Math.pow(10, log_min - log_span * padding_factor)
-          data_max = Math.pow(10, log_max + log_span * padding_factor)
-        } else {
-          // Linear scale
-          const padding_abs = span * padding_factor
-          data_min = data_min - padding_abs
-          data_max = data_max + padding_abs
-        }
-      } else {
-        // Handle single data point case with fixed relative padding
-        if (is_time) {
-          const one_day = 86_400_000 // milliseconds in a day
-          data_min = data_min - one_day
-          data_max = data_max + one_day
-        } else if (scale_type === `log`) {
-          data_min = Math.max(1e-10, data_min / 1.1) // 10% multiplicative padding
-          data_max = data_max * 1.1
-        } else {
-          const padding_abs = data_min === 0 ? 1 : Math.abs(data_min * 0.1) // 10% additive padding, or 1 if value is 0
-          data_min = data_min - padding_abs
-          data_max = data_max + padding_abs
-        }
-      }
-    }
-
-    // If time or no range after padding, return the (potentially padded) domain directly
-    if (is_time || data_min === data_max) return [data_min, data_max]
-
-    // Use D3's nice() to create pretty boundaries
-    // Create the scale with the *padded* data domain
-    const scale = scale_type === `log`
-      ? scaleLog().domain([
-        Math.max(data_min, LOG_MIN_EPS),
-        Math.max(data_max, data_min * 1.1),
-      ]) // Ensure log domain > 0
-      : scaleLinear().domain([data_min, data_max])
-
-    scale.nice()
-    return scale.domain()
-  }
-
   // Compute auto ranges based on data and limits
   let auto_x_range = $derived(
     get_nice_data_range(
@@ -470,8 +397,8 @@
       (point) => point.x,
       x_lim,
       x_scale_type,
-      x_format?.startsWith(`%`) || false,
       range_padding,
+      x_format?.startsWith(`%`) || false,
     ),
   )
 
@@ -481,8 +408,8 @@
       (point) => point.y,
       y_lim,
       y_scale_type,
-      false,
       range_padding,
+      false,
     ),
   )
 
@@ -493,8 +420,8 @@
         (point) => point.y,
         y2_lim,
         y2_scale_type,
-        false,
         range_padding,
+        false,
       )
       : [0, 1], // Default range if no y2 data
   )
@@ -1005,48 +932,6 @@
     }
   })
 
-  // Generate logarithmic ticks
-  function generate_log_ticks(
-    min: number,
-    max: number,
-    ticks_option?: number | TimeInterval | number[],
-  ): number[] {
-    // If ticks_option is already an array, use it directly
-    if (Array.isArray(ticks_option)) return ticks_option
-    min = Math.max(min, 1e-10)
-
-    const min_power = Math.floor(Math.log10(min))
-    const max_power = Math.ceil(Math.log10(max))
-
-    const extended_min_power = max_power - min_power <= 2 ? min_power - 1 : min_power
-    const extended_max_power = max_power - min_power <= 2 ? max_power + 1 : max_power
-
-    const powers = range(extended_min_power, extended_max_power + 1).map((p) =>
-      Math.pow(10, p)
-    )
-
-    // For narrow ranges, include intermediate values
-    if (
-      max_power - min_power < 3 &&
-      typeof ticks_option === `number` &&
-      ticks_option > 5
-    ) {
-      const detailed_ticks: number[] = []
-      powers.forEach((power) => {
-        detailed_ticks.push(power)
-        if (power * 2 <= Math.pow(10, extended_max_power)) {
-          detailed_ticks.push(power * 2)
-        }
-        if (power * 5 <= Math.pow(10, extended_max_power)) {
-          detailed_ticks.push(power * 5)
-        }
-      })
-      return detailed_ticks
-    }
-
-    return powers
-  }
-
   // Generate axis ticks
   let x_tick_values = $derived.by(() => {
     if (!width || !height) return []
@@ -1134,25 +1019,6 @@
     )
     return ticks.map(Number)
   })
-
-  // Format a value for display
-  function format_value(value: number, formatter: string): string {
-    if (!formatter) return `${value}`
-
-    if (formatter.startsWith(`%`)) return timeFormat(formatter)(new Date(value))
-
-    const formatted = format(formatter)(value)
-    // Remove trailing zeros after decimal point
-    return formatted.includes(`.`)
-      ? formatted.replace(/(\.\d*?)0+$/, `$1`).replace(/\.$/, ``)
-      : formatted
-  }
-
-  function get_relative_coords(evt: MouseEvent): XyObj | null {
-    const svg_box = (evt.currentTarget as SVGElement)?.getBoundingClientRect()
-    if (!svg_box) return null
-    return { x: evt.clientX - svg_box.left, y: evt.clientY - svg_box.top }
-  }
 
   // Define global handlers reference for adding/removing listeners
   const on_window_mouse_move = (evt: MouseEvent) => {
