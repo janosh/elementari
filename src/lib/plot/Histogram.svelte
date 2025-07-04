@@ -157,7 +157,6 @@
               {@const bar_width = Math.max(1, Math.abs(raw_bar_width))}
               {@const bar_height = Math.max(0, chart_height - y_scale(bin.length))}
               {@const bar_y = y_scale(bin.length)}
-
               {#if bar_height > 0}
                 <rect
                   x={bar_x}

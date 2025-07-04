@@ -901,9 +901,9 @@
         {:else if display_mode === `histogram` || display_mode === `structure+histogram`}
           <Histogram
             series={plot_series}
-            x_label={histogram_props.x_label || `Value`}
-            y_label={histogram_props.y_label || `Count`}
-            mode={histogram_props.mode || `overlay`}
+            x_label={histogram_props.x_label ?? `Value`}
+            y_label={histogram_props.y_label ?? `Count`}
+            mode={histogram_props.mode ?? `overlay`}
             show_legend={histogram_props.show_legend ?? (plot_series.length > 1)}
             legend={{
               responsive: true,

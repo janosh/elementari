@@ -346,25 +346,28 @@
 
     <StructureLegend elements={get_elem_amounts(structure!)} />
 
-    <Canvas
-      createRenderer={(canvas) => {
-        const renderer = new WebGLRenderer({
-          canvas,
-          preserveDrawingBuffer: true,
-          antialias: true,
-          alpha: true,
-        })
-        return renderer
-      }}
-    >
-      <StructureScene
-        structure={scene_structure}
-        {...scene_props}
-        {show_site_labels}
-        {lattice_props}
-        bind:camera_is_moving
-      />
-    </Canvas>
+    {#if !import.meta.env.VITEST}
+      <!-- prevent from rendering in vitest runner since Canvas API not available -->
+      <Canvas
+        createRenderer={(canvas) => {
+          const renderer = new WebGLRenderer({
+            canvas,
+            preserveDrawingBuffer: true,
+            antialias: true,
+            alpha: true,
+          })
+          return renderer
+        }}
+      >
+        <StructureScene
+          structure={scene_structure}
+          {...scene_props}
+          {show_site_labels}
+          {lattice_props}
+          bind:camera_is_moving
+        />
+      </Canvas>
+    {/if}
 
     <div class="bottom-left">
       {@render bottom_left?.({ structure: structure! })}
