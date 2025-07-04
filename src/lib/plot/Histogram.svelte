@@ -11,7 +11,8 @@
   } from './data-transform'
   import { format_value } from './formatting'
   import { constrain_tooltip_position, get_chart_dimensions } from './layout'
-  import { create_scale, type ScaleType } from './scales'
+  import type { ScaleType, TicksOption } from './scales'
+  import { create_scale, generate_ticks } from './scales'
 
   type LegendConfig = ComponentProps<typeof PlotLegend>
 
@@ -33,6 +34,8 @@
     mode?: `single` | `overlay`
     x_grid?: boolean | Record<string, unknown>
     y_grid?: boolean | Record<string, unknown>
+    x_ticks?: TicksOption
+    y_ticks?: TicksOption
     tooltip?: Snippet<[{ value: number; count: number; property: string }]>
     [key: string]: unknown
   }
@@ -54,6 +57,8 @@
     mode = `single`,
     x_grid = true,
     y_grid = true,
+    x_ticks = 8,
+    y_ticks = 6,
     tooltip,
     ...rest
   }: Props = $props()
@@ -82,19 +87,30 @@
   let histogram_data = $derived.by(() => {
     if (!selected_series.length || !width || !height) return []
 
-    const all_values = selected_series.flatMap((s) => s.y)
-    const [min_val, max_val] = extent(all_values) as [number, number]
+    // Calculate extent more efficiently by iterating once
+    let min_val = Infinity
+    let max_val = -Infinity
+    for (const series of selected_series) {
+      for (const value of series.y) {
+        if (value < min_val) min_val = value
+        if (value > max_val) max_val = value
+      }
+    }
     if (min_val === undefined || max_val === undefined) return []
 
     const hist_generator = bin().domain([min_val, max_val]).thresholds(bins)
 
-    return selected_series.map((series_data, series_idx) => ({
-      series_idx,
-      label: series_data.label || `Series ${series_idx + 1}`,
-      color: extract_series_color(series_data),
-      bins: hist_generator(series_data.y),
-      max_count: max(hist_generator(series_data.y), (d) => d.length) || 0,
-    }))
+    return selected_series.map((series_data, series_idx) => {
+      const series_bins = hist_generator(series_data.y)
+      const max_count = max(series_bins, (d) => d.length) || 0
+      return {
+        series_idx,
+        label: series_data.label || `Series ${series_idx + 1}`,
+        color: extract_series_color(series_data),
+        bins: series_bins,
+        max_count,
+      }
+    })
   })
 
   // Calculate domains and scales
@@ -119,6 +135,21 @@
   let x_scale = $derived(create_scale(x_scale_type, x_domain, [0, chart_width]))
   let y_scale = $derived(create_scale(y_scale_type, y_domain, [chart_height, 0]))
 
+  // Generate axis ticks
+  let x_tick_values = $derived.by(() => {
+    if (!width || !height) return []
+    return generate_ticks(x_domain, x_scale_type, x_ticks, x_scale, {
+      default_count: 8,
+    })
+  })
+
+  let y_tick_values = $derived.by(() => {
+    if (!width || !height) return []
+    return generate_ticks(y_domain, y_scale_type, y_ticks, y_scale, {
+      default_count: 6,
+    })
+  })
+
   // Event handlers
   function handle_mouse_move(
     _: MouseEvent,
@@ -130,6 +161,11 @@
   }
   function handle_mouse_leave() {
     hover_info = null
+  }
+
+  // Create a stable event handler to prevent recreation on each render
+  const create_mouse_handler = (value: number, count: number, property: string) => {
+    return (event: MouseEvent) => handle_mouse_move(event, value, count, property)
   }
 
   // Legend data and toggle
@@ -169,8 +205,7 @@
                   stroke-width={mode === `overlay` ? bar_stroke_width : 0}
                   role="button"
                   tabindex="0"
-                  onmousemove={(e) =>
-                  handle_mouse_move(e, (bin.x0! + bin.x1!) / 2, bin.length, label)}
+                  onmousemove={create_mouse_handler((bin.x0! + bin.x1!) / 2, bin.length, label)}
                   onmouseleave={handle_mouse_leave}
                   style:cursor="pointer"
                 />
@@ -223,7 +258,7 @@
           stroke-width="1"
         />
 
-        {#each x_scale.ticks(8) as tick (tick)}
+        {#each x_tick_values as tick (tick)}
           {@const tick_x = padding.l + x_scale(tick as number)}
           <g class="tick" transform="translate({tick_x}, {height - padding.b})">
             {#if x_grid}
@@ -276,7 +311,7 @@
           stroke-width="1"
         />
 
-        {#each y_scale.ticks(6) as tick (tick)}
+        {#each y_tick_values as tick (tick)}
           {@const tick_y = padding.t + y_scale(tick as number)}
           <g class="tick" transform="translate({padding.l}, {tick_y})">
             {#if y_grid}

@@ -238,9 +238,10 @@
     if (is_input_focused) return
 
     // Interface shortcuts
-    if (event.key === `f`) toggle_fullscreen()
-    else if (event.key === `i`) sidebar_open = !sidebar_open
-    else if (event.key === `Escape`) {
+    if (event.key === `f` && (event.ctrlKey || event.metaKey)) toggle_fullscreen()
+    else if (event.key === `i` && (event.ctrlKey || event.metaKey)) {
+      sidebar_open = !sidebar_open
+    } else if (event.key === `Escape`) {
       if (document.fullscreenElement) document.exitFullscreen()
       else sidebar_open = false
     }
@@ -402,7 +403,7 @@
     color: var(--struct-text-color);
   }
   .structure.active {
-    z-index: 2;
+    z-index: var(--struct-active-z-index, 2);
   }
   .structure:fullscreen :global(canvas) {
     height: 100vh !important;

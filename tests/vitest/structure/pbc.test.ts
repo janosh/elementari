@@ -953,9 +953,9 @@ test(`image atom generation should not create duplicates`, () => {
   ) // Max 20% duplicates or 3, whichever is higher
 
   // Alternative check: ensure all pairwise distances are reasonable
-  for (let i = 0; i < image_atoms.length; i++) {
-    for (let j = i + 1; j < image_atoms.length; j++) {
-      const pos1 = image_atoms[i][1] // xyz coordinates
+  for (let idx = 0; idx < image_atoms.length; idx++) {
+    for (let j = idx + 1; j < image_atoms.length; j++) {
+      const pos1 = image_atoms[idx][1] // xyz coordinates
       const pos2 = image_atoms[j][1] // xyz coordinates
       const distance = euclidean_dist(pos1, pos2)
 

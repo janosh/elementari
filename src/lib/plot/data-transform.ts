@@ -1,6 +1,7 @@
 import type { D3SymbolName, DataSeries, Point } from '$lib/plot'
 
-// Extract the primary color from a series data object
+// Extract the primary color from a series data object.
+// Checks line stroke, then point fill (handling arrays), with fallback to default blue.
 export function extract_series_color(series_data: DataSeries): string {
   return series_data.line_style?.stroke ||
     (Array.isArray(series_data.point_style)

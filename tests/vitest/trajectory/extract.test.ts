@@ -32,9 +32,7 @@ function create_basic_frame(
     structure: {
       sites: [
         {
-          species: [
-            { element: `H` as ElementSymbol, occu: 1, oxidation_state: 0 },
-          ],
+          species: [{ element: `H` as ElementSymbol, occu: 1, oxidation_state: 0 }],
           abc: [0, 0, 0] as Vec3,
           xyz: [0, 0, 0] as Vec3,
           label: `H1`,

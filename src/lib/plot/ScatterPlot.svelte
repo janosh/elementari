@@ -19,12 +19,11 @@
     PointStyle,
     ScaleType,
     Sides,
-    TimeInterval,
     TooltipProps,
     XyObj,
   } from '$lib/plot'
   import { ColorBar, PlotLegend, ScatterPlotControls, ScatterPoint } from '$lib/plot'
-  import { extent, range } from 'd3-array'
+  import { extent } from 'd3-array'
   import { forceCollide, forceLink, forceSimulation } from 'd3-force'
   import {
     scaleLinear,
@@ -38,7 +37,7 @@
   import { Tween } from 'svelte/motion'
   import { format_value } from './formatting'
   import { get_relative_coords } from './interactions'
-  import { generate_log_ticks, get_nice_data_range } from './scales'
+  import { generate_ticks, get_nice_data_range, type TicksOption } from './scales'
 
   // Local type definition since TweenedOptions is not exported
   type LocalTweenedOptions<T> = {
@@ -64,7 +63,7 @@
     y2_tick_label_shift?: { x?: number; y?: number }
     y2_unit?: string
     y2_format?: string
-    y2_ticks?: number
+    y2_ticks?: TicksOption
     y2_scale_type?: ScaleType
     y2_grid?: boolean | Record<string, unknown>
     padding?: Sides
@@ -82,8 +81,8 @@
     y_format?: string
     tooltip?: Snippet<[PlotPoint & TooltipProps]>
     change?: (data: (Point & { series: DataSeries }) | null) => void
-    x_ticks?: number | TimeInterval | number[] // tick count or string (day/month/year). Negative number: interval.
-    y_ticks?: number | number[] // tick count or array of tick values. Negative number: interval.
+    x_ticks?: TicksOption // tick count or string (day/month/year). Negative number: interval.
+    y_ticks?: TicksOption // tick count or array of tick values. Negative number: interval.
     x_scale_type?: ScaleType // Type of scale for x-axis
     y_scale_type?: ScaleType // Type of scale for y-axis
     show_zero_lines?: boolean
@@ -937,88 +936,27 @@
   let x_tick_values = $derived.by(() => {
     if (!width || !height) return []
 
-    // If x_ticks is already an array, use it directly
-    if (Array.isArray(x_ticks)) return x_ticks
-
-    // Time-based ticks
-    if (x_format?.startsWith(`%`)) {
-      const time_scale = scaleTime().domain([new Date(x_min), new Date(x_max)])
-
-      let count = 10 // default
-      if (typeof x_ticks === `number`) {
-        count = x_ticks < 0
-          ? Math.ceil((x_max - x_min) / Math.abs(x_ticks) / 86_400_000)
-          : x_ticks
-      } else if (typeof x_ticks === `string`) {
-        count = x_ticks === `day` ? 30 : x_ticks === `month` ? 12 : 10
-      }
-
-      const ticks = time_scale.ticks(count)
-
-      if (typeof x_ticks === `string`) {
-        if (x_ticks === `month`) {
-          return ticks.filter((d) => d.getDate() === 1).map((d) => d.getTime())
-        }
-        if (x_ticks === `year`) {
-          return ticks
-            .filter((d) => d.getMonth() === 0 && d.getDate() === 1)
-            .map((d) => d.getTime())
-        }
-      }
-
-      return ticks.map((d) => d.getTime())
-    }
-
-    // Log scale ticks
-    if (x_scale_type === `log`) return generate_log_ticks(x_min, x_max, x_ticks)
-
-    // Linear scale with interval
-    if (typeof x_ticks === `number` && x_ticks < 0) {
-      const interval = Math.abs(x_ticks)
-      const start = Math.ceil(x_min / interval) * interval
-      return range(start, x_max + interval * 0.1, interval)
-    }
-
-    // Default ticks
-    const ticks = x_scale_fn.ticks(typeof x_ticks === `number` ? x_ticks : undefined)
-    return ticks.map(Number)
+    return generate_ticks(
+      [x_min, x_max],
+      x_scale_type,
+      x_ticks,
+      x_scale_fn,
+      { format: x_format },
+    )
   })
 
   let y_tick_values = $derived.by(() => {
     if (!width || !height) return []
-
-    // If y_ticks is already an array, use it directly
-    if (Array.isArray(y_ticks)) return y_ticks
-
-    if (y_scale_type === `log`) return generate_log_ticks(y_min, y_max, y_ticks)
-
-    if (typeof y_ticks === `number` && y_ticks < 0) {
-      const interval = Math.abs(y_ticks)
-      const start = Math.ceil(y_min / interval) * interval
-      return range(start, y_max + interval * 0.1, interval)
-    }
-
-    const ticks = y_scale_fn.ticks(
-      typeof y_ticks === `number` && y_ticks > 0 ? y_ticks : 5,
-    )
-    return ticks.map(Number)
+    return generate_ticks([y_min, y_max], y_scale_type, y_ticks, y_scale_fn, {
+      default_count: 5,
+    })
   })
 
   let y2_tick_values = $derived.by(() => {
     if (!width || !height || y2_points.length === 0) return []
-
-    if (y2_scale_type === `log`) return generate_log_ticks(y2_min, y2_max, y2_ticks)
-
-    if (typeof y2_ticks === `number` && y2_ticks < 0) {
-      const interval = Math.abs(y2_ticks)
-      const start = Math.ceil(y2_min / interval) * interval
-      return range(start, y2_max + interval * 0.1, interval)
-    }
-
-    const ticks = y2_scale_fn.ticks(
-      typeof y2_ticks === `number` && y2_ticks > 0 ? y2_ticks : 5,
-    )
-    return ticks.map(Number)
+    return generate_ticks([y2_min, y2_max], y2_scale_type, y2_ticks, y2_scale_fn, {
+      default_count: 5,
+    })
   })
 
   // Define global handlers reference for adding/removing listeners

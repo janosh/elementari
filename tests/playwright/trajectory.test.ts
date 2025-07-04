@@ -2,6 +2,23 @@
 import type { Locator } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
+// Helper function for display mode dropdown interactions
+async function select_display_mode(trajectory: Locator, mode_name: string) {
+  const display_button = trajectory.locator(`.view-mode-button`)
+  await display_button.click()
+
+  const option = trajectory.locator(`.view-mode-option`).filter({
+    hasText: mode_name,
+  })
+  await option.waitFor({ state: `visible` })
+  await option.click()
+
+  // Wait for content area to update
+  const content_area = trajectory.locator(`.content-area`)
+  await content_area.waitFor({ state: `attached` })
+  return content_area
+}
+
 test.describe(`Trajectory Component`, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`/test/trajectory`, { waitUntil: `load` })
@@ -49,9 +66,17 @@ test.describe(`Trajectory Component`, () => {
         await filename_button.click() // no visual feedback expected
       }
 
-      // Navigation controls (prev, play, next, info, display, fullscreen, and possibly one more)
+      // Navigation controls expected:
+      // - Previous step
+      // - Play/pause
+      // - Next step
+      // - Info panel toggle
+      // - Display mode selector
+      // - Fullscreen toggle
+      // - (Optional) Additional view controls
+      const MIN_EXPECTED_NAV_BUTTONS = 6
       const nav_button_count = await controls.locator(`.nav-button`).count()
-      expect(nav_button_count).toBeGreaterThanOrEqual(6)
+      expect(nav_button_count).toBeGreaterThanOrEqual(MIN_EXPECTED_NAV_BUTTONS)
 
       const step_input = controls.locator(`.step-input`)
       const step_slider = controls.locator(`.step-slider`)
@@ -567,17 +592,11 @@ test.describe(`Trajectory Component`, () => {
         const speed_input = speed_section.locator(`.speed-input`)
         const speed_slider = speed_section.locator(`.speed-slider`)
 
-        // Test speed controls by direct manipulation
-        await speed_slider.evaluate((el: HTMLInputElement) => {
-          el.value = `2.0`
-          el.dispatchEvent(new Event(`input`, { bubbles: true }))
-        })
+        // Test speed controls using Playwright's fill method which properly triggers events
+        await speed_slider.fill(`2.0`)
         await expect(speed_input).toHaveValue(`2`)
 
-        await speed_slider.evaluate((el: HTMLInputElement) => {
-          el.value = `1.0`
-          el.dispatchEvent(new Event(`input`, { bubbles: true }))
-        })
+        await speed_slider.fill(`1.0`)
         await expect(speed_input).toHaveValue(`1`)
       }
 
@@ -700,34 +719,13 @@ test.describe(`Trajectory Component`, () => {
       await expect(display_button).toBeVisible()
 
       // Test dropdown display mode functionality
-      await display_button.click() // Open dropdown
-
-      // Wait for dropdown menu to be visible
-      await trajectory.locator(`.view-mode-option`).first().waitFor({ state: `visible` })
-
-      // Click on structure-only option
-      const structure_only_option = trajectory.locator(`.view-mode-option`).filter({
-        hasText: `Structure-only`,
-      })
-      await structure_only_option.click()
+      await select_display_mode(trajectory, `Structure-only`)
       await expect(content_area).toHaveClass(/show-structure-only/)
 
-      // Open dropdown again and select scatter-only
-      await display_button.click()
-      await trajectory.locator(`.view-mode-option`).first().waitFor({ state: `visible` })
-      const scatter_only_option = trajectory.locator(`.view-mode-option`).filter({
-        hasText: `Scatter-only`,
-      })
-      await scatter_only_option.click()
+      await select_display_mode(trajectory, `Scatter-only`)
       await expect(content_area).toHaveClass(/show-plot-only/)
 
-      // Open dropdown again and select structure + scatter
-      await display_button.click()
-      await trajectory.locator(`.view-mode-option`).first().waitFor({ state: `visible` })
-      const both_option = trajectory.locator(`.view-mode-option`).filter({
-        hasText: `Structure + Scatter`,
-      })
-      await both_option.click()
+      await select_display_mode(trajectory, `Structure + Scatter`)
       await expect(content_area).toHaveClass(/show-both/)
 
       // Test in wide container (horizontal layout)

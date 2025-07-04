@@ -1,9 +1,14 @@
 import * as math from '$lib/math'
 import type { Point } from '$lib/plot'
 import { extent, range } from 'd3-array'
+import type { ScaleContinuousNumeric } from 'd3-scale'
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale'
 
 export type ScaleType = `linear` | `log`
+export type TimeInterval = `day` | `month` | `year`
+
+// Type for ticks parameter - can be count, array of values, or time interval
+export type TicksOption = number | number[] | TimeInterval
 
 // Create a scale function based on type, domain, and range
 export function create_scale(
@@ -25,6 +30,71 @@ export function create_time_scale(
   return scaleTime()
     .domain([new Date(domain[0]), new Date(domain[1])])
     .range(range)
+}
+
+// Unified tick generation function
+export function generate_ticks(
+  domain: [number, number],
+  scale_type: ScaleType,
+  ticks_option: TicksOption | undefined,
+  scale_fn: ScaleContinuousNumeric<number, number>, // D3 scale function with .ticks() method
+  options: {
+    format?: string // For detecting time format
+    default_count?: number // Default tick count
+    interval_padding?: number // Padding for interval mode
+  } = {},
+): number[] {
+  const { format, default_count = 8, interval_padding = 0.1 } = options
+  const [min_val, max_val] = domain
+
+  // If ticks_option is already an array, use it directly
+  if (Array.isArray(ticks_option)) return ticks_option
+
+  // Time-based ticks (ScatterPlot specific logic)
+  if (format?.startsWith(`%`)) {
+    const time_scale = scaleTime().domain([new Date(min_val), new Date(max_val)])
+
+    let count = 10 // default
+    if (typeof ticks_option === `number`) {
+      count = ticks_option < 0
+        ? Math.ceil((max_val - min_val) / Math.abs(ticks_option) / 86_400_000) // milliseconds per day
+        : ticks_option
+    } else if (typeof ticks_option === `string`) {
+      count = ticks_option === `day` ? 30 : ticks_option === `month` ? 12 : 10
+    }
+
+    const ticks = time_scale.ticks(count)
+
+    if (typeof ticks_option === `string`) {
+      if (ticks_option === `month`) {
+        return ticks.filter((d: Date) => d.getDate() === 1).map((d: Date) => d.getTime())
+      }
+      if (ticks_option === `year`) {
+        return ticks
+          .filter((d: Date) => d.getMonth() === 0 && d.getDate() === 1)
+          .map((d: Date) => d.getTime())
+      }
+    }
+    return ticks.map((d: Date) => d.getTime())
+  }
+
+  // Log scale ticks
+  if (scale_type === `log`) return generate_log_ticks(min_val, max_val, ticks_option)
+
+  // Linear scale with interval (negative number indicates interval)
+  if (typeof ticks_option === `number` && ticks_option < 0) {
+    const interval = Math.abs(ticks_option)
+    const start = Math.ceil(min_val / interval) * interval
+    return range(start, max_val + interval * interval_padding, interval)
+  }
+
+  // Default ticks using scale function
+  const tick_count = typeof ticks_option === `number` && ticks_option > 0
+    ? ticks_option
+    : default_count
+
+  const ticks = scale_fn.ticks(tick_count)
+  return ticks.map(Number)
 }
 
 // Calculate domain from array of values (simple version)
@@ -112,7 +182,7 @@ export function get_nice_data_range(
 export function generate_log_ticks(
   min: number,
   max: number,
-  ticks_option?: number | string | number[],
+  ticks_option?: TicksOption,
 ): number[] {
   // If ticks_option is already an array, use it directly
   if (Array.isArray(ticks_option)) return ticks_option
@@ -141,12 +211,8 @@ export function generate_log_ticks(
     const detailed_ticks: number[] = []
     powers.forEach((power: number) => {
       detailed_ticks.push(power)
-      if (power * 2 <= Math.pow(10, extended_max_power)) {
-        detailed_ticks.push(power * 2)
-      }
-      if (power * 5 <= Math.pow(10, extended_max_power)) {
-        detailed_ticks.push(power * 5)
-      }
+      if (power * 2 <= Math.pow(10, extended_max_power)) detailed_ticks.push(power * 2)
+      if (power * 5 <= Math.pow(10, extended_max_power)) detailed_ticks.push(power * 5)
     })
     return detailed_ticks
   }

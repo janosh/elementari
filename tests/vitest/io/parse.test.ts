@@ -770,13 +770,13 @@ describe(`parse_structure_file`, () => {
   })
 
   describe(`comprehensive nested structure parsing`, () => {
-    const valid_structure = {
+    const make_valid_struct = (element = `Fe`) => ({
       sites: [
         {
-          species: [{ element: `Fe`, occu: 1, oxidation_state: 0 }],
+          species: [{ element, occu: 1, oxidation_state: 0 }],
           abc: [0, 0, 0],
           xyz: [0, 0, 0],
-          label: `Fe1`,
+          label: `${element}1`,
           properties: {},
         },
       ],
@@ -790,16 +790,18 @@ describe(`parse_structure_file`, () => {
         gamma: 90,
         volume: 1,
       },
-    }
+    })
 
     test.each([
-      [`simple object wrapper`, { data: valid_structure }],
-      [`nested object`, { results: { structure: valid_structure } }],
-      [`array wrapper`, [{ structure: valid_structure }]],
-      [`mixed nesting`, { data: [{ item: { structure: valid_structure } }] }],
-      [`deep nesting`, { a: { b: { c: { d: valid_structure } } } }],
-      [`structure array`, { structures: [valid_structure] }],
-      [`multiple items with structure`, [{ id: 1 }, { structure: valid_structure }]],
+      [`simple object wrapper`, { data: make_valid_struct() }],
+      [`nested object`, { results: { structure: make_valid_struct() } }],
+      [`array wrapper`, [{ structure: make_valid_struct() }]],
+      [`mixed nesting`, { data: [{ item: { structure: make_valid_struct() } }] }],
+      [`deep nesting`, { a: { b: { c: { d: make_valid_struct() } } } }],
+      [`structure array`, { structures: [make_valid_struct()] }],
+      [`multiple items with structure`, [{ id: 1 }, {
+        structure: make_valid_struct(),
+      }]],
     ])(`finds structure in %s`, (_description, wrapper) => {
       const content = JSON.stringify(wrapper)
       const result = parse_structure_file(content, `test.json`)
@@ -831,7 +833,7 @@ describe(`parse_structure_file`, () => {
       [`moderate nesting`, 5],
       [`minimal nesting`, 2],
     ])(`handles %s (depth %d)`, (_description, depth) => {
-      let nested_obj: object = valid_structure
+      let nested_obj: object = make_valid_struct()
       for (let idx = 0; idx < depth; idx++) {
         nested_obj = { [`level_${idx}`]: nested_obj }
       }
@@ -844,11 +846,8 @@ describe(`parse_structure_file`, () => {
     })
 
     test(`finds valid structure when multiple structures exist`, () => {
-      const structure_a = { ...valid_structure }
-      structure_a.sites[0].species[0].element = `Li`
-
-      const structure_b = { ...valid_structure }
-      structure_b.sites[0].species[0].element = `Na`
+      const structure_a = make_valid_struct(`Li`)
+      const structure_b = make_valid_struct(`Na`)
 
       // Test with multiple structures - should find at least one
       const data = [
@@ -867,14 +866,13 @@ describe(`parse_structure_file`, () => {
     })
 
     test(`handles arrays with mixed valid/invalid structures`, () => {
-      const test_structure = { ...valid_structure }
-      test_structure.sites[0].species[0].element = `Cu` // Use unique element
+      const test_structure = make_valid_struct(`Cu`)
 
       const mixed_array = [
         { invalid: `data` },
         { sites: `not_array` }, // Invalid structure
         test_structure, // First valid structure - should be found
-        { another: `structure`, ...valid_structure }, // Another valid one with Fe
+        { another: `structure`, ...make_valid_struct() }, // Another valid one with Fe
       ]
 
       const content = JSON.stringify(mixed_array)
@@ -1015,15 +1013,12 @@ describe(`parse_structure_file`, () => {
   test(`handles deeply nested JSON without performance issues`, () => {
     // Create a deeply nested structure to test the improved recursive function
     let deeply_nested: Record<string, unknown> = {
-      sites: [
-        {
-          species: [`H`],
-          abc: [0.0, 0.0, 0.0],
-        },
-      ],
+      sites: [{ species: [`H`], abc: [0.0, 0.0, 0.0] }],
     }
 
     // Wrap the structure in multiple levels of nesting (100 levels deep)
+    // This tests the parser's ability to handle realistic worst-case scenarios
+    // where JSON APIs might return heavily nested response objects
     for (let idx = 0; idx < 100; idx++) {
       deeply_nested = {
         level: idx,
@@ -1042,7 +1037,9 @@ describe(`parse_structure_file`, () => {
     expect(result?.sites).toHaveLength(1)
     expect(result?.sites[0].species).toContain(`H`)
 
-    // Should complete reasonably quickly (less than 1 second)
-    expect(end_time - start_time).toBeLessThan(1000)
+    // Should complete reasonably quickly (less than 100ms for 100 levels)
+    // This ensures the recursive parser is efficient and doesn't degrade
+    // significantly with nesting depth
+    expect(end_time - start_time).toBeLessThan(100)
   })
 })

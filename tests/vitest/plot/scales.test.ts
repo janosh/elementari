@@ -1,12 +1,14 @@
 import * as math from '$lib/math'
+import type { ScaleType } from '$lib/plot/scales'
 import {
   calculate_domain,
   create_scale,
   create_time_scale,
   generate_log_ticks,
+  generate_ticks,
   get_nice_data_range,
-  type ScaleType,
 } from '$lib/plot/scales'
+import { scaleLinear, scaleLog, scaleTime } from 'd3-scale'
 import { describe, expect, test } from 'vitest'
 
 // Common test data
@@ -184,6 +186,145 @@ describe(`scales`, () => {
       const result = generate_log_ticks(-10, 100, 5)
       expect(result.some((t) => t >= math.LOG_MIN_EPS)).toBe(true)
       expect(result).toContain(100)
+    })
+  })
+
+  describe(`generate_ticks`, () => {
+    test(`array input - uses provided array directly`, () => {
+      const domain: [number, number] = [0, 100]
+      const scale = scaleLinear().domain(domain).range([0, 500])
+      const custom_ticks = [10, 30, 50, 70, 90]
+
+      const result = generate_ticks(domain, `linear`, custom_ticks, scale)
+      expect(result).toEqual(custom_ticks)
+    })
+
+    test(`time-based ticks with % format`, () => {
+      const start_time = new Date(2023, 0, 1).getTime()
+      const end_time = new Date(2023, 2, 15).getTime()
+      const domain: [number, number] = [start_time, end_time]
+      const scale = scaleTime().domain([new Date(start_time), new Date(end_time)]).range([
+        0,
+        500,
+      ])
+
+      const result = generate_ticks(domain, `linear`, 5, scale, { format: `%Y-%m-%d` })
+      expect(result.length).toBeGreaterThan(0)
+      expect(result.every((tick) => typeof tick === `number`)).toBe(true)
+      expect(result.some((tick) => tick >= start_time && tick <= end_time)).toBe(true)
+    })
+
+    test(`logarithmic ticks`, () => {
+      const domain: [number, number] = [1, 1000]
+      const scale = scaleLog().domain(domain).range([0, 500])
+
+      const result = generate_ticks(domain, `log`, 5, scale)
+      expect(result.length).toBeGreaterThan(0)
+      expect(result).toContain(1)
+      expect(result).toContain(10)
+      expect(result).toContain(100)
+      expect(result).toContain(1000)
+    })
+
+    test(`interval ticks - negative number indicates interval`, () => {
+      const domain: [number, number] = [0, 100]
+      const scale = scaleLinear().domain(domain).range([0, 500])
+
+      const result = generate_ticks(domain, `linear`, -10, scale) // interval of 10
+      expect(result.length).toBeGreaterThan(0)
+      expect(result).toContain(0)
+      expect(result).toContain(10)
+      expect(result).toContain(20)
+      expect(result).toContain(30)
+      // Check that ticks are spaced by the interval
+      for (let idx = 1; idx < result.length; idx++) {
+        expect(result[idx] - result[idx - 1]).toBe(10)
+      }
+    })
+
+    test(`default linear ticks with default_count`, () => {
+      const domain: [number, number] = [0, 100]
+      const scale = scaleLinear().domain(domain).range([0, 500])
+
+      const result = generate_ticks(domain, `linear`, 5, scale, { default_count: 8 })
+      expect(result.length).toBeGreaterThan(0)
+      expect(result.length).toBeLessThanOrEqual(8) // Should respect the tick count
+      expect(result[0]).toBeLessThanOrEqual(0)
+      expect(result[result.length - 1]).toBeGreaterThanOrEqual(100)
+    })
+
+    test(`default linear ticks without options`, () => {
+      const domain: [number, number] = [0, 50]
+      const scale = scaleLinear().domain(domain).range([0, 300])
+
+      const result = generate_ticks(domain, `linear`, 6, scale)
+      expect(result.length).toBeGreaterThan(0)
+      expect(result.every((tick) => typeof tick === `number`)).toBe(true)
+    })
+
+    test(`handles edge case - empty domain`, () => {
+      const domain: [number, number] = [0, 0]
+      const scale = scaleLinear().domain(domain).range([0, 100])
+
+      const result = generate_ticks(domain, `linear`, 5, scale)
+      expect(result.length).toBeGreaterThan(0)
+      expect(result).toContain(0)
+    })
+
+    test(`handles very small intervals`, () => {
+      const domain: [number, number] = [0, 1]
+      const scale = scaleLinear().domain(domain).range([0, 500])
+
+      const result = generate_ticks(domain, `linear`, -0.2, scale) // interval of 0.2
+      expect(result.length).toBeGreaterThan(0)
+      expect(result).toContain(0)
+      expect(result).toContain(0.2)
+      expect(result).toContain(0.4)
+      // Use approximate equality for floating point numbers
+      expect(result.some((tick) => Math.abs(tick - 0.6) < 1e-10)).toBe(true)
+      expect(result).toContain(0.8)
+      expect(result).toContain(1)
+    })
+
+    test(`time intervals - month filtering`, () => {
+      const start_time = new Date(2022, 0, 1).getTime() // Jan 1, 2022
+      const end_time = new Date(2024, 11, 31).getTime() // Dec 31, 2024
+      const domain: [number, number] = [start_time, end_time]
+      const scale = scaleTime().domain([new Date(start_time), new Date(end_time)]).range([
+        0,
+        500,
+      ])
+
+      const result = generate_ticks(domain, `linear`, `month`, scale, {
+        format: `%Y-%m-%d`,
+      })
+      expect(result.length).toBeGreaterThan(0)
+      // All ticks should be at the start of months (day 1)
+      result.forEach((tick) => {
+        const date = new Date(tick)
+        expect(date.getDate()).toBe(1)
+      })
+    })
+
+    test(`time intervals - year filtering`, () => {
+      const start_time = new Date(2020, 5, 15).getTime()
+      const end_time = new Date(2025, 2, 10).getTime()
+      const domain: [number, number] = [start_time, end_time]
+      const scale = scaleTime().domain([new Date(start_time), new Date(end_time)]).range([
+        0,
+        500,
+      ])
+
+      const result = generate_ticks(domain, `linear`, `year`, scale, {
+        format: `%Y-%m-%d`,
+      })
+      expect(result.length).toBeGreaterThan(0)
+      // All ticks should be at the start of years (Jan 1)
+      result.forEach((tick) => {
+        const date = new Date(tick)
+        expect(date.getMonth()).toBe(0)
+        expect(date.getDate()).toBe(1)
+      })
     })
   })
 })

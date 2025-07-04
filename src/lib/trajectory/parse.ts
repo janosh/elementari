@@ -165,9 +165,11 @@ const is_torch_sim_hdf5 = (content: unknown, filename?: string): boolean => {
 const is_ase_format = (content: unknown, filename?: string): boolean => {
   if (filename && !filename.toLowerCase().endsWith(`.traj`)) return false
   if (!(content instanceof ArrayBuffer) || content.byteLength < 24) return false
+  // ASE trajectory files start with "- of Ulm" signature
   const view = new Uint8Array(content.slice(0, 24))
   const signature = [0x2d, 0x20, 0x6f, 0x66, 0x20, 0x55, 0x6c, 0x6d]
   if (!signature.every((byte, idx) => view[idx] === byte)) return false
+  // ASE trajectory files also have a tag that starts with "ASE-Trajectory"
   const tag = new TextDecoder().decode(view.slice(8, 24)).replace(/\0/g, ``)
   return tag.startsWith(`ASE-Trajectory`)
 }
@@ -354,7 +356,7 @@ const parse_vasp_xdatcar = (content: string, filename?: string): Trajectory => {
     line_idx++
 
     const positions = []
-    for (let i = 0; i < elements.length && line_idx < lines.length; i++) {
+    for (let idx = 0; idx < elements.length && line_idx < lines.length; idx++) {
       const coords = lines[line_idx].trim().split(/\s+/).slice(0, 3).map(Number)
       if (coords.length === 3 && !coords.some(isNaN)) {
         const abc = coords as Vec3
@@ -588,7 +590,7 @@ const parse_ase_trajectory = (buffer: ArrayBuffer, filename?: string): Trajector
   // Read offsets
   const frame_offsets = []
   offset = offsets_pos
-  for (let i = 0; i < n_items; i++) {
+  for (let idx = 0; idx < n_items; idx++) {
     frame_offsets.push(Number(view.getBigInt64(offset, true)))
     offset += 8
   }

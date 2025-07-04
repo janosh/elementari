@@ -281,13 +281,7 @@ This example demonstrates histograms with different types of real-world data pat
   >
     {#snippet tooltip({ value, count, property })}
       <strong>{property}</strong><br>
-      {
-        selected_distribution === `age`
-        ? `Age`
-        : selected_distribution === `discrete`
-        ? `Rating`
-        : `Value`
-      }:
+      {{ age: `Age`, discrete: `Rating` }[selected_distribution] ?? `Value`}:
       {value.toFixed(selected_distribution === `discrete` ? 1 : 0)}<br>
       Count: {count}<br>
       Percentage: {(count / current_data.data.length * 100).toFixed(1)}%

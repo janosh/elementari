@@ -1,28 +1,15 @@
 <script lang="ts">
-  import type { DataSeries } from '$lib/plot'
+  import type { DataSeries, ScaleType } from '$lib/plot'
   import { Histogram } from '$lib/plot'
+  import { generate_normal } from '$site/plot-utils'
 
   // Basic single series data
   let bin_count = $state(20)
   let sample_size = $state(1000)
 
-  // Function to generate normal distribution data
-  function generate_normal_data(count: number, mean = 0, std_dev = 1) {
-    const values = []
-    for (let idx = 0; idx < count; idx += 2) {
-      const u1 = Math.random()
-      const u2 = Math.random()
-      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-      const z1 = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2 * Math.PI * u2)
-      values.push(z0 * std_dev + mean)
-      if (idx + 1 < count) values.push(z1 * std_dev + mean)
-    }
-    return values.slice(0, count)
-  }
-
   // Generate data for basic test
   let basic_data = $derived.by(() => {
-    const values = generate_normal_data(sample_size, 5, 2)
+    const values = generate_normal(sample_size, 5, 2)
     return [{
       x: values.map((_, idx) => idx),
       y: values,
@@ -41,7 +28,7 @@
   let stroke_width = $state(1.5)
 
   let multiple_series_data = $derived.by(() => {
-    const normal_data = generate_normal_data(500, 5, 2)
+    const normal_data = generate_normal(500, 5, 2)
     const exponential_data = Array.from(
       { length: 500 },
       () => -Math.log(Math.random()) / 0.3,
@@ -86,8 +73,8 @@
   })
 
   // Logarithmic scales
-  let x_scale = $state(`linear`)
-  let y_scale = $state(`linear`)
+  let x_scale: ScaleType = $state(`linear`)
+  let y_scale: ScaleType = $state(`linear`)
 
   let log_data = $derived.by(() => {
     // Log-normal and power law data
@@ -136,8 +123,8 @@
 
     if (distribution_type === `bimodal`) {
       values = [
-        ...generate_normal_data(300, 20, 3),
-        ...generate_normal_data(300, 50, 4),
+        ...generate_normal(300, 20, 3),
+        ...generate_normal(300, 50, 4),
       ]
     } else if (distribution_type === `skewed`) {
       values = Array.from({ length: 500 }, () => Math.pow(Math.random(), 3) * 100)
@@ -145,9 +132,9 @@
       values = Array.from({ length: 200 }, () => Math.floor(Math.random() * 6) + 1)
     } else if (distribution_type === `age`) {
       values = [
-        ...generate_normal_data(100, 25, 5),
-        ...generate_normal_data(150, 45, 8),
-        ...generate_normal_data(100, 65, 6),
+        ...generate_normal(100, 25, 5),
+        ...generate_normal(150, 45, 8),
+        ...generate_normal(100, 65, 6),
       ]
     }
 
@@ -169,7 +156,7 @@
   let bin_count_100 = $state(100)
 
   let bin_comparison_data = $derived.by(() => {
-    const values = generate_normal_data(1000, 0, 1)
+    const values = generate_normal(1000, 0, 1)
     const base_series = {
       x: values.map((_, idx) => idx),
       y: values,
@@ -198,8 +185,23 @@
   let padding_left = $state(80)
   let padding_right = $state(40)
 
+  // Tick configuration test
+  let x_tick_count = $state(10)
+  let y_tick_count = $state(8)
+  let tick_test_data = $derived.by(() => {
+    const values = generate_normal(800, 0, 1)
+    return [{
+      x: values.map((_, idx) => idx),
+      y: values,
+      label: `Tick Configuration Test`,
+      visible: true,
+      line_style: { stroke: `#2563eb` },
+      point_style: { fill: `#2563eb` },
+    }] as DataSeries[]
+  })
+
   let styled_data = $derived.by(() => {
-    const values = generate_normal_data(500, 0, 1)
+    const values = generate_normal(500, 0, 1)
     return [{
       x: values.map((_, idx) => idx),
       y: values,
@@ -383,6 +385,52 @@
       bins={show_overlay ? bin_count_30 : single_bin_count}
       mode={show_overlay ? `overlay` : `single`}
       show_legend={show_overlay}
+      style="height: 400px; border: 1px solid #ccc"
+    />
+  </section>
+
+  <!-- Tick Configuration Test -->
+  <section
+    id="tick-configuration"
+    style="margin: 2rem 0; padding: 1rem; border: 1px solid #ddd"
+  >
+    <h2>Tick Configuration Test</h2>
+    <div style="margin: 1rem 0">
+      <label>X-axis Ticks: <input
+          type="range"
+          min="3"
+          max="15"
+          bind:value={x_tick_count}
+        /> {x_tick_count}</label>
+      <label style="margin-left: 1rem">Y-axis Ticks: <input
+          type="range"
+          min="3"
+          max="12"
+          bind:value={y_tick_count}
+        /> {y_tick_count}</label>
+    </div>
+    <div style="background: #f0f8ff; padding: 1rem; margin: 1rem 0; border-radius: 4px">
+      <h4>Tick Configuration Benefits</h4>
+      <ul>
+        <li><strong>Performance:</strong> Configurable ticks prevent hardcoded values</li>
+        <li>
+          <strong>Flexibility:</strong> Adjust tick density based on data range and chart
+          size
+        </li>
+        <li>
+          <strong>User Experience:</strong> Better label readability with appropriate
+          spacing
+        </li>
+      </ul>
+    </div>
+    <Histogram
+      series={tick_test_data}
+      bins={30}
+      mode="single"
+      x_ticks={x_tick_count}
+      y_ticks={y_tick_count}
+      x_label="Value (Custom X Ticks)"
+      y_label="Count (Custom Y Ticks)"
       style="height: 400px; border: 1px solid #ccc"
     />
   </section>
