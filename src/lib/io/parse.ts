@@ -846,7 +846,10 @@ export function parse_phonopy_yaml(
 }
 
 // Recursively search for a valid structure object in nested JSON
-function find_structure_in_json(obj: unknown): ParsedStructure | null {
+function find_structure_in_json(
+  obj: unknown,
+  visited = new WeakSet(),
+): ParsedStructure | null {
   // Check if current object is null or undefined
   if (obj === null || obj === undefined) {
     return null
@@ -857,10 +860,14 @@ function find_structure_in_json(obj: unknown): ParsedStructure | null {
     return null
   }
 
+  // Check for circular references
+  if (visited.has(obj)) return null
+  visited.add(obj)
+
   // If it's an array, search through each element
   if (Array.isArray(obj)) {
     for (const item of obj) {
-      const result = find_structure_in_json(item)
+      const result = find_structure_in_json(item, visited)
       if (result) return result
     }
     return null
@@ -874,7 +881,7 @@ function find_structure_in_json(obj: unknown): ParsedStructure | null {
 
   // Otherwise, recursively search through all properties
   for (const value of Object.values(potential_structure)) {
-    const result = find_structure_in_json(value)
+    const result = find_structure_in_json(value, visited)
     if (result) return result
   }
 

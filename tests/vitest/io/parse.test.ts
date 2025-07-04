@@ -1011,4 +1011,38 @@ describe(`parse_structure_file`, () => {
       }
     })
   })
+
+  test(`handles deeply nested JSON without performance issues`, () => {
+    // Create a deeply nested structure to test the improved recursive function
+    let deeply_nested: Record<string, unknown> = {
+      sites: [
+        {
+          species: [`H`],
+          abc: [0.0, 0.0, 0.0],
+        },
+      ],
+    }
+
+    // Wrap the structure in multiple levels of nesting (100 levels deep)
+    for (let idx = 0; idx < 100; idx++) {
+      deeply_nested = {
+        level: idx,
+        nested: deeply_nested,
+      }
+    }
+
+    const json_content = JSON.stringify(deeply_nested)
+
+    // This should complete without stack overflow or infinite recursion
+    const start_time = performance.now()
+    const result = parse_structure_file(json_content, `test.json`)
+    const end_time = performance.now()
+
+    expect(result).not.toBeNull()
+    expect(result?.sites).toHaveLength(1)
+    expect(result?.sites[0].species).toContain(`H`)
+
+    // Should complete reasonably quickly (less than 1 second)
+    expect(end_time - start_time).toBeLessThan(1000)
+  })
 })

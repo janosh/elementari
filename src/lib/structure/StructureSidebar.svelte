@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AnyStructure, Site } from '$lib'
   import { element_data, format_num, Icon } from '$lib'
+  import * as math from '$lib/math'
   import { electro_neg_formula, get_density } from '$lib/structure'
   import { titles_as_tooltips } from 'svelte-zoo'
 
@@ -167,9 +168,7 @@
               prop_key === `force` && Array.isArray(prop_value) &&
               prop_value.length === 3
             ) {
-              const force_magnitude = Math.sqrt(
-                prop_value[0] ** 2 + prop_value[1] ** 2 + prop_value[2] ** 2,
-              )
+              const force_magnitude = math.norm(prop_value)
               formatted_value = `${format_num(force_magnitude, `.3~f`)} eV/Å`
               tooltip = `Force vector: (${
                 prop_value.map((f) => format_num(f, `.3~f`)).join(`, `)
