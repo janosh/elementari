@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Structure } from '$lib'
-  import { parse_structure_file } from '$lib/io/parse'
+  import { parse_any_structure } from '$lib/io'
   import type { AnyStructure, PymatgenStructure } from '$lib/structure'
   import type { FileInfo } from '$site'
   import { FileCarousel, PeriodicTableDemo } from '$site'
@@ -183,47 +183,6 @@
         }`
       }
     }, 500)
-  }
-
-  // Universal parser that handles JSON and structure files
-  const parse_any_structure = (
-    content: string,
-    filename: string,
-  ): AnyStructure | null => {
-    // Try JSON first, but handle nested structures properly
-    try {
-      const parsed = JSON.parse(content)
-
-      // Check if it's already a valid structure
-      if (parsed.sites && Array.isArray(parsed.sites)) {
-        return parsed as AnyStructure
-      }
-
-      // If not, use parse_structure_file to find nested structures
-      const structure = parse_structure_file(content, filename)
-
-      if (structure) {
-        return {
-          sites: structure.sites,
-          charge: 0,
-          ...(structure.lattice && {
-            lattice: { ...structure.lattice, pbc: [true, true, true] },
-          }),
-        }
-      } else return null
-    } catch {
-      // Try structure file formats
-      const parsed = parse_structure_file(content, filename)
-      return parsed
-        ? {
-          sites: parsed.sites,
-          charge: 0,
-          ...(parsed.lattice && {
-            lattice: { ...parsed.lattice, pbc: [true, true, true] },
-          }),
-        }
-        : null
-    }
   }
 
   // Simplified file drop handler

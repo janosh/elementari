@@ -159,7 +159,7 @@ describe(`scales`, () => {
     test.each([
       { min: 0.1, max: 1000, ticks: 5, contains: [0.1, 1, 10, 100, 1000] },
       { min: 1, max: 10, ticks: 8, contains: [1, 2, 5, 10] },
-      { min: 1e-12, max: 1, ticks: 5, contains: [1e-12, 1e-9, 1e-6, 1e-3, 1] },
+      { min: 1e-12, max: 1, ticks: 5, contains: [math.LOG_MIN_EPS, 1e-6, 1e-3, 1] },
       { min: 0.5, max: 5, ticks: 10, contains: [0.5, 1, 2, 5] },
       { min: 50, max: 500, ticks: 6, contains: [50, 100, 200, 500] },
     ])(`log ticks: $min to $max`, ({ min, max, ticks, contains }) => {

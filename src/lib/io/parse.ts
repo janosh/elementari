@@ -1,6 +1,7 @@
 import { elem_symbols, type ElementSymbol, type Site, type Vec3 } from '$lib'
 import type { Matrix3x3 } from '$lib/math'
 import * as math from '$lib/math'
+import type { AnyStructure } from '$lib/structure'
 import { load as yaml_load } from 'js-yaml'
 
 // Check if filename indicates a trajectory file
@@ -1034,4 +1035,45 @@ export function parse_structure_file(
 
   console.error(`Unable to determine file format`)
   return null
+}
+
+// Universal parser that handles JSON and structure files
+export function parse_any_structure(
+  content: string,
+  filename: string,
+): AnyStructure | null {
+  // Try JSON first, but handle nested structures properly
+  try {
+    const parsed = JSON.parse(content)
+
+    // Check if it's already a valid structure
+    if (parsed.sites && Array.isArray(parsed.sites)) {
+      return parsed as AnyStructure
+    }
+
+    // If not, use parse_structure_file to find nested structures
+    const structure = parse_structure_file(content, filename)
+
+    if (structure) {
+      return {
+        sites: structure.sites,
+        charge: 0,
+        ...(structure.lattice && {
+          lattice: { ...structure.lattice, pbc: [true, true, true] },
+        }),
+      }
+    } else return null
+  } catch {
+    // Try structure file formats
+    const parsed = parse_structure_file(content, filename)
+    return parsed
+      ? {
+        sites: parsed.sites,
+        charge: 0,
+        ...(parsed.lattice && {
+          lattice: { ...parsed.lattice, pbc: [true, true, true] },
+        }),
+      }
+      : null
+  }
 }

@@ -318,12 +318,8 @@ describe(`layout utility functions`, () => {
     ])(`calculates $name correctly`, ({ width, height, padding, expected }) => {
       const result = get_chart_dimensions(width, height, padding)
       // Use approximate equality for floating-point comparisons
-      if (typeof expected.width === `number` && typeof expected.height === `number`) {
-        expect(result.width).toBeCloseTo(expected.width, 10)
-        expect(result.height).toBeCloseTo(expected.height, 10)
-      } else {
-        expect(result).toEqual(expected)
-      }
+      expect(result.width).toBeCloseTo(expected.width, 10)
+      expect(result.height).toBeCloseTo(expected.height, 10)
     })
   })
 })

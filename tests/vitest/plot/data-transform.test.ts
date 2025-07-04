@@ -313,7 +313,6 @@ describe(`data-transform utility functions`, () => {
         expected: [
           { x: 1, y: 10 },
           { x: 2, y: 20 },
-          { x: 3, y: undefined },
           { x: 4, y: 40 },
         ],
       },

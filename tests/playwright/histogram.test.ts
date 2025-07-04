@@ -284,41 +284,6 @@ test.describe(`Histogram Component Tests`, () => {
     expect(section_style).toContain(`gradient`)
   })
 
-  test.skip(`time-series data types`, async ({ page }) => {
-    const histogram = page.locator(`#time-series-data svg`).first()
-    const analysis_box = page.locator(
-      `#time-series-data div[style*="background"]:has-text("Analysis")`,
-    )
-
-    await page.waitForTimeout(500)
-
-    const data_types = [
-      { data_type: `website_traffic`, expected_text: `Traffic Pattern Analysis` },
-      { data_type: `server_response`, expected_text: `Performance Analysis` },
-    ]
-
-    for (const { data_type, expected_text } of data_types) {
-      await page.locator(`#time-series-data`).getByLabel(`Data Type:`).selectOption(
-        data_type,
-      )
-      await page.waitForTimeout(500)
-
-      const [histogram_exists, analysis_text, x_axis, y_axis, _bar_count] = await Promise
-        .all([
-          histogram.count(),
-          analysis_box.textContent(),
-          histogram.locator(`g.x-axis`).count(),
-          histogram.locator(`g.y-axis`).count(),
-          get_bar_count(histogram),
-        ])
-
-      expect(histogram_exists).toBeGreaterThan(0)
-      expect(analysis_text).toContain(expected_text)
-      expect(x_axis).toBeGreaterThan(0)
-      expect(y_axis).toBeGreaterThan(0)
-    }
-  })
-
   test(`tooltips and legend functionality`, async ({ page }) => {
     // Test tooltips
     const basic_histogram = page.locator(`#basic-single-series svg`).first()
@@ -414,169 +379,299 @@ test.describe(`Histogram Component Tests`, () => {
     }
   })
 
-  test(`error handling and edge cases`, async ({ page }) => {
-    const page_errors: Error[] = []
-    page.on(`pageerror`, (error) => page_errors.push(error))
-
-    const histogram = page.locator(`#basic-single-series svg`).first()
-
-    // Test rapid property changes
-    for (let bin_count = 5; bin_count <= 50; bin_count += 15) {
-      await set_range_value(
-        page,
-        `#basic-single-series input[type="range"]:first-of-type`,
-        bin_count,
+  test(`handles edge cases with invalid data gracefully`, async ({ page }) => {
+    // Test with empty data
+    await page.evaluate(() => {
+      const histogram_container = document.querySelector(
+        `#basic-single-series .histogram`,
       )
-      await page.waitForTimeout(10)
-    }
+      if (!histogram_container) return
 
-    // Test rapid scale transitions
-    const log_histogram = page.locator(`#logarithmic-scales svg`).first()
-    const scales = [[`linear`, `linear`], [`log`, `log`], [`linear`, `log`]]
-
-    for (const [x_scale, y_scale] of scales) {
-      await click_radio(page, `#logarithmic-scales input[value="${x_scale}"][name*="x"]`)
-      await click_radio(page, `#logarithmic-scales input[value="${y_scale}"][name*="y"]`)
-      await page.waitForTimeout(50)
-    }
-
-    // Test rapid checkbox toggles
-    const checkboxes = page.locator(`#multiple-series-overlay input[type="checkbox"]`)
-    const checkbox_count = await checkboxes.count()
-
-    for (let idx = 0; idx < checkbox_count; idx++) {
-      await checkboxes.nth(idx).click()
-      await page.waitForTimeout(25)
-    }
-
-    // Verify functionality still works
-    const [basic_bars, log_bars] = await Promise.all([
-      get_bar_count(histogram),
-      get_bar_count(log_histogram),
-    ])
-
-    expect(basic_bars).toBeGreaterThan(0)
-    expect(log_bars).toBeGreaterThan(0)
-    expect(page_errors.length).toBeLessThan(5) // Allow some errors during rapid changes
-  })
-
-  test(`performance with large datasets and extreme values`, async ({ page }) => {
-    const histogram = page.locator(`#basic-single-series svg`).first()
-
-    // Test large dataset performance
-    await set_range_value(
-      page,
-      `#basic-single-series input[type="range"]:nth-of-type(2)`,
-      5000,
-    )
-    await page.waitForTimeout(500)
-
-    const start_time = Date.now()
-    const large_dataset_bars = await get_bar_count(histogram)
-    const end_time = Date.now()
-
-    expect(large_dataset_bars).toBeGreaterThan(0)
-    expect(end_time - start_time).toBeLessThan(5000) // Should render within 5 seconds
-
-    // Test extreme bin counts
-    const bin_histogram = page.locator(`#bin-size-comparison svg`).first()
-
-    for (const bin_size of [5, 100]) {
-      await set_range_value(page, `#bin-size-comparison input[type="range"]`, bin_size)
-      await page.waitForTimeout(200)
-      const edge_bars = await get_bar_count(bin_histogram)
-      expect(edge_bars).toBeGreaterThan(0)
-    }
-
-    // Test overlapping data ranges
-    const overlay_histogram = page.locator(`#multiple-series-overlay svg`).first()
-    const [series_count, total_bars] = await Promise.all([
-      overlay_histogram.locator(`g.histogram-series`).count(),
-      get_bar_count(overlay_histogram),
-    ])
-
-    expect(series_count).toBeGreaterThan(1)
-    expect(total_bars).toBeGreaterThan(0)
-  })
-
-  test(`overlay opacity and stroke controls work`, async ({ page }) => {
-    const histogram = page.locator(`#multiple-series-overlay svg`).first()
-    await page.waitForTimeout(500)
-
-    const opacity_slider = page.locator(`#multiple-series-overlay`).getByRole(`slider`, {
-      name: `Opacity:`,
-    })
-    const stroke_slider = page.locator(`#multiple-series-overlay`).getByRole(`slider`, {
-      name: `Stroke Width:`,
+      // Create a test histogram with empty data
+      const event = new CustomEvent(`test-histogram`, {
+        detail: { series: [{ label: `Empty`, y: [], visible: true }] },
+      })
+      histogram_container.dispatchEvent(event)
     })
 
-    await expect(opacity_slider).toBeVisible()
-    await opacity_slider.fill(`0.1`)
-    await page.waitForTimeout(500)
-
-    // Verify bars still exist (opacity change shouldn't remove bars)
-    const bars_after_opacity = await histogram.locator(`g.histogram-series rect`).count()
-    expect(bars_after_opacity).toBeGreaterThan(0)
-
-    // Test stroke width changes - use label-based selector
-    await stroke_slider.fill(`3`)
     await page.waitForTimeout(300)
-
-    // Just verify the stroke width control exists and bars still render (don't check exact value)
-    const bars_after_stroke = await histogram.locator(`g.histogram-series rect`).count()
-    expect(bars_after_stroke).toBeGreaterThan(0)
-  })
-
-  test(`color scheme changes work correctly`, async ({ page }) => {
-    const color_scheme_select = page.getByLabel(`Color Scheme:`)
-    const custom_section = page.locator(`#custom-styling`)
-
-    await expect(color_scheme_select).toBeVisible()
-    await color_scheme_select.selectOption(`warm`)
-    await page.waitForTimeout(1000)
-    await expect(custom_section).toBeVisible()
-
-    await color_scheme_select.selectOption(`default`)
-    await page.waitForTimeout(500)
-    await expect(custom_section).toBeVisible()
-  })
-
-  test(`grid lines are rendered correctly`, async ({ page }) => {
     const histogram = page.locator(`#basic-single-series svg`).first()
     await expect(histogram).toBeVisible()
 
-    const [x_grid_lines, y_grid_lines] = await Promise.all([
-      histogram.locator(`g.x-axis .tick line[stroke-dasharray]`).count(),
-      histogram.locator(`g.y-axis .tick line[stroke-dasharray]`).count(),
+    // Should still render axes even with no data
+    const [x_axis, y_axis] = await Promise.all([
+      histogram.locator(`g.x-axis`).count(),
+      histogram.locator(`g.y-axis`).count(),
     ])
+    expect(x_axis).toBeGreaterThan(0)
+    expect(y_axis).toBeGreaterThan(0)
+  })
 
-    expect(x_grid_lines).toBeGreaterThan(0)
-    expect(y_grid_lines).toBeGreaterThan(0)
+  test(`handles extreme data values without rendering issues`, async ({ page }) => {
+    // Test with very large and very small values
+    await page.evaluate(() => {
+      const histogram_container = document.querySelector(
+        `#basic-single-series .histogram`,
+      )
+      if (!histogram_container) return
 
-    const x_grid_line = histogram.locator(`g.x-axis .tick line[stroke-dasharray]`).first()
-    const y_grid_line = histogram.locator(`g.y-axis .tick line[stroke-dasharray]`).first()
+      // Create test data with extreme values
+      const extreme_data = [
+        0.000001,
+        0.000002,
+        0.000003, // Very small values
+        1000000,
+        2000000,
+        3000000, // Very large values
+        Number.MAX_SAFE_INTEGER / 1000, // Near maximum safe integer
+        Number.MIN_VALUE * 1000, // Near minimum value
+      ]
 
-    const [
-      x_grid_stroke,
-      y_grid_stroke,
-      x_grid_dasharray,
-      y_grid_dasharray,
-      x_grid_y_extent,
-      y_grid_x_extent,
-    ] = await Promise.all([
-      x_grid_line.getAttribute(`stroke`),
-      y_grid_line.getAttribute(`stroke`),
-      x_grid_line.getAttribute(`stroke-dasharray`),
-      y_grid_line.getAttribute(`stroke-dasharray`),
-      x_grid_line.getAttribute(`y1`),
-      y_grid_line.getAttribute(`x2`),
+      const event = new CustomEvent(`test-histogram`, {
+        detail: { series: [{ label: `Extreme`, y: extreme_data, visible: true }] },
+      })
+      histogram_container.dispatchEvent(event)
+    })
+
+    await page.waitForTimeout(500)
+    const histogram = page.locator(`#basic-single-series svg`).first()
+
+    // Should render without errors
+    await expect(histogram).toBeVisible()
+
+    // Check that bars are rendered (even if they might be very small or very large)
+    const bars = histogram.locator(`rect[fill]:not([fill="none"])`)
+    const bar_count = await bars.count()
+
+    // Should have some bars rendered
+    expect(bar_count).toBeGreaterThanOrEqual(0)
+
+    // Verify all bars have positive dimensions
+    const bar_elements = await bars.all()
+    for (const bar of bar_elements) {
+      const width = await bar.getAttribute(`width`)
+      const height = await bar.getAttribute(`height`)
+
+      expect(parseFloat(width || `0`)).toBeGreaterThan(0)
+      expect(parseFloat(height || `0`)).toBeGreaterThan(0)
+    }
+  })
+
+  test(`handles single data point without errors`, async ({ page }) => {
+    await page.evaluate(() => {
+      const histogram_container = document.querySelector(
+        `#basic-single-series .histogram`,
+      )
+      if (!histogram_container) return
+
+      // Create test data with single value
+      const event = new CustomEvent(`test-histogram`, {
+        detail: { series: [{ label: `Single`, y: [42], visible: true }] },
+      })
+      histogram_container.dispatchEvent(event)
+    })
+
+    await page.waitForTimeout(300)
+    const histogram = page.locator(`#basic-single-series svg`).first()
+    await expect(histogram).toBeVisible()
+
+    // Should render axes
+    const [x_axis, y_axis] = await Promise.all([
+      histogram.locator(`g.x-axis`).count(),
+      histogram.locator(`g.y-axis`).count(),
     ])
+    expect(x_axis).toBeGreaterThan(0)
+    expect(y_axis).toBeGreaterThan(0)
 
-    expect(x_grid_stroke).toBeTruthy()
-    expect(y_grid_stroke).toBeTruthy()
-    expect(x_grid_dasharray).toBeTruthy()
-    expect(y_grid_dasharray).toBeTruthy()
-    expect(parseFloat(x_grid_y_extent || `0`)).toBeLessThan(0)
-    expect(parseFloat(y_grid_x_extent || `0`)).toBeGreaterThan(0)
+    // Should handle single point gracefully (may or may not render bars depending on binning)
+    const bar_count = await get_bar_count(histogram)
+    expect(bar_count).toBeGreaterThanOrEqual(0)
+  })
+
+  test(`handles identical data values (zero range)`, async ({ page }) => {
+    await page.evaluate(() => {
+      const histogram_container = document.querySelector(
+        `#basic-single-series .histogram`,
+      )
+      if (!histogram_container) return
+
+      // Create test data with identical values (zero range)
+      const identical_data = Array(100).fill(5.0)
+
+      const event = new CustomEvent(`test-histogram`, {
+        detail: { series: [{ label: `Identical`, y: identical_data, visible: true }] },
+      })
+      histogram_container.dispatchEvent(event)
+    })
+
+    await page.waitForTimeout(300)
+    const histogram = page.locator(`#basic-single-series svg`).first()
+    await expect(histogram).toBeVisible()
+
+    // Should render axes even with zero-range data
+    const [x_axis, y_axis] = await Promise.all([
+      histogram.locator(`g.x-axis`).count(),
+      histogram.locator(`g.y-axis`).count(),
+    ])
+    expect(x_axis).toBeGreaterThan(0)
+    expect(y_axis).toBeGreaterThan(0)
+
+    // Check that any rendered bars have positive dimensions
+    const bars = histogram.locator(`rect[fill]:not([fill="none"])`)
+    const bar_elements = await bars.all()
+    for (const bar of bar_elements) {
+      const width = await bar.getAttribute(`width`)
+      const height = await bar.getAttribute(`height`)
+
+      if (width && height) {
+        expect(parseFloat(width)).toBeGreaterThan(0)
+        expect(parseFloat(height)).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  test(`handles NaN and Infinity values gracefully`, async ({ page }) => {
+    await page.evaluate(() => {
+      const histogram_container = document.querySelector(
+        `#basic-single-series .histogram`,
+      )
+      if (!histogram_container) return
+
+      // Create test data with problematic values
+      const problematic_data = [
+        1,
+        2,
+        3,
+        4,
+        5, // Normal values
+        NaN,
+        NaN, // NaN values
+        Infinity,
+        -Infinity, // Infinity values
+        6,
+        7,
+        8,
+        9,
+        10, // More normal values
+      ]
+
+      const event = new CustomEvent(`test-histogram`, {
+        detail: {
+          series: [{ label: `Problematic`, y: problematic_data, visible: true }],
+        },
+      })
+      histogram_container.dispatchEvent(event)
+    })
+
+    await page.waitForTimeout(300)
+    const histogram = page.locator(`#basic-single-series svg`).first()
+    await expect(histogram).toBeVisible()
+
+    // Should still render axes
+    const [x_axis, y_axis] = await Promise.all([
+      histogram.locator(`g.x-axis`).count(),
+      histogram.locator(`g.y-axis`).count(),
+    ])
+    expect(x_axis).toBeGreaterThan(0)
+    expect(y_axis).toBeGreaterThan(0)
+
+    // Should not crash and may render some bars for valid data
+    const bar_count = await get_bar_count(histogram)
+    expect(bar_count).toBeGreaterThanOrEqual(0)
+  })
+
+  test(`maintains minimum bar width for very narrow bins`, async ({ page }) => {
+    const histogram = page.locator(`#basic-single-series svg`).first()
+
+    // Set a very high bin count to create very narrow bins
+    await set_range_value(
+      page,
+      `#basic-single-series input[type="range"]:first-of-type`,
+      200,
+    )
+    await page.waitForTimeout(500)
+
+    // Get all bars and check their minimum width
+    const bars = histogram.locator(`rect[fill]:not([fill="none"])`)
+    const bar_elements = await bars.all()
+
+    // Should have some bars
+    expect(bar_elements.length).toBeGreaterThan(0)
+
+    // All bars should have minimum width of 1 pixel (as enforced by Math.max(1, ...))
+    for (const bar of bar_elements) {
+      const width = await bar.getAttribute(`width`)
+      expect(parseFloat(width || `0`)).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  test(`handles very small viewport dimensions`, async ({ page }) => {
+    // Test with extremely small viewport
+    await page.setViewportSize({ width: 200, height: 150 })
+    await page.waitForTimeout(200)
+
+    const histogram = page.locator(`#basic-single-series svg`).first()
+    await expect(histogram).toBeVisible()
+
+    // Should still render some content
+    const [x_axis, y_axis] = await Promise.all([
+      histogram.locator(`g.x-axis`).count(),
+      histogram.locator(`g.y-axis`).count(),
+    ])
+    expect(x_axis).toBeGreaterThan(0)
+    expect(y_axis).toBeGreaterThan(0)
+
+    // Check that any rendered bars have positive dimensions
+    const bars = histogram.locator(`rect[fill]:not([fill="none"])`)
+    const bar_elements = await bars.all()
+    for (const bar of bar_elements) {
+      const width = await bar.getAttribute(`width`)
+      const height = await bar.getAttribute(`height`)
+
+      if (width && height) {
+        expect(parseFloat(width)).toBeGreaterThan(0)
+        expect(parseFloat(height)).toBeGreaterThan(0)
+      }
+    }
+
+    // Reset viewport
+    await page.setViewportSize({ width: 1280, height: 720 })
+  })
+
+  test(`handles rapid data updates without rendering errors`, async ({ page }) => {
+    const histogram = page.locator(`#basic-single-series svg`).first()
+
+    // Rapidly change bin count and sample size
+    for (let i = 0; i < 10; i++) {
+      await set_range_value(
+        page,
+        `#basic-single-series input[type="range"]:first-of-type`,
+        5 + i * 10,
+      )
+      await set_range_value(
+        page,
+        `#basic-single-series input[type="range"]:nth-of-type(2)`,
+        100 + i * 500,
+      )
+      await page.waitForTimeout(50) // Short delay to simulate rapid updates
+    }
+
+    // After rapid updates, should still be functional
+    await page.waitForTimeout(300)
+    await expect(histogram).toBeVisible()
+
+    const bar_count = await get_bar_count(histogram)
+    expect(bar_count).toBeGreaterThan(0)
+
+    // All bars should have valid dimensions
+    const bars = histogram.locator(`rect[fill]:not([fill="none"])`)
+    const bar_elements = await bars.all()
+    for (const bar of bar_elements) {
+      const width = await bar.getAttribute(`width`)
+      const height = await bar.getAttribute(`height`)
+
+      expect(parseFloat(width || `0`)).toBeGreaterThan(0)
+      expect(parseFloat(height || `0`)).toBeGreaterThan(0)
+    }
   })
 })

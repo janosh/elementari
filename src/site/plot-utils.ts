@@ -2,7 +2,7 @@
 
 // Box-Muller transform for generating normal random numbers
 export function box_muller(mean = 0, std_dev = 1): number {
-  const u1 = Math.random()
+  const u1 = Math.max(Math.random(), Number.EPSILON)
   const u2 = Math.random()
   const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
   return mean + z0 * std_dev
@@ -15,7 +15,10 @@ export function generate_normal(count: number, mean = 0, std_dev = 1): number[] 
 
 // Generate exponential distribution data
 export function generate_exponential(count: number, lambda: number): number[] {
-  return Array.from({ length: count }, () => -Math.log(1 - Math.random()) / lambda)
+  return Array.from({ length: count }, () => {
+    const u = Math.max(Math.random(), Number.EPSILON)
+    return -Math.log(1 - u) / lambda
+  })
 }
 
 // Generate uniform distribution data
@@ -70,7 +73,7 @@ export function generate_skewed(count: number): number[] {
     // Sum of exponentials approximates gamma
     let sum = 0
     for (let k = 0; k < 3; k++) {
-      sum += -Math.log(Math.random()) * 5
+      sum += -Math.log(Math.max(Math.random(), Number.EPSILON)) * 5
     }
     return sum
   })
@@ -78,7 +81,7 @@ export function generate_skewed(count: number): number[] {
 
 // Generate discrete distribution data with jitter
 export function generate_discrete(count: number): number[] {
-  const weights = [0.05, 0.08, 0.12, 0.15, 0.18, 0.2, 0.15, 0.05, 0.015, 0.005]
+  const weights = [0.05, 0.08, 0.12, 0.15, 0.18, 0.199, 0.149, 0.05, 0.015, 0.005]
   return Array.from({ length: count }, () => {
     const choice = weighted_choice(weights)
     return choice + 1 + Math.random() * 0.8 - 0.4 // Add jitter
@@ -113,54 +116,4 @@ export function generate_mixed_data(count: number): number[] {
     if (rand < 0.7) return 40 + (Math.random() - 0.5) * 20 // Large peak around 40
     return Math.random() * 80 // Uniform background
   })
-}
-
-// Generate time-based data patterns
-export function generate_time_data(type: string, unit: string): number[] {
-  const count = 1000
-
-  if (type === `website_traffic`) {
-    if (unit === `hour`) {
-      // Business hours pattern
-      const weights = [
-        0.5,
-        0.3,
-        0.2,
-        0.2,
-        0.3,
-        0.5,
-        1.0,
-        2.0,
-        3.0,
-        3.5,
-        3.0,
-        2.5,
-        2.0,
-        2.5,
-        3.0,
-        3.5,
-        4.0,
-        3.5,
-        2.0,
-        1.5,
-        1.0,
-        0.8,
-        0.6,
-        0.4,
-      ]
-      return Array.from({ length: count }, () => weighted_choice(weights))
-    } else {
-      // Day of week pattern (Mon-Sun)
-      const weights = [0.8, 1.2, 1.3, 1.4, 1.5, 1.0, 0.6]
-      return Array.from({ length: count }, () => weighted_choice(weights))
-    }
-  } else {
-    // Server response times - mostly fast with outliers
-    return Array.from({ length: count }, () => {
-      const rand = Math.random()
-      if (rand < 0.85) return Math.random() * 200 // Fast responses
-      if (rand < 0.95) return 200 + Math.random() * 800 // Slow responses
-      return 1000 + Math.random() * 4000 // Very slow responses
-    })
-  }
 }

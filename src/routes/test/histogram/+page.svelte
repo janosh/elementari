@@ -209,46 +209,6 @@
       point_style: { fill: `#2563eb` },
     }] as DataSeries[]
   })
-
-  // Time-series data
-  let data_type = $state(`website_traffic`)
-  let time_unit = $state(`hour`)
-
-  let time_series_data = $derived.by(() => {
-    let values: number[] = []
-
-    if (data_type === `website_traffic`) {
-      if (time_unit === `hour`) {
-        // Website traffic by hour (peak during business hours)
-        values = Array.from({ length: 24 }, (_, hour) => {
-          const base = hour >= 9 && hour <= 17 ? 100 : 20
-          return base + Math.random() * 30
-        })
-      } else if (time_unit === `day`) {
-        // Website traffic by day of week
-        values = [80, 120, 110, 105, 115, 60, 50] // Mon-Sun
-      } else { // Fallback for website traffic
-        values = Array.from({ length: 24 }, () => 50 + Math.random() * 50)
-      }
-    } else if (data_type === `server_response`) {
-      // Server response times
-      values = Array.from({ length: 100 }, () => Math.random() * 200 + 50)
-    } else { // Fallback for any unknown data type
-      values = Array.from({ length: 50 }, () => Math.random() * 100)
-    }
-
-    // Ensure we always have at least one data point
-    if (values.length === 0) values = [50, 60, 70, 80, 90]
-
-    return [{
-      x: values.map((_, idx) => idx),
-      y: values,
-      label: data_type === `website_traffic` ? `Website Traffic` : `Server Response`,
-      visible: true,
-      line_style: { stroke: `#2563eb` },
-      point_style: { fill: `#2563eb` },
-    }] as DataSeries[]
-  })
 </script>
 
 <div style="padding: 2rem; max-width: 1200px; margin: 0 auto">
@@ -271,15 +231,14 @@
           bind:value={sample_size}
         /> {sample_size}</label>
     </div>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={basic_data}
-        bins={bin_count}
-        mode="single"
-        x_label="Value"
-        y_label="Frequency"
-      />
-    </div>
+    <Histogram
+      series={basic_data}
+      bins={bin_count}
+      mode="single"
+      x_label="Value"
+      y_label="Frequency"
+      style="height: 400px; border: 1px solid #ccc"
+    />
   </section>
 
   <!-- Multiple Series Overlay Test -->
@@ -315,14 +274,13 @@
           bind:checked={uniform_visible}
         /> Uniform</label>
     </div>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={multiple_series_data}
-        bins={30}
-        mode="overlay"
-        show_legend={true}
-      />
-    </div>
+    <Histogram
+      series={multiple_series_data}
+      bins={30}
+      mode="overlay"
+      show_legend={true}
+      style="height: 400px; border: 1px solid #ccc"
+    />
   </section>
 
   <!-- Logarithmic Scales Test -->
@@ -341,15 +299,14 @@
         <input type="radio" name="y-scale" value="log" bind:group={y_scale} /> Log
       </label>
     </div>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={log_data}
-        bins={50}
-        mode="overlay"
-        {x_scale}
-        {y_scale}
-      />
-    </div>
+    <Histogram
+      series={log_data}
+      bins={50}
+      mode="overlay"
+      x_scale_type={x_scale}
+      y_scale_type={y_scale}
+      style="height: 400px; border: 1px solid #ccc"
+    />
   </section>
 
   <!-- Real-World Distributions Test -->
@@ -369,13 +326,12 @@
       </label>
     </div>
     <p style="font-style: italic; margin: 0.5rem 0">{distribution_description}</p>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={real_world_data}
-        bins={distribution_type === `discrete` ? 6 : 25}
-        mode="single"
-      />
-    </div>
+    <Histogram
+      series={real_world_data}
+      bins={distribution_type === `discrete` ? 6 : 25}
+      mode="single"
+      style="height: 400px; border: 1px solid #ccc"
+    />
   </section>
 
   <!-- Bin Size Comparison Test -->
@@ -422,16 +378,13 @@
         <li><strong>Just right:</strong> Clear patterns, appropriate detail</li>
       </ul>
     </div>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={bin_comparison_data}
-        bins={show_overlay
-        ? [bin_count_10, bin_count_30, bin_count_100]
-        : single_bin_count}
-        mode={show_overlay ? `overlay` : `single`}
-        show_legend={show_overlay}
-      />
-    </div>
+    <Histogram
+      series={bin_comparison_data}
+      bins={show_overlay ? bin_count_30 : single_bin_count}
+      mode={show_overlay ? `overlay` : `single`}
+      show_legend={show_overlay}
+      style="height: 400px; border: 1px solid #ccc"
+    />
   </section>
 
   <!-- Custom Styling Test -->
@@ -499,70 +452,14 @@
         series={styled_data}
         bins={25}
         mode="single"
-        {color_scheme}
         {x_format}
         {y_format}
         padding={{
-          top: padding_top,
-          bottom: padding_bottom,
-          left: padding_left,
-          right: padding_right,
+          t: padding_top,
+          b: padding_bottom,
+          l: padding_left,
+          r: padding_right,
         }}
-      />
-    </div>
-  </section>
-
-  <!-- Time-Series Data Test -->
-  <section
-    id="time-series-data"
-    style="margin: 2rem 0; padding: 1rem; border: 1px solid #ddd"
-  >
-    <h2>Time-Series Data</h2>
-    <div style="margin: 1rem 0">
-      <label>Data Type:
-        <select bind:value={data_type}>
-          <option value="website_traffic">Website Traffic</option>
-          <option value="server_response">Server Response</option>
-        </select>
-      </label>
-      {#if data_type === `website_traffic`}
-        <label style="margin-left: 1rem">Time Unit:
-          <select bind:value={time_unit}>
-            <option value="hour">Hour of Day</option>
-            <option value="day">Day of Week</option>
-          </select>
-        </label>
-      {/if}
-    </div>
-    <div style="background: #f9f9f9; padding: 1rem; margin: 1rem 0; border-radius: 4px">
-      <h4>Analysis</h4>
-      {#if data_type === `website_traffic`}
-        <p>
-          <strong>Traffic Pattern Analysis:</strong> Shows peak activity during business
-          hours and weekdays.
-        </p>
-      {:else}
-        <p>
-          <strong>Performance Analysis:</strong> Distribution of server response times
-          helps identify performance bottlenecks.
-        </p>
-      {/if}
-    </div>
-    <div class="histogram" style="height: 400px; border: 1px solid #ccc">
-      <Histogram
-        series={time_series_data}
-        bins={data_type === `website_traffic` && time_unit === `hour`
-        ? 24
-        : data_type === `website_traffic` && time_unit === `day`
-        ? 7
-        : 20}
-        mode="single"
-        x_label={data_type === `website_traffic` && time_unit === `hour`
-        ? `Hour of Day`
-        : data_type === `website_traffic` && time_unit === `day`
-        ? `Day of Week`
-        : `Response Time (ms)`}
-        y_label="Count"
       />
     </div>
   </section>

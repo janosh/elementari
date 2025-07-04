@@ -82,7 +82,7 @@ export function get_nice_data_range(
         data_min = data_min - one_day
         data_max = data_max + one_day
       } else if (scale_type === `log`) {
-        data_min = Math.max(LOG_MIN_EPS, data_min / 1.1) // 10% multiplicative padding
+        data_min = Math.max(math.LOG_MIN_EPS, data_min / 1.1) // 10% multiplicative padding
         data_max = data_max * 1.1
       } else {
         const padding_abs = data_min === 0 ? 1 : Math.abs(data_min * 0.1) // 10% additive padding, or 1 if value is 0

@@ -17,7 +17,6 @@
 
   interface Props {
     series: DataSeries[]
-    style?: string
     bins?: number
     x_label?: string
     y_label?: string
@@ -35,10 +34,10 @@
     x_grid?: boolean | Record<string, unknown>
     y_grid?: boolean | Record<string, unknown>
     tooltip?: Snippet<[{ value: number; count: number; property: string }]>
+    [key: string]: unknown
   }
   let {
     series = [],
-    style = ``,
     bins = 20,
     x_label = `Value`,
     y_label = `Count`,
@@ -56,6 +55,7 @@
     x_grid = true,
     y_grid = true,
     tooltip,
+    ...rest
   }: Props = $props()
 
   // State
@@ -144,7 +144,7 @@
   }
 </script>
 
-<div class="histogram" bind:clientWidth={width} bind:clientHeight={height} {style}>
+<div class="histogram" bind:clientWidth={width} bind:clientHeight={height} {...rest}>
   {#if width && height}
     <svg>
       <g transform="translate({padding.l}, {padding.t})">
@@ -153,26 +153,29 @@
           <g class="histogram-series" data-series-idx={series_idx}>
             {#each bins as bin, bin_idx (bin_idx)}
               {@const bar_x = x_scale(bin.x0!)}
-              {@const bar_width = Math.max(1, x_scale(bin.x1!) - bar_x)}
-              {@const bar_height = chart_height - y_scale(bin.length)}
+              {@const raw_bar_width = x_scale(bin.x1!) - bar_x}
+              {@const bar_width = Math.max(1, Math.abs(raw_bar_width))}
+              {@const bar_height = Math.max(0, chart_height - y_scale(bin.length))}
               {@const bar_y = y_scale(bin.length)}
 
-              <rect
-                x={bar_x}
-                y={bar_y}
-                width={bar_width}
-                height={bar_height}
-                fill={color}
-                opacity={mode === `overlay` ? bar_opacity : 0.8}
-                stroke={mode === `overlay` ? color : `none`}
-                stroke-width={mode === `overlay` ? bar_stroke_width : 0}
-                role="button"
-                tabindex="0"
-                onmousemove={(e) =>
-                handle_mouse_move(e, (bin.x0! + bin.x1!) / 2, bin.length, label)}
-                onmouseleave={handle_mouse_leave}
-                style:cursor="pointer"
-              />
+              {#if bar_height > 0}
+                <rect
+                  x={bar_x}
+                  y={bar_y}
+                  width={bar_width}
+                  height={bar_height}
+                  fill={color}
+                  opacity={bar_opacity}
+                  stroke={mode === `overlay` ? color : `none`}
+                  stroke-width={mode === `overlay` ? bar_stroke_width : 0}
+                  role="button"
+                  tabindex="0"
+                  onmousemove={(e) =>
+                  handle_mouse_move(e, (bin.x0! + bin.x1!) / 2, bin.length, label)}
+                  onmouseleave={handle_mouse_leave}
+                  style:cursor="pointer"
+                />
+              {/if}
             {/each}
           </g>
         {/each}

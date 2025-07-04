@@ -42,8 +42,8 @@
     structure_props?: ComponentProps<typeof Structure>
     // plot props (passed to ScatterPlot component)
     scatter_props?: ComponentProps<typeof ScatterPlot>
-    // histogram props (passed to Histogram component)
-    histogram_props?: ComponentProps<typeof Histogram>
+    // histogram props (passed to Histogram component, excluding series which is handled separately)
+    histogram_props?: Omit<ComponentProps<typeof Histogram>, `series`>
     // spinner props (passed to Spinner component)
     spinner_props?: ComponentProps<typeof Spinner>
     // custom snippets for additional UI elements
@@ -106,7 +106,7 @@
     layout = `auto`,
     structure_props = {},
     scatter_props = {},
-    histogram_props = { series: [] },
+    histogram_props = {},
     spinner_props = {},
     trajectory_controls,
     error_snippet,
@@ -916,7 +916,7 @@
               ...(histogram_props.legend || {}),
             }}
             style="height: 100%"
-            {...(({ series: _series, ...rest }) => rest)(histogram_props)}
+            {...histogram_props}
           >
             {#snippet tooltip({ value, count, property })}
               <div>Value: {format_num(value)}</div>
