@@ -61,31 +61,29 @@ describe(`Theme System`, () => {
       expect(type_keys).toHaveLength(theme_names.length)
     })
 
-    test.each([
-      [`light`, true],
-      [`dark`, true],
-      [`white`, true],
-      [`black`, true],
-      [`auto`, true],
-      [`invalid`, false],
-      [``, false],
-      [null, false],
-      [undefined, false],
-    ])(`is_valid_theme_mode("%s") returns %s`, (input, expected) => {
+    test.each(
+      [
+        ...Object.keys(COLOR_THEMES).map((theme) => [theme, true] as const),
+        [`auto`, true],
+        [`invalid`, false],
+        [``, false],
+        [null, false],
+        [undefined, false],
+      ] as const,
+    )(`is_valid_theme_mode("%s") returns %s`, (input, expected) => {
       expect(is_valid_theme_mode(input as string)).toBe(expected)
     })
 
-    test.each([
-      [`light`, true],
-      [`dark`, true],
-      [`white`, true],
-      [`black`, true],
-      [`auto`, false],
-      [`invalid`, false],
-      [``, false],
-      [null, false],
-      [undefined, false],
-    ])(`is_valid_theme_name("%s") returns %s`, (input, expected) => {
+    test.each(
+      [
+        ...Object.keys(COLOR_THEMES).map((theme) => [theme, true] as const),
+        [`auto`, false],
+        [`invalid`, false],
+        [``, false],
+        [null, false],
+        [undefined, false],
+      ] as const,
+    )(`is_valid_theme_name("%s") returns %s`, (input, expected) => {
       expect(is_valid_theme_name(input as string)).toBe(expected)
     })
   })
@@ -127,27 +125,21 @@ describe(`Theme System`, () => {
   })
 
   describe(`Theme preference storage`, () => {
-    test.each([
-      `light`,
-      `dark`,
-      `white`,
-      `black`,
-      `auto`,
-    ])(`save_theme_preference stores "%s" in localStorage`, (theme) => {
-      save_theme_preference(theme as ThemeMode)
-      expect(localStorage.getItem(`matterviz-theme`)).toBe(theme)
-    })
+    test.each([...Object.keys(COLOR_THEMES), `auto`])(
+      `save_theme_preference stores "%s" in localStorage`,
+      (theme) => {
+        save_theme_preference(theme as ThemeMode)
+        expect(localStorage.getItem(`matterviz-theme`)).toBe(theme)
+      },
+    )
 
-    test.each([
-      `light`,
-      `dark`,
-      `white`,
-      `black`,
-      `auto`,
-    ])(`get_theme_preference retrieves stored theme "%s"`, (theme) => {
-      localStorage.setItem(`matterviz-theme`, theme)
-      expect(get_theme_preference()).toBe(theme)
-    })
+    test.each([...Object.keys(COLOR_THEMES), `auto`])(
+      `get_theme_preference retrieves stored theme "%s"`,
+      (theme) => {
+        localStorage.setItem(`matterviz-theme`, theme)
+        expect(get_theme_preference()).toBe(theme)
+      },
+    )
 
     test(`get_theme_preference defaults to auto when no preference stored`, () => {
       expect(get_theme_preference()).toBe(`auto`)
@@ -168,43 +160,35 @@ describe(`Theme System`, () => {
   })
 
   describe(`DOM theme application`, () => {
-    test.each([
-      [`light`, `#ffffff`, `#000000`],
-      [`dark`, `#1a1a1a`, `#ffffff`],
-      [`white`, `#ffffff`, `#000000`],
-      [`black`, `#000000`, `#ffffff`],
-    ])(
+    test.each(Object.keys(COLOR_THEMES))(
       `apply_theme_to_dom("%s") sets CSS variables correctly`,
-      (theme, expected_bg, expected_text) => {
+      (theme) => {
         apply_theme_to_dom(theme as ThemeName)
 
         const root = document.documentElement
-        expect(root.style.getPropertyValue(`--surface-bg`)).toBe(expected_bg)
-        expect(root.style.getPropertyValue(`--text-color`)).toBe(expected_text)
+        expect(root.style.getPropertyValue(`--surface-bg`)).toBe(`#ffffff`)
+        expect(root.style.getPropertyValue(`--text-color`)).toBe(`#000000`)
       },
     )
 
-    test.each([
-      `light`,
-      `dark`,
-      `white`,
-      `black`,
-    ])(`apply_theme_to_dom("%s") sets data-theme attribute`, (theme) => {
-      apply_theme_to_dom(theme as ThemeName)
-      expect(document.documentElement.getAttribute(`data-theme`)).toBe(theme)
-    })
+    test.each(Object.keys(COLOR_THEMES))(
+      `apply_theme_to_dom("%s") sets data-theme attribute`,
+      (theme) => {
+        apply_theme_to_dom(theme as ThemeName)
+        expect(document.documentElement.getAttribute(`data-theme`)).toBe(theme)
+      },
+    )
 
-    test.each([
-      [`light`, `light`],
-      [`dark`, `dark`],
-      [`white`, `light`],
-      [`black`, `dark`],
-    ])(`apply_theme_to_dom("%s") sets color-scheme to "%s"`, (theme, expected_scheme) => {
-      apply_theme_to_dom(theme as ThemeName)
-      expect(document.documentElement.style.getPropertyValue(`color-scheme`)).toBe(
-        expected_scheme,
-      )
-    })
+    test.each(Object.keys(COLOR_THEMES))(
+      `apply_theme_to_dom("%s") sets color-scheme correctly`,
+      (theme) => {
+        apply_theme_to_dom(theme as ThemeName)
+        const expected_scheme = THEME_TYPE[theme as ThemeName]
+        expect(document.documentElement.style.getPropertyValue(`color-scheme`)).toBe(
+          expected_scheme,
+        )
+      },
+    )
 
     test.each([
       [true, `dark`],
@@ -282,29 +266,20 @@ describe(`Theme System`, () => {
   })
 
   describe(`Integration workflows`, () => {
-    test.each([
-      [`light`, `light`, `#ffffff`, `#000000`],
-      [`dark`, `dark`, `#1a1a1a`, `#ffffff`],
-      [`white`, `light`, `#ffffff`, `#000000`],
-      [`black`, `dark`, `#000000`, `#ffffff`],
-    ])(
-      `full workflow for theme "%s"`,
-      (theme, expected_scheme, expected_bg, expected_text) => {
-        // Save theme preference
-        save_theme_preference(theme as ThemeMode)
-        expect(get_theme_preference()).toBe(theme)
+    test.each(Object.keys(COLOR_THEMES))(`full workflow for theme "%s"`, (theme) => {
+      save_theme_preference(theme as ThemeMode)
+      expect(get_theme_preference()).toBe(theme)
 
-        // Apply theme to DOM
-        apply_theme_to_dom(theme as ThemeName)
+      apply_theme_to_dom(theme as ThemeName)
 
-        // Verify DOM state
-        const root = document.documentElement
-        expect(root.getAttribute(`data-theme`)).toBe(theme)
-        expect(root.style.getPropertyValue(`color-scheme`)).toBe(expected_scheme)
-        expect(root.style.getPropertyValue(`--surface-bg`)).toBe(expected_bg)
-        expect(root.style.getPropertyValue(`--text-color`)).toBe(expected_text)
-      },
-    )
+      const root = document.documentElement
+      expect(root.getAttribute(`data-theme`)).toBe(theme)
+      expect(root.style.getPropertyValue(`color-scheme`)).toBe(
+        THEME_TYPE[theme as ThemeName],
+      )
+      expect(root.style.getPropertyValue(`--surface-bg`)).toBe(`#ffffff`)
+      expect(root.style.getPropertyValue(`--text-color`)).toBe(`#000000`)
+    })
 
     test.each([
       [true, `dark`],
@@ -329,5 +304,43 @@ describe(`Theme System`, () => {
         )
       },
     )
+  })
+
+  describe(`Theme data integrity`, () => {
+    test(`all theme keys have complete variant coverage`, () => {
+      const theme_source = globalThis.MATTERVIZ_THEME_SOURCE as
+        | Record<string, Record<string, string>>
+        | undefined
+      if (!theme_source) return
+
+      const theme_keys = Object.keys(theme_source)
+      const variants = Object.keys(COLOR_THEMES)
+      const missing_variants: string[] = []
+
+      for (const variant of variants) {
+        for (const key of theme_keys) {
+          if (!theme_source[key]?.[variant]) {
+            missing_variants.push(`${variant} variant for theme key: ${key}`)
+          }
+        }
+      }
+
+      expect(missing_variants).toEqual([])
+    })
+
+    test(`all theme variants have consistent structure`, () => {
+      const theme_source = globalThis.MATTERVIZ_THEME_SOURCE as
+        | Record<string, Record<string, string>>
+        | undefined
+      if (!theme_source) return
+
+      const theme_keys = Object.keys(theme_source)
+      const variants = Object.keys(COLOR_THEMES)
+
+      for (const variant of variants) {
+        const variant_keys = theme_keys.filter((key) => theme_source[key]?.[variant])
+        expect(variant_keys).toHaveLength(theme_keys.length)
+      }
+    })
   })
 })

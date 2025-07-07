@@ -210,11 +210,13 @@ export const render = (context: vscode.ExtensionContext, uri?: vscode.Uri) => {
 
     // Listen for theme changes and update webview
     const update_theme = () => {
-      panel.webview.html = create_html(panel.webview, context, {
-        type: is_trajectory_file(file.filename) ? `trajectory` : `structure`,
-        data: file,
-        theme: get_theme(),
-      })
+      if (panel.visible) {
+        panel.webview.html = create_html(panel.webview, context, {
+          type: is_trajectory_file(file.filename) ? `trajectory` : `structure`,
+          data: file,
+          theme: get_theme(),
+        })
+      }
     }
 
     const theme_change_listener = vscode.window.onDidChangeActiveColorTheme(
@@ -228,7 +230,11 @@ export const render = (context: vscode.ExtensionContext, uri?: vscode.Uri) => {
       },
     )
 
-    context.subscriptions.push(theme_change_listener, config_change_listener)
+    // Dispose listeners when panel is closed
+    panel.onDidDispose(() => {
+      theme_change_listener.dispose()
+      config_change_listener.dispose()
+    })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     vscode.window.showErrorMessage(`Failed: ${message}`)
@@ -281,15 +287,17 @@ class Provider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocum
 
       // Listen for theme changes and update webview
       const update_theme = () => {
-        webview_panel.webview.html = create_html(
-          webview_panel.webview,
-          this.context,
-          {
-            type: is_trajectory_file(filename) ? `trajectory` : `structure`,
-            data: read_file(document.uri.fsPath),
-            theme: get_theme(),
-          },
-        )
+        if (webview_panel.visible) {
+          webview_panel.webview.html = create_html(
+            webview_panel.webview,
+            this.context,
+            {
+              type: is_trajectory_file(filename) ? `trajectory` : `structure`,
+              data: read_file(document.uri.fsPath),
+              theme: get_theme(),
+            },
+          )
+        }
       }
 
       const theme_change_listener = vscode.window.onDidChangeActiveColorTheme(
@@ -303,10 +311,12 @@ class Provider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocum
         },
       )
 
-      this.context.subscriptions.push(
-        theme_change_listener,
-        config_change_listener,
-      )
+      // Dispose listeners when panel is closed
+      webview_panel.onDidDispose(() => {
+        theme_change_listener.dispose()
+        config_change_listener.dispose()
+      })
+      // Note: webview_panel disposal is managed by VSCode for custom editors
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       vscode.window.showErrorMessage(`Failed: ${message}`)

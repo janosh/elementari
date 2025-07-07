@@ -60,11 +60,23 @@ declare global {
 }
 
 // Theme preference management
-export const get_theme_preference = (): ThemeMode =>
-  is_browser ? (localStorage[storage_key] as ThemeMode) || AUTO_THEME : AUTO_THEME
+export const get_theme_preference = (): ThemeMode => {
+  if (!is_browser) return AUTO_THEME
+  try {
+    const saved = localStorage.getItem(storage_key)
+    return is_valid_theme_mode(saved || ``) ? saved as ThemeMode : AUTO_THEME
+  } catch {
+    return AUTO_THEME
+  }
+}
 
 export const save_theme_preference = (mode: ThemeMode): void => {
-  if (is_browser) localStorage.setItem(storage_key, mode)
+  if (!is_browser) return
+  try {
+    localStorage.setItem(storage_key, mode)
+  } catch {
+    // Silently fail if localStorage is unavailable
+  }
 }
 
 // System color scheme

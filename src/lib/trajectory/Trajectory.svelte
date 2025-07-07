@@ -964,6 +964,9 @@
 </div>
 
 <style>
+  :root {
+    --trajectory-border-radius: 8px;
+  }
   .trajectory-viewer {
     display: flex;
     flex-direction: column;
@@ -1037,7 +1040,7 @@
     font-size: 0.8rem;
     position: relative;
     z-index: 100;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--trajectory-border-radius) var(--trajectory-border-radius) 0 0;
   }
   .nav-section {
     display: flex;
@@ -1204,7 +1207,7 @@
     text-align: center;
     padding: 3rem;
     border: 2px dashed var(--trajectory-dropzone-border);
-    border-radius: 8px;
+    border-radius: var(--trajectory-border-radius);
     background: var(--trajectory-dropzone-bg);
     color: var(--trajectory-text-color);
     max-width: 500px;

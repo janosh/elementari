@@ -6,7 +6,6 @@ import Trajectory from '$lib/trajectory/Trajectory.svelte'
 import { mount } from 'svelte'
 import '../../../../src/app.css'
 import type { ThemeName } from '../../../../src/lib/theme/index'
-import { COLOR_THEMES } from '../../../../src/lib/theme/index'
 
 interface FileData {
   filename: string
@@ -87,46 +86,7 @@ const apply_theme = (theme: ThemeName): void => {
     theme === `light` || theme === `white` ? `light` : `dark`,
   )
 
-  // Apply VSCode-specific theme styles based on theme
-  const vscode_styles = get_vscode_theme_styles(theme)
-  for (const [property, value] of Object.entries(vscode_styles)) {
-    root.style.setProperty(property, value)
-  }
-}
-
-// Get VSCode-specific theme styles for each theme
-const get_vscode_theme_styles = (theme: ThemeName): Record<string, string> => {
-  const styles: Record<string, string> = {}
-
-  switch (theme) {
-    case COLOR_THEMES.light:
-      styles[`--vscode-editor-background`] = `#ffffff`
-      styles[`--vscode-editor-foreground`] = `#333333`
-      styles[`--vscode-errorForeground`] = `#e51400`
-      break
-    case COLOR_THEMES.dark:
-      styles[`--vscode-editor-background`] = `#1e1e1e`
-      styles[`--vscode-editor-foreground`] = `#d4d4d4`
-      styles[`--vscode-errorForeground`] = `#f85149`
-      break
-    case COLOR_THEMES.white:
-      styles[`--vscode-editor-background`] = `#ffffff`
-      styles[`--vscode-editor-foreground`] = `#000000`
-      styles[`--vscode-errorForeground`] = `#cc0000`
-      break
-    case COLOR_THEMES.black:
-      styles[`--vscode-editor-background`] = `#000000`
-      styles[`--vscode-editor-foreground`] = `#ffffff`
-      styles[`--vscode-errorForeground`] = `#ff6b6b`
-      break
-    default:
-      // Fallback to light theme
-      styles[`--vscode-editor-background`] = `#ffffff`
-      styles[`--vscode-editor-foreground`] = `#333333`
-      styles[`--vscode-errorForeground`] = `#e51400`
-  }
-
-  return styles
+  // VSCode-specific variables are now included in the centralized theme system
 }
 
 // Parse file content and determine if it's a structure or trajectory

@@ -56,6 +56,11 @@ const mock_vscode = vscode as unknown as {
       activeTabGroup: { activeTab: { input?: { uri?: vscode.Uri } } | null }
     }
     registerCustomEditorProvider: ReturnType<typeof vi.fn>
+    onDidChangeActiveColorTheme: ReturnType<typeof vi.fn>
+  }
+  workspace: {
+    getConfiguration: ReturnType<typeof vi.fn>
+    onDidChangeConfiguration: ReturnType<typeof vi.fn>
   }
   commands: { registerCommand: ReturnType<typeof vi.fn> }
 }
@@ -79,6 +84,8 @@ describe(`MatterViz Extension`, () => {
     asWebviewUri: vi.fn((uri: unknown) =>
       `https://vscode-webview.local${(uri as { fsPath: string }).fsPath}`
     ),
+    onDidReceiveMessage: vi.fn(),
+    html: ``,
   }
   const mock_context = { extensionUri: { fsPath: `/test` }, subscriptions: [] }
 
@@ -386,6 +393,7 @@ describe(`MatterViz Extension`, () => {
   test(`render creates webview panel`, () => {
     const mock_panel = {
       webview: { html: ``, onDidReceiveMessage: vi.fn(), ...mock_webview },
+      onDidDispose: vi.fn(),
     }
     mock_vscode.window.createWebviewPanel.mockReturnValue(mock_panel)
     mock_vscode.window.activeTextEditor = {
@@ -620,6 +628,117 @@ describe(`MatterViz Extension`, () => {
         kind: mock_vscode.ColorThemeKind.HighContrastLight,
       }
       expect(get_theme()).toBe(`white`)
+    })
+  })
+
+  describe(`Theme listener cleanup`, () => {
+    const setup_panel = (options = {}) => {
+      const mock_dispose = vi.fn()
+      const mock_panel = {
+        webview: {
+          html: `initial`,
+          onDidReceiveMessage: vi.fn(),
+          ...mock_webview,
+        },
+        onDidDispose: vi.fn(),
+        visible: true,
+        ...options,
+      }
+
+      mock_vscode.window.createWebviewPanel.mockReturnValue(mock_panel)
+      mock_vscode.window.onDidChangeActiveColorTheme.mockReturnValue({
+        dispose: mock_dispose,
+      })
+      mock_vscode.workspace.onDidChangeConfiguration.mockReturnValue({
+        dispose: mock_dispose,
+      })
+      mock_vscode.window.activeTextEditor = {
+        document: { fileName: `/test/active.cif`, getText: () => `content` },
+      } as vscode.TextEditor
+
+      return { mock_dispose, mock_panel }
+    }
+
+    test(`sets up and cleans up theme listeners`, () => {
+      const { mock_dispose, mock_panel } = setup_panel()
+
+      render(mock_context as vscode.ExtensionContext)
+
+      expect(mock_vscode.window.onDidChangeActiveColorTheme).toHaveBeenCalled()
+      expect(mock_panel.onDidDispose).toHaveBeenCalled()
+
+      // Test cleanup
+      mock_panel.onDidDispose.mock.calls[0][0]()
+      expect(mock_dispose).toHaveBeenCalledTimes(2)
+    })
+
+    test(`respects panel visibility for theme updates`, () => {
+      const mock_panel = {
+        webview: {
+          html: ``,
+          onDidReceiveMessage: vi.fn(),
+          ...mock_webview,
+        },
+        onDidDispose: vi.fn(),
+        visible: false,
+      }
+
+      mock_vscode.window.createWebviewPanel.mockReturnValue(mock_panel)
+      mock_vscode.window.onDidChangeActiveColorTheme.mockReturnValue({
+        dispose: vi.fn(),
+      })
+      mock_vscode.workspace.onDidChangeConfiguration.mockReturnValue({
+        dispose: vi.fn(),
+      })
+      mock_vscode.window.activeTextEditor = {
+        document: { fileName: `/test/active.cif`, getText: () => `content` },
+      } as vscode.TextEditor
+
+      render(mock_context as vscode.ExtensionContext)
+
+      // Store initial HTML after render (render always sets HTML initially)
+      const initial_html = mock_panel.webview.html
+
+      const theme_callback =
+        mock_vscode.window.onDidChangeActiveColorTheme.mock.calls[0][0]
+
+      // Should not update when invisible
+      theme_callback()
+      expect(mock_panel.webview.html).toBe(initial_html)
+
+      // Should update when visible
+      mock_panel.visible = true
+      theme_callback()
+      expect(mock_panel.webview.html).not.toBe(initial_html)
+    })
+
+    test(`multiple panels dispose independently`, () => {
+      const dispose1 = vi.fn()
+      const dispose2 = vi.fn()
+      const panel1 = { webview: { ...mock_webview }, onDidDispose: vi.fn() }
+      const panel2 = { webview: { ...mock_webview }, onDidDispose: vi.fn() }
+
+      mock_vscode.window.createWebviewPanel
+        .mockReturnValueOnce(panel1).mockReturnValueOnce(panel2)
+      mock_vscode.window.onDidChangeActiveColorTheme
+        .mockReturnValueOnce({ dispose: dispose1 }).mockReturnValueOnce({
+          dispose: dispose2,
+        })
+      mock_vscode.workspace.onDidChangeConfiguration
+        .mockReturnValueOnce({ dispose: dispose1 }).mockReturnValueOnce({
+          dispose: dispose2,
+        })
+
+      mock_vscode.window.activeTextEditor = {
+        document: { fileName: `/test/active.cif`, getText: () => `content` },
+      } as vscode.TextEditor
+
+      render(mock_context as vscode.ExtensionContext)
+      render(mock_context as vscode.ExtensionContext)
+
+      panel1.onDidDispose.mock.calls[0][0]()
+      expect(dispose1).toHaveBeenCalledTimes(2)
+      expect(dispose2).not.toHaveBeenCalled()
     })
   })
 })

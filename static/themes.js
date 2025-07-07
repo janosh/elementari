@@ -617,6 +617,25 @@ const themes = {
     white: `rgba(0, 0, 0, 0.05)`,
     black: `rgba(255, 255, 255, 0.05)`,
   },
+  // VSCode-specific theme variables
+  'vscode-editor-background': {
+    light: `#ffffff`,
+    dark: `#1e1e1e`,
+    white: `#ffffff`,
+    black: `#000000`,
+  },
+  'vscode-editor-foreground': {
+    light: `#333333`,
+    dark: `#d4d4d4`,
+    white: `#000000`,
+    black: `#ffffff`,
+  },
+  'vscode-error-foreground': {
+    light: `#e51400`,
+    dark: `#f85149`,
+    white: `#cc0000`,
+    black: `#ff6b6b`,
+  },
 }
 
 // Auto-generate CSS variables - theme keys now match CSS variable names exactly
@@ -626,6 +645,9 @@ const special_mappings = {
   'copy-btn-color': `--zoo-copy-btn-color`,
   'github-corner-color': `--zoo-github-corner-color`,
   'github-corner-bg': `--zoo-github-corner-bg`,
+  'vscode-editor-background': `--vscode-editor-background`,
+  'vscode-editor-foreground': `--vscode-editor-foreground`,
+  'vscode-error-foreground': `--vscode-errorForeground`,
 }
 
 const css_vars = Object.fromEntries(

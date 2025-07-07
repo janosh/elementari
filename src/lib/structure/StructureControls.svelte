@@ -367,6 +367,7 @@
     <div class="control-row">
       <label class="compact">
         Color
+        <!-- not using bind:value to not give a default value of #000000 to background_color, needs to stay undefined to not override --struct-bg theme color -->
         <input
           type="color"
           value={background_color}

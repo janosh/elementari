@@ -52,4 +52,8 @@
     border-color: var(--theme-control-hover-border);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+  .theme-control:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+  }
 </style>

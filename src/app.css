@@ -80,6 +80,7 @@ a.btn {
   cursor: pointer;
   border: none;
   border-radius: 3pt;
+  padding: 2pt 4pt;
   /* TODO remove 2 lines below, just here as temp fix for svelte-zoo CodeExample SVG icons */
   line-height: 1;
   align-items: center;
@@ -159,6 +160,15 @@ textarea {
   margin: 1em auto;
 }
 
+/* Modern flat input styling */
+input {
+  border: none;
+  border-radius: 3pt;
+}
+input[type='number'] {
+  min-width: 60px;
+  width: auto;
+}
 input[type='color'] {
   border: none;
   padding: 0;
