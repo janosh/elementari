@@ -5,6 +5,8 @@ import { parse_trajectory_data } from '$lib/trajectory/parse'
 import Trajectory from '$lib/trajectory/Trajectory.svelte'
 import { mount } from 'svelte'
 import '../../../../src/app.css'
+import type { ThemeName } from '../../../../src/lib/theme/index'
+import { COLOR_THEMES } from '../../../../src/lib/theme/index'
 
 interface FileData {
   filename: string
@@ -15,6 +17,7 @@ interface FileData {
 interface MatterVizData {
   type: `trajectory` | `structure`
   data: FileData
+  theme: ThemeName
 }
 
 interface ParseResult {
@@ -54,6 +57,76 @@ export function base64_to_array_buffer(base64: string): ArrayBuffer {
     bytes[idx] = binary.charCodeAt(idx)
   }
   return bytes.buffer
+}
+
+// Apply theme to the webview DOM
+const apply_theme = (theme: ThemeName): void => {
+  const root = document.documentElement
+
+  // Set the data-theme attribute
+  root.setAttribute(`data-theme`, theme)
+
+  // Apply MatterViz theme if available
+  if (typeof globalThis !== `undefined` && globalThis.MATTERVIZ_THEMES) {
+    const matterviz_theme = globalThis.MATTERVIZ_THEMES[theme]
+    const css_map = globalThis.MATTERVIZ_CSS_MAP || {}
+
+    if (matterviz_theme) {
+      for (const [key, value] of Object.entries(matterviz_theme)) {
+        const css_var = css_map[key as keyof typeof css_map]
+        if (css_var && value) {
+          root.style.setProperty(css_var, value as string)
+        }
+      }
+    }
+  }
+
+  // Set color-scheme CSS property for better browser integration
+  root.style.setProperty(
+    `color-scheme`,
+    theme === `light` || theme === `white` ? `light` : `dark`,
+  )
+
+  // Apply VSCode-specific theme styles based on theme
+  const vscode_styles = get_vscode_theme_styles(theme)
+  for (const [property, value] of Object.entries(vscode_styles)) {
+    root.style.setProperty(property, value)
+  }
+}
+
+// Get VSCode-specific theme styles for each theme
+const get_vscode_theme_styles = (theme: ThemeName): Record<string, string> => {
+  const styles: Record<string, string> = {}
+
+  switch (theme) {
+    case COLOR_THEMES.light:
+      styles[`--vscode-editor-background`] = `#ffffff`
+      styles[`--vscode-editor-foreground`] = `#333333`
+      styles[`--vscode-errorForeground`] = `#e51400`
+      break
+    case COLOR_THEMES.dark:
+      styles[`--vscode-editor-background`] = `#1e1e1e`
+      styles[`--vscode-editor-foreground`] = `#d4d4d4`
+      styles[`--vscode-errorForeground`] = `#f85149`
+      break
+    case COLOR_THEMES.white:
+      styles[`--vscode-editor-background`] = `#ffffff`
+      styles[`--vscode-editor-foreground`] = `#000000`
+      styles[`--vscode-errorForeground`] = `#cc0000`
+      break
+    case COLOR_THEMES.black:
+      styles[`--vscode-editor-background`] = `#000000`
+      styles[`--vscode-editor-foreground`] = `#ffffff`
+      styles[`--vscode-errorForeground`] = `#ff6b6b`
+      break
+    default:
+      // Fallback to light theme
+      styles[`--vscode-editor-background`] = `#ffffff`
+      styles[`--vscode-editor-foreground`] = `#333333`
+      styles[`--vscode-errorForeground`] = `#e51400`
+  }
+
+  return styles
 }
 
 // Parse file content and determine if it's a structure or trajectory
@@ -185,11 +258,15 @@ const create_display = (
 
 // Initialize the MatterViz application
 const initialize_app = async (): Promise<MatterVizApp> => {
-  const { content, filename, isCompressed } = globalThis.mattervizData?.data ||
-    {}
+  const matterviz_data = globalThis.mattervizData
+  const { content, filename, isCompressed } = matterviz_data?.data || {}
+  const theme = matterviz_data?.theme
   if (!content || !filename) {
     throw new Error(`No data provided to MatterViz app`)
   }
+
+  // Apply theme early
+  if (theme) apply_theme(theme)
 
   const container = document.getElementById(`matterviz-app`)
   if (!container) throw new Error(`Target container not found in DOM`)

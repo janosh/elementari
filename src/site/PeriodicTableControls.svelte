@@ -538,19 +538,13 @@
   section > label input[type='number'] {
     width: 60px;
     padding: 2px 4px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
   }
 
   section > label input[type='text'] {
     flex: 1;
     padding: 4px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
   }
 
   section > label input[type='color'] {
@@ -564,10 +558,7 @@
   section > label select {
     flex: 1;
     padding: 4px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
     cursor: pointer;
   }
 

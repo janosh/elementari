@@ -4,7 +4,6 @@
   "description": "Visualize crystal structures and MD trajectories in VSCode",
   "version": "0.1.2",
   "publisher": "janosh",
-  "type": "module",
   "icon": "icon.png",
   "repository": "https://github.com/janosh/matterviz",
   "bugs": "https://github.com/janosh/matterviz/issues",
@@ -50,16 +49,34 @@
       "displayName": "MatterViz Viewer",
       "selector": [{ "filenamePattern": "*.{traj,gz,h5,hdf5}" }],
       "priority": "option"
-    }]
+    }],
+    "configuration": {
+      "title": "MatterViz",
+      "properties": {
+        "matterviz.theme": {
+          "type": "string",
+          "enum": ["auto", "light", "dark", "white", "black"],
+          "default": "auto",
+          "description": "Theme for MatterViz visualizations. 'auto' follows VSCode's theme (selecting either 'light' or 'dark'), other options override it."
+        }
+      }
+    }
   },
   "scripts": {
-    "build": "rm -rf dist && tsc && mv dist/extension.{,c}js && vite build",
-    "dev": "tsc --watch & vite build --watch & mv dist/extension.{,c}js",
+    "build:clean": "rm -rf dist",
+    "build:tsc": "tsc",
+    "build:theme": "mkdir -p dist/src/lib/theme && cp -r ../../src/lib/theme/* dist/src/lib/theme/",
+    "build:move": "mv dist/extensions/vscode/src/extension.js dist/extension.cjs",
+    "build:fix-imports": "sed -i '' 's|../../../src/lib/theme/index|./src/lib/theme/index|g' dist/extension.cjs",
+    "build:vite": "vite build",
+    "build": "pnpm build:clean && pnpm build:tsc && pnpm build:theme && pnpm build:move && pnpm build:fix-imports && pnpm build:vite",
+    "dev": "tsc --watch & vite build --watch",
     "vitest": "vitest",
-    "package": "rm -rf dist && tsc && mv dist/extension.{,c}js && vite build && vsce package"
+    "package": "pnpm build && vsce package"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "@types/node": "^24.0.10",
     "@types/vscode": "^1.96.0",
     "svelte": "^5.34.8",
     "typescript": "^5.8.3",
