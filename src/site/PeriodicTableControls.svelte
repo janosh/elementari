@@ -478,6 +478,7 @@
     gap: 1.5em;
     margin: 1em auto;
     padding: 0 1em;
+    max-width: 1200px;
   }
 
   section {
