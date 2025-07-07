@@ -166,8 +166,12 @@ describe(`Theme System`, () => {
         apply_theme_to_dom(theme as ThemeName)
 
         const root = document.documentElement
-        expect(root.style.getPropertyValue(`--surface-bg`)).toBe(`#ffffff`)
-        expect(root.style.getPropertyValue(`--text-color`)).toBe(`#000000`)
+        const expected = globalThis.MATTERVIZ_THEMES[theme as ThemeName] as {
+          surface_bg: string
+          text_color: string
+        }
+        expect(root.style.getPropertyValue(`--surface-bg`)).toBe(expected.surface_bg)
+        expect(root.style.getPropertyValue(`--text-color`)).toBe(expected.text_color)
       },
     )
 
@@ -277,8 +281,12 @@ describe(`Theme System`, () => {
       expect(root.style.getPropertyValue(`color-scheme`)).toBe(
         THEME_TYPE[theme as ThemeName],
       )
-      expect(root.style.getPropertyValue(`--surface-bg`)).toBe(`#ffffff`)
-      expect(root.style.getPropertyValue(`--text-color`)).toBe(`#000000`)
+      const expected = globalThis.MATTERVIZ_THEMES[theme as ThemeName] as {
+        surface_bg: string
+        text_color: string
+      }
+      expect(root.style.getPropertyValue(`--surface-bg`)).toBe(expected.surface_bg)
+      expect(root.style.getPropertyValue(`--text-color`)).toBe(expected.text_color)
     })
 
     test.each([
