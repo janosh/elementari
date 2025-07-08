@@ -85,10 +85,6 @@ a.btn {
   line-height: 1;
   align-items: center;
 }
-:is(button, a.btn):hover {
-  background-color: var(--accent-color, darkcyan);
-  color: white;
-}
 a:hover {
   color: var(--accent-hover-color, orange);
 }

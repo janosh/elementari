@@ -9,7 +9,7 @@ test.describe(`Lattice Component Tests`, () => {
     await page
       .locator(`label:has-text("Controls Open") input[type="checkbox"]`)
       .check()
-    await expect(page.locator(`.controls-panel`)).toHaveClass(/controls-open/)
+    await expect(page.locator(`.controls-panel`)).toHaveClass(/panel-open/)
   })
 
   test(`renders lattice with default properties`, async ({ page }) => {
