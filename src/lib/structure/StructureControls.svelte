@@ -168,6 +168,7 @@
   position={{ top: `30px`, right: `5px` }}
   panel_props={{ class: `controls-panel` }}
   toggle_props={{ class: `structure-controls-toggle`, title: `Open controls` }}
+  icon_style="transform: scale(1.2);"
 >
   <!-- Visibility Controls -->
   <div style="display: flex; align-items: center; gap: 4pt; flex-wrap: wrap">

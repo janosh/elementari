@@ -26,6 +26,8 @@
     // DOM element refs
     toggle_panel_btn?: HTMLButtonElement
     panel_div?: HTMLDivElement
+    has_been_dragged?: boolean
+    currently_dragging?: boolean
   }
   let {
     show = $bindable(false),
@@ -35,7 +37,7 @@
     toggle_props = {},
     open_icon = `Cross`,
     closed_icon = `Settings`,
-    icon_style = `width: 24px; height: 24px`,
+    icon_style = ``,
     position = { top: `45px`, right: `-5em` },
     max_width = `450px`,
     panel_props = {},
@@ -43,10 +45,9 @@
     on_drag_start = () => {},
     toggle_panel_btn,
     panel_div,
+    has_been_dragged = $bindable(false),
+    currently_dragging = $bindable(false),
   }: Props = $props()
-
-  // Track if panel has been dragged
-  let has_been_dragged = $state(false)
 
   function on_keydown(event: KeyboardEvent) {
     if (event.key === `Escape`) {
@@ -61,7 +62,11 @@
   }
   function handle_drag_start() {
     has_been_dragged = true
+    currently_dragging = true
     on_drag_start()
+  }
+  function handle_drag_end() {
+    currently_dragging = false
   }
   function close_panel() {
     show = false
@@ -89,13 +94,19 @@
   <div
     use:click_outside={{
       callback: () => {
-        if (show && !has_been_dragged) {
+        if (show && !has_been_dragged && !currently_dragging) {
           show = false
           onclose()
         }
       },
     }}
-    use:draggable={{ handle_selector: `.drag-handle`, on_drag_start: handle_drag_start }}
+    use:draggable={show
+    ? {
+      handle_selector: `.drag-handle`,
+      on_drag_start: handle_drag_start,
+      on_drag_end: handle_drag_end,
+    }
+    : { disabled: true }}
     bind:this={panel_div}
     role="dialog"
     aria-label="Draggable panel"

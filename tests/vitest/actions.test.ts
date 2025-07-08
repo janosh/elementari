@@ -13,6 +13,7 @@ type MockElement = HTMLElement & {
   addEventListener: ReturnType<typeof vi.fn>
   removeEventListener: ReturnType<typeof vi.fn>
   querySelector: ReturnType<typeof vi.fn>
+  contains: ReturnType<typeof vi.fn>
 }
 
 // Test utilities
@@ -26,7 +27,7 @@ function create_mock_element(): MockElement {
     right: ``,
   }
 
-  return {
+  const element = {
     offsetLeft: 100,
     offsetTop: 50,
     offsetWidth: 200,
@@ -34,7 +35,13 @@ function create_mock_element(): MockElement {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     querySelector: vi.fn(),
+    contains: vi.fn((node: Node) => {
+      // Mock contains method - return true if node is this element
+      return node === element
+    }),
   } as MockElement
+
+  return element
 }
 
 function create_mock_event(
@@ -47,7 +54,7 @@ function create_mock_event(
     type,
     clientX,
     clientY,
-    target,
+    target: target || null,
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
   } as unknown as MouseEvent

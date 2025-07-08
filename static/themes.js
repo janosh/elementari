@@ -642,6 +642,31 @@ const themes = {
     white: `rgba(0, 0, 0, 0.05)`,
     black: `rgba(255, 255, 255, 0.05)`,
   },
+  // Svelte MultiSelect component colors
+  'sms-options-bg': {
+    light: `rgba(255, 255, 255, 0.95)`,
+    dark: `rgb(20, 18, 36)`,
+    white: `rgba(255, 255, 255, 0.98)`,
+    black: `rgba(15, 15, 15, 0.95)`,
+  },
+  'sms-border': {
+    light: `1px dotted #6b7280`,
+    dark: `1px dotted teal`,
+    white: `1px dotted #9ca3af`,
+    black: `1px dotted teal`,
+  },
+  'sms-focus-border': {
+    light: `1px dotted #4f46e5`,
+    dark: `1px dotted cornflowerblue`,
+    white: `1px dotted #2563eb`,
+    black: `1px dotted #7dd3fc`,
+  },
+  'sms-active-color': {
+    light: `#4f46e5`,
+    dark: `cornflowerblue`,
+    white: `#2563eb`,
+    black: `#7dd3fc`,
+  },
   // VSCode-specific theme variables
   'vscode-editor-background': {
     light: `#ffffff`,
@@ -670,6 +695,10 @@ const special_mappings = {
   'copy-btn-color': `--zoo-copy-btn-color`,
   'github-corner-color': `--zoo-github-corner-color`,
   'github-corner-bg': `--zoo-github-corner-bg`,
+  'sms-options-bg': `--sms-options-bg`,
+  'sms-border': `--sms-border`,
+  'sms-focus-border': `--sms-focus-border`,
+  'sms-active-color': `--sms-active-color`,
   'vscode-editor-background': `--vscode-editor-background`,
   'vscode-editor-foreground': `--vscode-editor-foreground`,
   'vscode-error-foreground': `--vscode-errorForeground`,

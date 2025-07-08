@@ -3,12 +3,16 @@ export interface DraggableOptions {
   on_drag_start?: (event: MouseEvent) => void
   on_drag?: (event: MouseEvent) => void
   on_drag_end?: (event: MouseEvent) => void
+  disabled?: boolean
 }
 
 // Svelte action to make an element draggable
 // @param node - The DOM element to make draggable
 // @param options - Configuration options for dragging behavior
 export function draggable(node: HTMLElement, options: DraggableOptions = {}) {
+  // If dragging is disabled, return a no-op action
+  if (options.disabled) return { destroy: () => {} }
+
   // Use simple variables for maximum performance (matching old implementation)
   let dragging = false
   let start = { x: 0, y: 0 }
@@ -25,9 +29,7 @@ export function draggable(node: HTMLElement, options: DraggableOptions = {}) {
 
   function handle_mousedown(event: MouseEvent) {
     // Only drag if mousedown is on the handle or its children
-    if (handle && handle.contains && !handle.contains(event.target as Node)) return
-    // Fallback for test environments that don't have contains method
-    if (handle && !handle.contains && event.target !== handle) return
+    if (!handle?.contains?.(event.target as Node)) return
 
     dragging = true
     initial.left = node.offsetLeft

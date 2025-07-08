@@ -403,10 +403,7 @@
 
     <!-- Info Panel -->
     {#if structure}
-      <StructureInfoPanel
-        {structure}
-        bind:info_open
-      />
+      <StructureInfoPanel {structure} bind:info_open />
     {/if}
   </div>
 {:else if structure}
