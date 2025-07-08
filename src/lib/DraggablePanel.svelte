@@ -152,20 +152,16 @@
   // Position panel when shown
   $effect(() => {
     if (show && toggle_panel_btn && !has_been_dragged) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const pos = calculate_position()
-          initial_position = pos
-          if (panel_div) {
-            Object.assign(panel_div.style, {
-              left: pos.left,
-              top: pos.top,
-              right: `auto`,
-              bottom: `auto`,
-            })
-          }
+      const pos = calculate_position()
+      initial_position = pos
+      if (panel_div) {
+        Object.assign(panel_div.style, {
+          left: pos.left,
+          top: pos.top,
+          right: `auto`,
+          bottom: `auto`,
         })
-      })
+      }
     }
   })
 </script>

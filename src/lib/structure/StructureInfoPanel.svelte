@@ -163,13 +163,15 @@
 
           if (site.properties) {
             for (const [prop_key, prop_value] of Object.entries(site.properties)) {
-              if (prop_value != null) {
+              if (prop_value != null && prop_value !== undefined) {
                 let formatted_value: string
                 let tooltip: string | undefined
 
                 if (
                   prop_key === `force` && Array.isArray(prop_value) &&
-                  prop_value.length === 3
+                  prop_value.length === 3 && prop_value.every((v) =>
+                    typeof v === `number`
+                  )
                 ) {
                   const force_magnitude = math.norm(prop_value)
                   formatted_value = `${format_num(force_magnitude, `.3~f`)} eV/Å`
@@ -177,14 +179,22 @@
                     prop_value.map((f) => format_num(f, `.3~f`)).join(`, `)
                   }) eV/Å`
                 } else if (prop_key === `magmom` || prop_key.includes(`magnet`)) {
-                  formatted_value = `${format_num(Number(prop_value), `.3~f`)} μB`
+                  const num_val = Number(prop_value)
+                  if (isNaN(num_val)) continue
+                  formatted_value = `${format_num(num_val, `.3~f`)} μB`
                   tooltip = `Magnetic moment in Bohr magnetons`
                 } else if (Array.isArray(prop_value)) {
                   formatted_value = `(${
-                    prop_value.map((v) => format_num(Number(v), `.3~f`)).join(`, `)
+                    prop_value.map((v) => {
+                      const num_val = Number(v)
+                      return isNaN(num_val) ? String(v) : format_num(num_val, `.3~f`)
+                    }).join(`, `)
                   })`
                 } else {
-                  formatted_value = format_num(Number(prop_value), `.3~f`)
+                  const num_val = Number(prop_value)
+                  formatted_value = isNaN(num_val)
+                    ? String(prop_value)
+                    : format_num(num_val, `.3~f`)
                 }
 
                 site_items.push({
