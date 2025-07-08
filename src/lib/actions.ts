@@ -24,8 +24,10 @@ export function draggable(node: HTMLElement, options: DraggableOptions = {}) {
   }
 
   function handle_mousedown(event: MouseEvent) {
-    // Only drag if mousedown is on the handle itself
-    if (event.target !== handle) return
+    // Only drag if mousedown is on the handle or its children
+    if (handle && handle.contains && !handle.contains(event.target as Node)) return
+    // Fallback for test environments that don't have contains method
+    if (handle && !handle.contains && event.target !== handle) return
 
     dragging = true
     initial.left = node.offsetLeft
@@ -39,7 +41,6 @@ export function draggable(node: HTMLElement, options: DraggableOptions = {}) {
     document.body.style.userSelect = `none` // Prevent text selection during drag
     if (handle) handle.style.cursor = `grabbing`
 
-    // Use window instead of globalThis for better performance
     globalThis.addEventListener(`mousemove`, handle_mousemove)
     globalThis.addEventListener(`mouseup`, handle_mouseup)
 
@@ -67,14 +68,13 @@ export function draggable(node: HTMLElement, options: DraggableOptions = {}) {
     document.body.style.userSelect = ``
     if (handle) handle.style.cursor = `grab`
 
-    // Use window instead of globalThis for consistency
     globalThis.removeEventListener(`mousemove`, handle_mousemove)
     globalThis.removeEventListener(`mouseup`, handle_mouseup)
 
     options.on_drag_end?.(event) // Call optional callback
   }
 
-  if (handle) { // Initialize handle cursor
+  if (handle) {
     handle.addEventListener(`mousedown`, handle_mousedown)
     handle.style.cursor = `grab`
   }

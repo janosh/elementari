@@ -50,6 +50,7 @@
 
   function on_keydown(event: KeyboardEvent) {
     if (event.key === `Escape`) {
+      event.preventDefault()
       show = false
       onclose()
     }
@@ -97,6 +98,8 @@
     use:draggable={{ handle_selector: `.drag-handle`, on_drag_start: handle_drag_start }}
     bind:this={panel_div}
     role="dialog"
+    aria-label="Draggable panel"
+    aria-modal="false"
     style:max-width={max_width}
     style:top={position.top}
     style:right={position.right}

@@ -6,7 +6,6 @@ test.describe(`Bohr Atoms page`, () => {
     await page.goto(`/bohr-atoms`, { waitUntil: `networkidle` })
 
     await page.waitForSelector(`ol li svg`, { state: `visible`, timeout: 10000 })
-
     const element_tiles = await page.$$(`ol li svg text`)
     expect(element_tiles).toHaveLength(element_data.length)
   })

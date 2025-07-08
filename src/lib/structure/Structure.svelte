@@ -328,6 +328,8 @@
           }}
           title="{info_open ? `Close` : `Open`} info panel"
           class:active={info_open}
+          aria-label="{info_open ? `Close` : `Open`} structure info panel"
+          aria-expanded={info_open}
         >
           <Icon icon="Info" style="transform: scale(1.1)" />
         </button>

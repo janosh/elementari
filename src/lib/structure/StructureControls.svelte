@@ -167,7 +167,7 @@
   bind:show={controls_open}
   position={{ top: `30px`, right: `5px` }}
   panel_props={{ class: `controls-panel` }}
-  toggle_props={{ class: `structure-controls-toggle` }}
+  toggle_props={{ class: `structure-controls-toggle`, title: `Open controls` }}
 >
   <!-- Visibility Controls -->
   <div style="display: flex; align-items: center; gap: 4pt; flex-wrap: wrap">
@@ -586,7 +586,11 @@
       type="button"
       onclick={() => {
         const canvas = wrapper?.querySelector(`canvas`) as HTMLCanvasElement
-        exports.export_png(canvas, structure, png_dpi, scene, camera)
+        if (canvas) {
+          exports.export_png(canvas, structure, png_dpi, scene, camera)
+        } else {
+          console.warn(`Canvas element not found for PNG export`)
+        }
       }}
       title="{save_png_btn_text} (${png_dpi} DPI)"
     >

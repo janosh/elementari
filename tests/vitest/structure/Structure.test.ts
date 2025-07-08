@@ -43,12 +43,9 @@ describe(`Structure`, () => {
 
     // First, open the structure control panel by clicking the correct toggle button
     // Look for the structure controls toggle button specifically
-    const structure_controls_toggle = Array.from(
-      document.querySelectorAll(`button.structure-controls-toggle`),
-    )
-      .find((btn) =>
-        (btn as HTMLButtonElement).title === `Open controls`
-      ) as HTMLButtonElement
+    const structure_controls_toggle = document.querySelector(
+      `button.structure-controls-toggle`,
+    ) as HTMLButtonElement
     expect(structure_controls_toggle).toBeTruthy()
     structure_controls_toggle.click()
     await tick()
