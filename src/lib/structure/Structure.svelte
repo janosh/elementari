@@ -141,9 +141,18 @@
   let scene: Scene | undefined = $state(undefined)
   let camera: Camera | undefined = $state(undefined)
 
+  // Track which panel was opened last for mutual exclusion
+  let last_opened: `info` | `controls` | null = $state(null)
+
   // Auto-close behavior: make info/controls panels mutually exclusive
   $effect(() => {
-    if (controls_open && info_open) info_open = false
+    if (info_open && !controls_open) last_opened = `info`
+    if (controls_open && !info_open) last_opened = `controls`
+
+    if (info_open && controls_open) {
+      if (last_opened === `info`) controls_open = false
+      else info_open = false
+    }
   })
 
   // Reset tracking when structure changes
@@ -319,21 +328,6 @@
           <Icon icon="Reset" />
         </button>
       {/if}
-      {#if enable_info}
-        <button
-          class="info-toggle"
-          onclick={() => {
-            info_open = !info_open
-            if (info_open) controls_open = false
-          }}
-          title="{info_open ? `Close` : `Open`} info panel"
-          class:active={info_open}
-          aria-label="{info_open ? `Close` : `Open`} structure info panel"
-          aria-expanded={info_open}
-        >
-          <Icon icon="Info" style="transform: scale(1.1)" />
-        </button>
-      {/if}
       {#if fullscreen_toggle}
         <button
           onclick={toggle_fullscreen}
@@ -349,6 +343,10 @@
             />
           {/if}
         </button>
+      {/if}
+
+      {#if enable_info && structure}
+        <StructureInfoPanel {structure} bind:info_open />
       {/if}
 
       <StructureControls
@@ -400,11 +398,6 @@
     <div class="bottom-left">
       {@render bottom_left?.({ structure: structure! })}
     </div>
-
-    <!-- Info Panel -->
-    {#if structure}
-      <StructureInfoPanel {structure} bind:info_open />
-    {/if}
   </div>
 {:else if structure}
   <p class="warn">No sites found in structure</p>
@@ -461,9 +454,7 @@
     opacity: 1;
     pointer-events: auto;
   }
-  section.control-buttons :global(button) {
-    pointer-events: auto;
-    font-size: 1em;
+  section.control-buttons button {
     background-color: transparent;
   }
   section.control-buttons :global(button:hover) {

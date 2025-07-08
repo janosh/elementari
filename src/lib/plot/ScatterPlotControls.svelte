@@ -170,10 +170,9 @@
   <div class="plot-controls">
     <DraggablePanel
       bind:show={controls_open}
-      show_toggle_button
-      position={{ top: `30px`, right: `5px` }}
       closed_icon="Settings"
       open_icon="Cross"
+      icon_style="transform: scale(1.2);"
       toggle_props={{ class: `scatter-controls-toggle` }}
       panel_props={{
         class: `scatter-controls-panel`,

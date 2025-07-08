@@ -165,7 +165,6 @@
 
 <DraggablePanel
   bind:show={controls_open}
-  position={{ top: `30px`, right: `5px` }}
   panel_props={{ class: `controls-panel` }}
   toggle_props={{ class: `structure-controls-toggle`, title: `Open controls` }}
   icon_style="transform: scale(1.2);"

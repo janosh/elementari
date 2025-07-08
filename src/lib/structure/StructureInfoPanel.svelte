@@ -246,9 +246,11 @@
 {#if show_info}
   <DraggablePanel
     bind:show={info_open}
-    show_toggle_button={false}
-    position={{ top: `50px`, right: `80px` }}
     max_width="24em"
+    toggle_props={{ class: `structure-info-toggle`, title: `Toggle structure info` }}
+    open_icon="Cross"
+    closed_icon="Info"
+    icon_style="transform: scale(1.1);"
     panel_props={{
       class: `structure-info-panel`,
       style: `box-shadow: 0 5px 10px rgba(0, 0, 0, ${
@@ -293,7 +295,7 @@
                   <div class="copy-checkmark-overlay">
                     <Icon
                       icon="Check"
-                      style="color: var(--color-green); width: 16px; height: 16px"
+                      style="color: var(--success-color, #10b981); width: 12px; height: 12px"
                     />
                   </div>
                 {/if}

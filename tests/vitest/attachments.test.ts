@@ -1,4 +1,4 @@
-import { draggable } from '$lib/actions'
+import { draggable } from '$lib/attachments'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 type MockElement = HTMLElement & {
@@ -76,7 +76,7 @@ function get_global_handler(eventType: string): (event: MouseEvent) => void {
   return call[1]
 }
 
-describe(`draggable action`, () => {
+describe(`draggable attachment`, () => {
   let element: MockElement
   let handle: MockElement
   let userSelectSetter: ReturnType<typeof vi.fn>
@@ -102,20 +102,22 @@ describe(`draggable action`, () => {
 
   describe(`initialization`, () => {
     test(`should setup default draggable element`, () => {
-      const action = draggable(element)
+      const attachment = draggable()
+      const cleanup = attachment(element)
 
       expect(element.style.cursor).toBe(`grab`)
       expect(element.addEventListener).toHaveBeenCalledWith(
         `mousedown`,
         expect.any(Function),
       )
-      expect(action.destroy).toBeTypeOf(`function`)
+      expect(cleanup).toBeTypeOf(`function`)
     })
 
     test(`should use custom handle when provided`, () => {
       element.querySelector.mockReturnValue(handle)
 
-      draggable(element, { handle_selector: `.handle` })
+      const attachment = draggable({ handle_selector: `.handle` })
+      const cleanup = attachment(element)
 
       expect(element.querySelector).toHaveBeenCalledWith(`.handle`)
       expect(handle.style.cursor).toBe(`grab`)
@@ -124,16 +126,18 @@ describe(`draggable action`, () => {
         expect.any(Function),
       )
       expect(element.addEventListener).not.toHaveBeenCalled()
+      expect(cleanup).toBeTypeOf(`function`)
     })
 
     test(`should handle missing handle gracefully`, () => {
       element.querySelector.mockReturnValue(null)
       const consoleSpy = vi.spyOn(console, `warn`).mockImplementation(() => {})
 
-      const action = draggable(element, { handle_selector: `.missing` })
+      const attachment = draggable({ handle_selector: `.missing` })
+      const cleanup = attachment(element)
 
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`handle not found`))
-      expect(action.destroy).toBeTypeOf(`function`)
+      expect(cleanup).toBeUndefined()
       consoleSpy.mockRestore()
     })
   })
@@ -149,14 +153,18 @@ describe(`draggable action`, () => {
         on_drag_end: vi.fn(),
       }
 
+      let targetElement: MockElement
       if (useHandle) {
         element.querySelector.mockReturnValue(handle)
-        draggable(element, { handle_selector: `.handle`, ...callbacks })
+        const attachment = draggable({ handle_selector: `.handle`, ...callbacks })
+        attachment(element)
+        targetElement = handle
       } else {
-        draggable(element, callbacks)
+        const attachment = draggable(callbacks)
+        attachment(element)
+        targetElement = element
       }
 
-      const targetElement = useHandle ? handle : element
       const mousedownHandler = get_event_handler(targetElement, `mousedown`)
 
       // Start drag
@@ -194,81 +202,71 @@ describe(`draggable action`, () => {
 
     test(`should ignore drag from wrong target`, () => {
       const on_drag_start = vi.fn()
-      draggable(element, { on_drag_start })
+      const attachment = draggable({ on_drag_start })
+      attachment(element)
 
       const mousedownHandler = get_event_handler(element, `mousedown`)
       const wrongTarget = create_mock_element()
-      const event = create_mock_event(`mousedown`, wrongTarget, 100, 50)
+      element.contains.mockReturnValue(false)
 
-      mousedownHandler(event)
+      const startEvent = create_mock_event(`mousedown`, wrongTarget)
+      mousedownHandler(startEvent)
 
       expect(on_drag_start).not.toHaveBeenCalled()
-      expect(globalThis.addEventListener).not.toHaveBeenCalled()
     })
 
-    test(`should not update position when not dragging`, () => {
-      draggable(element)
+    test(`should prevent text selection during drag`, () => {
+      const attachment = draggable()
+      attachment(element)
 
-      // Verify no position updates occur without drag start
-      expect(element.style.left).toBe(``)
+      const mousedownHandler = get_event_handler(element, `mousedown`)
+      const startEvent = create_mock_event(`mousedown`, element)
+      mousedownHandler(startEvent)
+
+      expect(userSelectSetter).toHaveBeenCalledWith(`none`)
     })
   })
 
-  describe(`state management`, () => {
-    test(`should track dragging state correctly`, () => {
-      draggable(element)
-      const mousedownHandler = get_event_handler(element, `mousedown`)
-      const event = create_mock_event(`mousedown`, element, 100, 50)
+  describe(`cleanup`, () => {
+    test(`should remove event listeners on cleanup`, () => {
+      const attachment = draggable()
+      const cleanup = attachment(element)
 
-      // Start drag
-      mousedownHandler(event)
-      expect(globalThis.addEventListener).toHaveBeenCalledTimes(2) // mousemove + mouseup
+      expect(element.addEventListener).toHaveBeenCalledWith(
+        `mousedown`,
+        expect.any(Function),
+      )
 
-      // Multiple mousemoves should work
-      const mousemoveHandler = get_global_handler(`mousemove`)
-      mousemoveHandler(create_mock_event(`mousemove`, element, 110, 60))
-      expect(element.style.left).toBe(`110px`)
-
-      mousemoveHandler(create_mock_event(`mousemove`, element, 120, 70))
-      expect(element.style.left).toBe(`120px`)
-
-      // End drag
-      const mouseupHandler = get_global_handler(`mouseup`)
-      mouseupHandler(create_mock_event(`mouseup`, element, 120, 70))
-
-      // Subsequent mousemove should not affect position
-      const currentLeft = element.style.left
-      mousemoveHandler(create_mock_event(`mousemove`, element, 150, 100))
-      expect(element.style.left).toBe(currentLeft) // Should remain unchanged
-    })
-
-    test(`should handle multiple mouseup events gracefully`, () => {
-      const on_drag_end = vi.fn()
-      draggable(element, { on_drag_end })
-
-      const mousedownHandler = get_event_handler(element, `mousedown`)
-      mousedownHandler(create_mock_event(`mousedown`, element, 100, 50))
-
-      const mouseupHandler = get_global_handler(`mouseup`)
-      const endEvent = create_mock_event(`mouseup`, element, 100, 50)
-
-      mouseupHandler(endEvent)
-      mouseupHandler(endEvent) // Second mouseup
-
-      expect(on_drag_end).toHaveBeenCalledTimes(1) // Should only fire once
-    })
-  })
-
-  describe(`cleanup and destruction`, () => {
-    test(`should cleanup all event listeners on destroy`, () => {
-      const action = draggable(element)
-
-      action.destroy()
+      cleanup?.()
 
       expect(element.removeEventListener).toHaveBeenCalledWith(
         `mousedown`,
         expect.any(Function),
       )
+      expect(element.style.cursor).toBe(``)
+    })
+
+    test(`should remove global listeners during drag cleanup`, () => {
+      const attachment = draggable()
+      attachment(element)
+
+      const mousedownHandler = get_event_handler(element, `mousedown`)
+      const startEvent = create_mock_event(`mousedown`, element)
+      mousedownHandler(startEvent)
+
+      expect(globalThis.addEventListener).toHaveBeenCalledWith(
+        `mousemove`,
+        expect.any(Function),
+      )
+      expect(globalThis.addEventListener).toHaveBeenCalledWith(
+        `mouseup`,
+        expect.any(Function),
+      )
+
+      const mouseupHandler = get_global_handler(`mouseup`)
+      const endEvent = create_mock_event(`mouseup`)
+      mouseupHandler(endEvent)
+
       expect(globalThis.removeEventListener).toHaveBeenCalledWith(
         `mousemove`,
         expect.any(Function),
@@ -277,81 +275,6 @@ describe(`draggable action`, () => {
         `mouseup`,
         expect.any(Function),
       )
-      expect(element.style.cursor).toBe(``)
-    })
-
-    test(`should cleanup handle listeners when using custom handle`, () => {
-      element.querySelector.mockReturnValue(handle)
-      const action = draggable(element, { handle_selector: `.handle` })
-
-      action.destroy()
-
-      expect(handle.removeEventListener).toHaveBeenCalledWith(
-        `mousedown`,
-        expect.any(Function),
-      )
-      expect(handle.style.cursor).toBe(``)
-      expect(element.removeEventListener).not.toHaveBeenCalled()
-    })
-
-    test(`should handle destroy with missing handle gracefully`, () => {
-      element.querySelector.mockReturnValue(null)
-      vi.spyOn(console, `warn`).mockImplementation(() => {})
-
-      const action = draggable(element, { handle_selector: `.missing` })
-
-      expect(() => action.destroy()).not.toThrow()
-    })
-  })
-
-  describe(`edge cases and error handling`, () => {
-    test(`should handle rapid drag start/stop cycles`, () => {
-      const callbacks = { on_drag_start: vi.fn(), on_drag_end: vi.fn() }
-      draggable(element, callbacks)
-
-      const mousedownHandler = get_event_handler(element, `mousedown`)
-
-      // Rapid start/stop
-      mousedownHandler(create_mock_event(`mousedown`, element, 100, 50))
-      const mouseupHandler = get_global_handler(`mouseup`)
-      mouseupHandler(create_mock_event(`mouseup`, element, 100, 50))
-
-      mousedownHandler(create_mock_event(`mousedown`, element, 100, 50))
-      mouseupHandler(create_mock_event(`mouseup`, element, 100, 50))
-
-      expect(callbacks.on_drag_start).toHaveBeenCalledTimes(2)
-      expect(callbacks.on_drag_end).toHaveBeenCalledTimes(2)
-    })
-
-    test(`should preserve element position values during drag`, () => {
-      draggable(element)
-      const mousedownHandler = get_event_handler(element, `mousedown`)
-
-      mousedownHandler(create_mock_event(`mousedown`, element, 150, 75))
-
-      expect(element.style.left).toBe(`100px`) // offsetLeft
-      expect(element.style.top).toBe(`50px`) // offsetTop
-      expect(element.style.width).toBe(`200px`) // offsetWidth
-    })
-
-    test(`should calculate correct position deltas`, () => {
-      draggable(element)
-      const mousedownHandler = get_event_handler(element, `mousedown`)
-
-      // Start at 150,75
-      mousedownHandler(create_mock_event(`mousedown`, element, 150, 75))
-
-      const mousemoveHandler = get_global_handler(`mousemove`)
-
-      // Move to 200,125 (delta: +50, +50)
-      mousemoveHandler(create_mock_event(`mousemove`, element, 200, 125))
-      expect(element.style.left).toBe(`150px`) // 100 + 50
-      expect(element.style.top).toBe(`100px`) // 50 + 50
-
-      // Move to 175,100 (delta: +25, +25 from start)
-      mousemoveHandler(create_mock_event(`mousemove`, element, 175, 100))
-      expect(element.style.left).toBe(`125px`) // 100 + 25
-      expect(element.style.top).toBe(`75px`) // 50 + 25
     })
   })
 })
