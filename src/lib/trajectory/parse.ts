@@ -241,51 +241,60 @@ const parse_torch_sim_hdf5 = async (
   const h5_file = new h5wasm.File(temp_filename, `r`)
 
   try {
-    // Try to find positions and atomic numbers in various locations
-    let positions: number[][][] | null = null
-    let atomic_numbers: number[][] | null = null
-    let cells: number[][][] | null = null
-    let potential_energies: number[][] | null = null
-    let pbc_data: number[] | null = null
+    // Helper function to get available datasets for debugging
+    const get_available_datasets = (): string[] => {
+      const datasets: string[] = []
+      const search_locations = [
+        { name: `root`, group: h5_file },
+        { name: `data`, group: h5_file.get(`data`) as Hdf5Group | null },
+        { name: `header`, group: h5_file.get(`header`) as Hdf5Group | null },
+        { name: `metadata`, group: h5_file.get(`metadata`) as Hdf5Group | null },
+        { name: `steps`, group: h5_file.get(`steps`) as Hdf5Group | null },
+      ]
 
-    // Try torch-sim format first (data group)
-    const data_group = h5_file.get(`data`) as Hdf5Group
+      for (const { name, group } of search_locations) {
+        if (!group) continue
+        // This is a simplified check - in a real implementation we'd need to iterate through the group
+        const common_names = [
+          `positions`,
+          `atomic_numbers`,
+          `numbers`,
+          `Z`,
+          `species`,
+          `atoms`,
+          `elements`,
+          `atom_types`,
+          `atomic_number`,
+          `types`,
+          `cell`,
+          `cells`,
+          `lattice`,
+          `potential_energy`,
+          `energy`,
+          `pbc`,
+        ]
+        for (const dataset_name of common_names) {
+          if (group.get(dataset_name)) {
+            datasets.push(`${name}/${dataset_name}`)
+          }
+        }
+      }
+      return datasets
+    }
+
+    // Try to find positions (required)
+    let positions: number[][][] | null = null
+    const data_group = h5_file.get(`data`) as Hdf5Group | null
+
+    // Check data group first
     if (data_group) {
       const positions_dataset = data_group.get(`positions`)
       if (is_hdf5_dataset(positions_dataset)) {
         positions = positions_dataset.to_array() as number[][][]
       }
-
-      const atomic_numbers_dataset = data_group.get(`atomic_numbers`)
-      if (is_hdf5_dataset(atomic_numbers_dataset)) {
-        const raw_atomic_numbers = atomic_numbers_dataset.to_array() as
-          | number[]
-          | number[][]
-        // Handle both 1D and 2D arrays
-        if (Array.isArray(raw_atomic_numbers[0])) {
-          atomic_numbers = raw_atomic_numbers as number[][]
-        } else {
-          atomic_numbers = [raw_atomic_numbers as number[]]
-        }
-      }
-
-      const cells_dataset = data_group.get(`cell`)
-      if (is_hdf5_dataset(cells_dataset)) {
-        cells = cells_dataset.to_array() as number[][][]
-      }
-
-      const potential_energies_dataset = data_group.get(`potential_energy`)
-      if (is_hdf5_dataset(potential_energies_dataset)) {
-        potential_energies = potential_energies_dataset.to_array() as number[][]
-      }
-
-      const pbc_dataset = data_group.get(`pbc`)
-      if (is_hdf5_dataset(pbc_dataset)) {
-        pbc_data = pbc_dataset.to_array() as number[]
-      }
     }
 
-    // If positions not found in data group, try root level
+    // Fallback to root level
     if (!positions) {
       const positions_dataset = h5_file.get(`positions`) as Hdf5Dataset | null
       if (is_hdf5_dataset(positions_dataset)) {
@@ -302,83 +311,80 @@ const parse_torch_sim_hdf5 = async (
       }
     }
 
-    // If atomic numbers not found, try other common names and locations
-    if (!atomic_numbers) {
-      const atomic_number_names = [
-        `atomic_numbers`,
-        `numbers`,
-        `Z`,
-        `species`,
-        `atoms`,
-        `elements`,
-        `atom_types`,
-        `atomic_number`,
-        `types`,
-      ]
+    if (!positions) {
+      const available = get_available_datasets()
+      throw new Error(
+        `Missing required 'positions' dataset in HDF5 file. ` +
+          `Expected to find atomic positions in 'data/positions' or 'positions'. ` +
+          `Available datasets: ${
+            available.length ? available.join(`, `) : `none found`
+          }. ` +
+          `Please ensure your HDF5 file contains atomic position data.`,
+      )
+    }
 
-      // Try different group locations
-      const search_locations = [
-        h5_file, // root level
-        data_group, // data group
-      ]
+    // Try to find atomic numbers (required)
+    let atomic_numbers: number[][] | null = null
+    const atomic_number_names = [
+      `atomic_numbers`,
+      `numbers`,
+      `Z`,
+      `species`,
+      `atoms`,
+      `elements`,
+      `atom_types`,
+      `atomic_number`,
+      `types`,
+    ]
 
-      // Also check header and metadata groups
-      const header_group = h5_file.get(`header`) as Hdf5Group | null
-      const metadata_group = h5_file.get(`metadata`) as Hdf5Group | null
-      const steps_group = h5_file.get(`steps`) as Hdf5Group | null
+    const search_locations = [
+      { name: `data`, group: data_group },
+      { name: `root`, group: h5_file },
+      { name: `header`, group: h5_file.get(`header`) as Hdf5Group | null },
+      { name: `metadata`, group: h5_file.get(`metadata`) as Hdf5Group | null },
+      { name: `steps`, group: h5_file.get(`steps`) as Hdf5Group | null },
+    ]
 
-      if (header_group) search_locations.push(header_group)
-      if (metadata_group) search_locations.push(metadata_group)
-      if (steps_group) search_locations.push(steps_group)
+    for (const { group } of search_locations) {
+      if (!group || atomic_numbers) continue
 
-      for (const location of search_locations) {
-        if (!location) continue
-
-        for (const name of atomic_number_names) {
-          const dataset = location.get(name) as Hdf5Dataset | null
-          if (is_hdf5_dataset(dataset)) {
-            const raw_data = dataset.to_array() as number[] | number[][]
-            // Handle both 1D and 2D arrays
-            if (Array.isArray(raw_data[0])) {
-              atomic_numbers = raw_data as number[][]
-            } else {
-              atomic_numbers = [raw_data as number[]]
-            }
-            break
+      for (const name of atomic_number_names) {
+        const dataset = group.get(name) as Hdf5Dataset | null
+        if (is_hdf5_dataset(dataset)) {
+          const raw_data = dataset.to_array() as number[] | number[][]
+          // Handle both 1D and 2D arrays
+          if (Array.isArray(raw_data[0])) {
+            atomic_numbers = raw_data as number[][]
+          } else {
+            atomic_numbers = [raw_data as number[]]
           }
-        }
-
-        if (atomic_numbers) break
-      }
-
-      // If still no atomic numbers found, try to infer from filename or make a reasonable guess
-      if (!atomic_numbers && filename && filename.includes(`water`)) {
-        // For water cluster, assume it's water molecules (H2O)
-        // We need to check the positions to determine how many atoms there are
-        if (positions && positions[0]) {
-          const num_atoms = positions[0].length
-          // For a water cluster, assume pattern is O-H-H repeating
-          const water_molecules = Math.floor(num_atoms / 3)
-          const remaining_atoms = num_atoms % 3
-
-          const inferred_atomic_numbers = []
-          for (let i = 0; i < water_molecules; i++) {
-            inferred_atomic_numbers.push(8) // O
-            inferred_atomic_numbers.push(1) // H
-            inferred_atomic_numbers.push(1) // H
-          }
-
-          // Handle any remaining atoms (assume hydrogen)
-          for (let i = 0; i < remaining_atoms; i++) {
-            inferred_atomic_numbers.push(1) // H
-          }
-
-          atomic_numbers = [inferred_atomic_numbers]
+          break
         }
       }
     }
 
-    // If cells not found, try root level
+    if (!atomic_numbers) {
+      const available = get_available_datasets()
+      const tried_names = atomic_number_names.map((name) => `'${name}'`).join(`, `)
+      throw new Error(
+        `Missing required atomic numbers in HDF5 file. ` +
+          `Searched for datasets: ${tried_names} in groups: data, root, header, metadata, steps. ` +
+          `Available datasets: ${
+            available.length ? available.join(`, `) : `none found`
+          }. ` +
+          `Please ensure your HDF5 file contains atomic number/species information.`,
+      )
+    }
+
+    // Try to find cell data (optional)
+    let cells: number[][][] | null = null
+    if (data_group) {
+      const cells_dataset = data_group.get(`cell`)
+      if (is_hdf5_dataset(cells_dataset)) {
+        cells = cells_dataset.to_array() as number[][][]
+      }
+    }
+
     if (!cells) {
       const cells_dataset = (h5_file.get(`cell`) as Hdf5Dataset | null) ||
         (h5_file.get(`cells`) as Hdf5Dataset | null) ||
@@ -394,9 +400,22 @@ const parse_torch_sim_hdf5 = async (
       }
     }
 
-    if (!positions) throw new Error(`No positions data found in HDF5 file`)
-    if (!atomic_numbers) {
-      throw new Error(`No atomic numbers data found in HDF5 file`)
+    // Try to find energy data (optional)
+    let potential_energies: number[][] | null = null
+    if (data_group) {
+      const potential_energies_dataset = data_group.get(`potential_energy`)
+      if (is_hdf5_dataset(potential_energies_dataset)) {
+        potential_energies = potential_energies_dataset.to_array() as number[][]
+      }
+    }
+
+    // Try to find PBC data (optional)
+    let pbc_data: number[] | null = null
+    if (data_group) {
+      const pbc_dataset = data_group.get(`pbc`)
+      if (is_hdf5_dataset(pbc_dataset)) {
+        pbc_data = pbc_dataset.to_array() as number[]
+      }
     }
 
     const elements = convert_atomic_numbers(atomic_numbers[0])

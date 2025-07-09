@@ -320,7 +320,7 @@ const themes = {
     black: `1px solid rgba(255, 255, 255, 0.1)`,
   },
   'plot-legend-item-color': {
-    light: colors.txt_white,
+    light: colors.txt_light,
     dark: colors.txt_dark,
     white: colors.txt_white,
     black: colors.txt_black,

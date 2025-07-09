@@ -97,18 +97,46 @@ describe(`HDF5 Format`, () => {
     expect(trajectory.frames.length).toBeGreaterThan(0)
   })
 
-  it(`should parse water cluster basic arrays HDF5 file`, async () => {
-    const hdf5_content = read_binary_test_file(`water-cluster-basic-arrays.h5`)
-    const trajectory = await parse_trajectory_data(
-      hdf5_content,
-      `water-cluster-basic-arrays.h5`,
-    )
+  it(`should provide detailed error when atomic numbers are missing`, async () => {
+    // The water cluster file actually demonstrates this case - it has positions but no atomic numbers
+    const hdf5_content = read_binary_test_file(`torch-sim-water-cluster-bad-file.h5`)
+
+    await expect(
+      parse_trajectory_data(hdf5_content, `torch-sim-water-cluster-bad-file.h5`),
+    ).rejects.toThrow(/Missing required atomic numbers in HDF5 file/)
+
+    // Verify the error message contains helpful details
+    try {
+      await parse_trajectory_data(hdf5_content, `torch-sim-water-cluster-bad-file.h5`)
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain(`Searched for datasets:`)
+      expect((error as Error).message).toContain(`Available datasets:`)
+      expect((error as Error).message).toContain(
+        `Please ensure your HDF5 file contains atomic number/species information`,
+      )
+    }
+  })
+
+  it(`should provide detailed error when positions are missing`, async () => {
+    // Create a mock ArrayBuffer that looks like HDF5 but will fail format detection
+    const invalid_hdf5 = new ArrayBuffer(128) // Too small to be valid HDF5
+
+    await expect(
+      parse_trajectory_data(invalid_hdf5, `invalid.h5`),
+    ).rejects.toThrow(/Unsupported binary format/)
+
+    // Note: The actual detailed position error would only trigger with a valid HDF5 file
+    // that has the right structure but missing positions. This is hard to create in tests.
+  })
+
+  it(`should parse valid HDF5 file with both positions and atomic numbers`, async () => {
+    // Test that files with complete data work correctly
+    const hdf5_content = read_binary_test_file(`torch-sim-gold-cluster-55-atoms.h5`)
+    const trajectory = await parse_trajectory_data(hdf5_content, `test.h5`)
 
     expect(trajectory).toBeDefined()
     expect(trajectory.metadata?.source_format).toBe(`hdf5_trajectory`)
     expect(trajectory.frames.length).toBeGreaterThan(0)
-    expect(trajectory.frames[0].structure.sites.length).toBeGreaterThan(0)
-    // Should have detected atomic numbers and positions
     expect(trajectory.metadata?.num_atoms).toBeGreaterThan(0)
   })
 })

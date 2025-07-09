@@ -39,6 +39,12 @@
     border: 1px solid var(--trajectory-error-border, #f97583);
     box-sizing: border-box;
   }
+  .error-message p {
+    max-width: 30em;
+    word-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.5;
+  }
   .error-message button {
     margin-top: 1rem;
     background: var(--trajectory-error-button-bg, #d73a49);

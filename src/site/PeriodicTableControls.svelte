@@ -227,9 +227,7 @@
     <h3>
       Element Category Colors
       {#if category_colors_modified}
-        button<button class="section-reset" onclick={reset_category_colors}>
-          reset
-        </button>
+        <button class="section-reset" onclick={reset_category_colors}>reset</button>
       {/if}
     </h3>
     {#each Object.keys(colors.category) as category (category)}
@@ -264,7 +262,7 @@
     <h3>
       Element Tiles
       {#if tiles_modified}
-        button<button class="section-reset" onclick={reset_tiles}>reset</button>
+        <button class="section-reset" onclick={reset_tiles}>reset</button>
       {/if}
     </h3>
 
@@ -337,7 +335,7 @@
     <h3>
       Font Sizes
       {#if fonts_modified}
-        button<button class="section-reset" onclick={reset_fonts}>reset</button>
+        <button class="section-reset" onclick={reset_fonts}>reset</button>
       {/if}
     </h3>
 
@@ -412,7 +410,7 @@
     <h3>
       Tooltip
       {#if tooltip_modified}
-        button<button class="section-reset" onclick={reset_tooltip}>reset</button>
+        <button class="section-reset" onclick={reset_tooltip}>reset</button>
       {/if}
     </h3>
 
