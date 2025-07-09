@@ -112,18 +112,13 @@ const get_system_theme = (): ThemeName => {
   const color_theme = vscode.window.activeColorTheme
 
   // Map VSCode theme kind to our theme names
-  switch (color_theme.kind) {
-    case vscode.ColorThemeKind.Light:
-      return COLOR_THEMES.light
-    case vscode.ColorThemeKind.Dark:
-      return COLOR_THEMES.dark
-    case vscode.ColorThemeKind.HighContrast:
-      return COLOR_THEMES.black
-    case vscode.ColorThemeKind.HighContrastLight:
-      return COLOR_THEMES.white
-    default:
-      return COLOR_THEMES.light
-  }
+  if (color_theme.kind === vscode.ColorThemeKind.Light) return COLOR_THEMES.light
+  else if (color_theme.kind === vscode.ColorThemeKind.Dark) return COLOR_THEMES.dark
+  else if (color_theme.kind === vscode.ColorThemeKind.HighContrast) {
+    return COLOR_THEMES.black
+  } else if (color_theme.kind === vscode.ColorThemeKind.HighContrastLight) {
+    return COLOR_THEMES.white
+  } else return COLOR_THEMES.light
 }
 
 // Create HTML content for webview
@@ -195,10 +190,7 @@ export const handle_msg = async (
 }
 
 // Start watching a file using VS Code's built-in file system watcher
-function start_watching_file(
-  file_path: string,
-  webview: vscode.Webview,
-): void {
+function start_watching_file(file_path: string, webview: vscode.Webview): void {
   try {
     // Stop existing watcher for this file if any
     stop_watching_file(file_path)
@@ -371,7 +363,8 @@ export const render = (context: vscode.ExtensionContext, uri?: vscode.Uri) => {
       theme_change_listener.dispose()
       config_change_listener.dispose()
 
-      // File watching cleanup happens automatically when FileWatcher is disposed
+      // Clean up file watcher
+      if (file_path) stop_watching_file(file_path)
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
@@ -402,9 +395,6 @@ class Provider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocum
     try {
       const filename = path.basename(document.uri.fsPath)
       const file_path = document.uri.fsPath
-
-      // Start watching the file immediately
-      start_watching_file(file_path, webview_panel.webview)
 
       webview_panel.webview.options = {
         enableScripts: true,
@@ -462,7 +452,7 @@ class Provider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocum
         theme_change_listener.dispose()
         config_change_listener.dispose()
 
-        // File watching cleanup happens automatically when FileWatcher is disposed
+        stop_watching_file(file_path) // Clean up file watcher
       })
       // Note: webview_panel disposal is managed by VSCode for custom editors
     } catch (error: unknown) {

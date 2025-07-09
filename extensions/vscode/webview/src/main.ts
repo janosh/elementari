@@ -29,6 +29,14 @@ interface MatterVizApp {
   destroy(): void
 }
 
+interface FileChangeMessage {
+  command: `fileUpdated` | `fileDeleted`
+  file_path?: string
+  data?: FileData
+  type?: `trajectory` | `structure`
+  theme?: ThemeName
+}
+
 // VSCode webview API type (available globally in webview context)
 interface WebviewApi {
   postMessage(message: { command: string; text: string }): void
@@ -70,13 +78,7 @@ const get_vscode_api = (): WebviewApi | null => {
 }
 
 // Handle file change events from extension
-const handle_file_change = async (message: {
-  command: string
-  file_path?: string
-  data?: FileData
-  type?: string
-  theme?: string
-}): Promise<void> => {
+const handle_file_change = async (message: FileChangeMessage): Promise<void> => {
   console.log(`File change message:`, message)
 
   if (message.command === `fileDeleted`) {
@@ -333,7 +335,7 @@ const initialize_app = async (): Promise<MatterVizApp> => {
       console.log(`[MatterViz Webview] Setting up file change listener`)
       // Listen for file change messages from extension
       globalThis.addEventListener(`message`, (event) => {
-        const message = event.data
+        const message = event.data as FileChangeMessage
         console.log(`[MatterViz Webview] Received message:`, message)
         if (
           message.command === `fileUpdated` || message.command === `fileDeleted`

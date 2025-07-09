@@ -26,12 +26,18 @@ interface ParsedFrame {
 
 // Type guard to check if an entity is a Dataset
 const is_hdf5_dataset = (entity: Entity | null): entity is Dataset => {
-  return entity !== null && entity.constructor.name === `Dataset`
+  return entity !== null &&
+    (`to_array` in entity ||
+      entity instanceof h5wasm.Dataset ||
+      entity.constructor.name === `Dataset`)
 }
 
 // Type guard to check if an entity is a Group
 const is_hdf5_group = (entity: Entity | null): entity is Group => {
-  return entity !== null && entity.constructor.name === `Group`
+  return entity !== null &&
+    (`keys` in entity && `get` in entity ||
+      entity instanceof h5wasm.Group ||
+      entity.constructor.name === `Group`)
 }
 
 // Cache for matrix inversions

@@ -1,3 +1,4 @@
+import * as fs from 'fs'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { ExtensionContext, Webview } from 'vscode'
 
@@ -420,7 +421,7 @@ describe(`MatterViz Extension`, () => {
 
   test(`render creates webview panel`, () => {
     const mock_panel = {
-      webview: { html: ``, onDidReceiveMessage: vi.fn(), ...mock_webview },
+      webview: { ...mock_webview },
       onDidDispose: vi.fn(),
     }
     mock_vscode.window.createWebviewPanel.mockReturnValue(mock_panel)
