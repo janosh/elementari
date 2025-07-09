@@ -527,7 +527,8 @@ const parse_xyz_trajectory = (content: string): Trajectory => {
     const positions: number[][] = []
     const elements: ElementSymbol[] = []
     const forces: number[][] = []
-    const has_forces = comment.includes(`forces:R:3`)
+    const has_forces = comment.includes(`forces:R:3`) ||
+      comment.includes(`Properties=`) && comment.includes(`forces:R:3`)
 
     for (let idx = 0; idx < num_atoms && line_idx < lines.length; idx++) {
       const parts = lines[line_idx].trim().split(/\s+/)

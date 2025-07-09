@@ -1462,36 +1462,29 @@ test.describe(`Export Button Tests`, () => {
     await test_page_controls_checkbox.check()
     await expect(controls_dialog).toHaveClass(/panel-open/, { timeout: 2000 })
 
-    // Find export buttons
+    // Test JSON export button multiple clicks
     const json_export_btn = controls_dialog.locator(
       `button:has-text("⬇ JSON")`,
     )
+    await expect(json_export_btn).toBeVisible()
+    await json_export_btn.click()
+    await expect(json_export_btn).toBeEnabled()
+
+    // Test sequential JSON click
+    await json_export_btn.click()
+    await expect(json_export_btn).toBeEnabled()
+
+    // Test PNG export button multiple clicks
     const png_export_btn = controls_dialog.locator(
       `button:has-text("⬇ PNG")`,
     )
+    await expect(png_export_btn).toBeVisible()
+    await png_export_btn.click()
+    await expect(png_export_btn).toBeEnabled()
 
-    // Scroll the entire controls panel to ensure export section is visible
-    await controls_dialog.scrollIntoViewIfNeeded()
-
-    // Scroll the controls panel to the bottom to ensure export buttons are visible
-    await controls_dialog.evaluate((element) => {
-      element.scrollTop = element.scrollHeight
-    })
-
-    // Wait for buttons to be attached
-    await expect(png_export_btn).toBeAttached()
-    await expect(json_export_btn).toBeAttached()
-
-    // Test multiple clicks work without errors
-    await json_export_btn.click({ force: true })
-    await expect(json_export_btn).toBeEnabled()
-
-    // Test rapid sequential clicks
-    await json_export_btn.click({ force: true })
-    await expect(json_export_btn).toBeEnabled()
-
-    // Verify PNG button exists (even if not clickable in test)
-    await expect(png_export_btn).toBeAttached()
+    // Test sequential PNG click
+    await png_export_btn.click()
+    await expect(png_export_btn).toBeEnabled()
   })
 
   test(`export buttons work with loaded structure`, async ({ page }) => {
@@ -1512,31 +1505,21 @@ test.describe(`Export Button Tests`, () => {
     await expect(canvas).toHaveAttribute(`width`)
     await expect(canvas).toHaveAttribute(`height`)
 
-    // Test exports with loaded structure
+    // Test JSON button works with loaded structure
     const json_export_btn = controls_dialog.locator(
       `button:has-text("⬇ JSON")`,
     )
+    await expect(json_export_btn).toBeVisible()
+    await json_export_btn.click()
+    await expect(json_export_btn).toBeEnabled()
+
+    // Test PNG button works with loaded structure
     const png_export_btn = controls_dialog.locator(
       `button:has-text("⬇ PNG")`,
     )
-
-    // Scroll the entire controls panel to ensure export section is visible
-    await controls_dialog.scrollIntoViewIfNeeded()
-
-    // Scroll the controls panel to the bottom to ensure export buttons are visible
-    await controls_dialog.evaluate((element) => {
-      element.scrollTop = element.scrollHeight
-    })
-
-    // Wait for buttons to be attached
-    await expect(png_export_btn).toBeAttached()
-    await expect(json_export_btn).toBeAttached()
-
-    await json_export_btn.click({ force: true })
-    await expect(json_export_btn).toBeEnabled()
-
-    // Verify PNG button exists (even if not clickable in test)
-    await expect(png_export_btn).toBeAttached()
+    await expect(png_export_btn).toBeVisible()
+    await png_export_btn.click()
+    await expect(png_export_btn).toBeEnabled()
   })
 
   test(`reset camera button integration with existing UI elements`, async ({ page }) => {
