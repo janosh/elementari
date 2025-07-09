@@ -112,13 +112,13 @@ test.describe(`Trajectory Component`, () => {
       await expect(display_button).toBeEnabled()
     })
 
-    test(`sidebar opens and closes with info button`, async () => {
+    test(`info panel opens and closes with info button`, async () => {
       const info_button = controls.locator(`.info-button`)
-      const sidebar = trajectory_viewer.locator(`.info-sidebar`).first()
+      const info_panel = trajectory_viewer.locator(`.info-panel`).first()
 
       await expect(info_button).toBeVisible()
       await expect(info_button).toBeEnabled()
-      await expect(sidebar).toBeAttached() // Sidebar exists but may be hidden
+      await expect(info_panel).toBeAttached() // Info panel exists but may be hidden
 
       // Test that button can be clicked
       await info_button.click({ force: true })
@@ -127,19 +127,19 @@ test.describe(`Trajectory Component`, () => {
       await expect(info_button).toBeEnabled()
     })
 
-    test(`sidebar displays trajectory information correctly`, async () => {
-      // First, check if sidebar exists at all
-      const sidebar = trajectory_viewer.locator(`.info-sidebar`).first()
-      await expect(sidebar).toBeAttached()
+    test(`info panel displays trajectory information correctly`, async () => {
+      // First, check if info panel exists at all
+      const info_panel = trajectory_viewer.locator(`.info-panel`).first()
+      await expect(info_panel).toBeAttached()
 
       // Try to find the info button and click it
       const info_button = trajectory_viewer.locator(`.info-button`)
       await expect(info_button).toBeVisible()
 
-      // Test sidebar functionality - both button click and keyboard shortcut methods
+      // Test info panel functionality - both button click and keyboard shortcut methods
 
       // Verify initial state
-      await expect(sidebar).not.toHaveClass(/open/) // Initially closed
+      await expect(info_panel).not.toHaveClass(/open/) // Initially closed
       await expect(info_button).toBeVisible()
       await expect(info_button).toBeEnabled()
 
@@ -150,32 +150,34 @@ test.describe(`Trajectory Component`, () => {
       await trajectory_viewer.focus()
       await trajectory_viewer.press(`i`)
 
-      // Verify that at least the sidebar structure exists and can be interacted with
-      await expect(sidebar).toBeAttached()
+      // Verify that at least the info panel structure exists and can be interacted with
+      await expect(info_panel).toBeAttached()
 
-      // If sidebar opened successfully, test its contents
-      const is_open = await sidebar.evaluate((el) => el.classList.contains(`open`))
+      // If info panel opened successfully, test its contents
+      const is_open = await info_panel.evaluate((el: Element) =>
+        el.classList.contains(`open`)
+      )
 
       if (is_open) {
-        // Check sidebar sections exist
+        // Check info panel sections exist
         const sections = [`Structure`, `Unit Cell`, `Trajectory`]
         for (const section of sections) {
           await expect(
-            sidebar.locator(`h4`).filter({ hasText: section }),
+            info_panel.locator(`h4`).filter({ hasText: section }),
           ).toBeVisible()
         }
 
-        // Check some key data exists in sidebar
-        await expect(sidebar).toContainText(`Atoms`)
-        await expect(sidebar).toContainText(`Steps`)
-        await expect(sidebar).toContainText(`Volume`)
+        // Check some key data exists in info panel
+        await expect(info_panel).toContainText(`Atoms`)
+        await expect(info_panel).toContainText(`Steps`)
+        await expect(info_panel).toContainText(`Volume`)
 
         // Test component-specific timestamp formatting
         if (
-          await sidebar.locator(`[title="File system last modified time"]`)
+          await info_panel.locator(`[title="File system last modified time"]`)
             .isVisible()
         ) {
-          const timestamp_text = await sidebar.locator(
+          const timestamp_text = await info_panel.locator(
             `[title="File system last modified time"]`,
           ).textContent()
           expect(timestamp_text).toMatch(
@@ -184,7 +186,7 @@ test.describe(`Trajectory Component`, () => {
         }
       } else {
         // At minimum, verify the structure exists and button/keyboard handlers are functional
-        await expect(sidebar).toBeAttached()
+        await expect(info_panel).toBeAttached()
         await expect(info_button).toBeEnabled()
       }
     })
@@ -215,9 +217,9 @@ test.describe(`Trajectory Component`, () => {
       const step_input = controls.locator(`.step-input`)
       await expect(step_input).toHaveValue(`0`)
 
-      // Check sidebar is initially closed
-      const sidebar = trajectory_viewer.locator(`.info-sidebar`).first()
-      await expect(sidebar).not.toHaveClass(/open/)
+      // Check info panel is initially closed
+      const info_panel = trajectory_viewer.locator(`.info-panel`).first()
+      await expect(info_panel).not.toHaveClass(/open/)
     })
 
     test(`playback controls function properly`, async () => {
@@ -454,12 +456,12 @@ test.describe(`Trajectory Component`, () => {
 
     test(`keyboard navigation works`, async ({ page }) => {
       const trajectory = page.locator(`#loaded-trajectory .trajectory-viewer`)
-      const sidebar = trajectory.locator(`.info-sidebar`).first()
+      const info_panel = trajectory.locator(`.info-panel`).first()
       const info_button = trajectory.locator(`.info-button`)
 
       // Test that elements are present and keyboard events can be fired
       await expect(info_button).toBeVisible()
-      await expect(sidebar).toBeAttached()
+      await expect(info_panel).toBeAttached()
 
       // Test keyboard functionality
       await page.keyboard.press(`Escape`)
@@ -556,7 +558,7 @@ test.describe(`Trajectory Component`, () => {
         await play_button.click()
       }
 
-      // Test info sidebar button
+      // Test info panel button
       const info_button = trajectory.locator(`.info-button`)
       await expect(info_button).toBeVisible()
       await info_button.click()
@@ -907,12 +909,12 @@ test.describe(`Trajectory Component`, () => {
       // Should use vertical layout for tall container
       await expect(trajectory).toHaveClass(/vertical/)
 
-      // Sidebar should exist and be properly sized
-      const sidebar = trajectory.locator(`.info-sidebar`).first()
-      await expect(sidebar).toBeAttached()
+      // Info panel should exist and be properly sized
+      const info_panel = trajectory.locator(`.info-panel`).first()
+      await expect(info_panel).toBeAttached()
 
-      const sidebar_bbox = await sidebar.boundingBox()
-      expect(sidebar_bbox).toBeTruthy() // Just verify it has some dimensions
+      const info_panel_bbox = await info_panel.boundingBox()
+      expect(info_panel_bbox).toBeTruthy() // Just verify it has some dimensions
     })
 
     test(`desktop layout works correctly`, async ({ page }) => {
@@ -1626,7 +1628,7 @@ test.describe(`Trajectory Demo Page - Unit-Aware Plotting`, () => {
       expect(initial_classes).not.toContain(`active`)
       expect(initial_z).toBe(`auto`)
 
-      // Trigger active state by opening info sidebar
+      // Trigger active state by opening info panel
       const info_button = viewer.locator(`.info-button`)
       if (await info_button.count() > 0) {
         await info_button.click()

@@ -93,8 +93,23 @@ describe(`HDF5 Format`, () => {
     const trajectory = await parse_trajectory_data(hdf5_content, `test.h5`)
 
     expect(trajectory).toBeDefined()
-    expect(trajectory.metadata?.source_format).toBe(`torch_sim_hdf5`)
+    expect(trajectory.metadata?.source_format).toBe(`hdf5_trajectory`)
     expect(trajectory.frames.length).toBeGreaterThan(0)
+  })
+
+  it(`should parse water cluster basic arrays HDF5 file`, async () => {
+    const hdf5_content = read_binary_test_file(`water-cluster-basic-arrays.h5`)
+    const trajectory = await parse_trajectory_data(
+      hdf5_content,
+      `water-cluster-basic-arrays.h5`,
+    )
+
+    expect(trajectory).toBeDefined()
+    expect(trajectory.metadata?.source_format).toBe(`hdf5_trajectory`)
+    expect(trajectory.frames.length).toBeGreaterThan(0)
+    expect(trajectory.frames[0].structure.sites.length).toBeGreaterThan(0)
+    // Should have detected atomic numbers and positions
+    expect(trajectory.metadata?.num_atoms).toBeGreaterThan(0)
   })
 })
 

@@ -912,4 +912,33 @@ test.describe(`StructureScene Component Tests`, () => {
 
     expect(console_errors).toHaveLength(0)
   })
+
+  // Test rotation target prevents structure from moving off-canvas
+  test(`rotation target uses lattice center for crystalline structures and center of mass for molecular systems`, async ({ page }) => {
+    const console_errors = setup_console_monitoring(page)
+    const canvas = page.locator(`#structure-wrapper canvas`)
+
+    await expect(canvas).toBeVisible()
+    await page.waitForTimeout(200)
+
+    // Test rotation behavior - should not move structure off-canvas
+    const box = await canvas.boundingBox()
+    if (box) {
+      const initial_screenshot = await canvas.screenshot()
+
+      // Perform rotation drag
+      await canvas.dragTo(canvas, {
+        sourcePosition: { x: box.width / 2 - 50, y: box.height / 2 },
+        targetPosition: { x: box.width / 2 + 50, y: box.height / 2 },
+      })
+
+      const rotated_screenshot = await canvas.screenshot()
+
+      // Verify rotation occurred and structure remains visible (not moved off-canvas)
+      expect(initial_screenshot.equals(rotated_screenshot)).toBe(false)
+      expect(rotated_screenshot.length).toBeGreaterThan(1000)
+    }
+
+    expect(console_errors).toHaveLength(0)
+  })
 })

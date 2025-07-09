@@ -227,7 +227,9 @@
     <h3>
       Element Category Colors
       {#if category_colors_modified}
-        <button class="section-reset-btn" onclick={reset_category_colors}>reset</button>
+        button<button class="section-reset" onclick={reset_category_colors}>
+          reset
+        </button>
       {/if}
     </h3>
     {#each Object.keys(colors.category) as category (category)}
@@ -262,7 +264,7 @@
     <h3>
       Element Tiles
       {#if tiles_modified}
-        <button class="section-reset-btn" onclick={reset_tiles}>reset</button>
+        button<button class="section-reset" onclick={reset_tiles}>reset</button>
       {/if}
     </h3>
 
@@ -335,7 +337,7 @@
     <h3>
       Font Sizes
       {#if fonts_modified}
-        <button class="section-reset-btn" onclick={reset_fonts}>reset</button>
+        button<button class="section-reset" onclick={reset_fonts}>reset</button>
       {/if}
     </h3>
 
@@ -410,7 +412,7 @@
     <h3>
       Tooltip
       {#if tooltip_modified}
-        <button class="section-reset-btn" onclick={reset_tooltip}>reset</button>
+        button<button class="section-reset" onclick={reset_tooltip}>reset</button>
       {/if}
     </h3>
 
@@ -496,18 +498,17 @@
     font-size: 1.1em;
     color: var(--text-color);
   }
-  .section-reset-btn {
+  button.section-reset {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-color);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     padding: 2px 8px;
     font-size: 0.75em;
-    cursor: pointer;
     opacity: 0.8;
     transition: opacity 0.2s;
   }
-  .section-reset-btn:hover {
+  button.section-reset:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.2);
   }
@@ -543,7 +544,6 @@
     height: 30px;
     border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
   }
   section > label select {
     flex: 1;
@@ -558,7 +558,6 @@
     border-radius: 3px;
     padding: 3px 6px;
     font-size: 0.8em;
-    cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.2s;
   }
@@ -575,7 +574,6 @@
     gap: 0.4em;
     padding: 0.3em 0.4em;
     border-radius: 3px;
-    cursor: pointer;
     font-size: 0.8em;
     text-transform: capitalize;
     transition: background-color 0.2s;
@@ -588,7 +586,6 @@
     height: 20px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
   }
   .category-colors span {
     flex: 1;
@@ -600,7 +597,6 @@
     border-radius: 3px;
     padding: 2px 6px;
     font-size: 0.75em;
-    cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.2s;
   }

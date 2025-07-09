@@ -46,7 +46,6 @@
     border: none;
     border-radius: 4px;
     padding: 0.5rem 1rem;
-    cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.2s;
   }
