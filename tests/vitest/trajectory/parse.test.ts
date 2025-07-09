@@ -127,15 +127,15 @@ describe(`XYZ Trajectory Format`, () => {
       `3\nLattice="5.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 5.0"\nH 0.0 0.0 0.0\nH 1.0 0.0 0.0\nH 0.0 1.0 0.0\n3\nLattice="5.1 0.0 0.0 0.0 5.1 0.0 0.0 0.0 5.1"\nH 0.0 0.0 0.0\nH 1.0 0.0 0.0\nH 0.0 1.0 0.0`
     const trajectory = await parse_trajectory_data(content, `test.xyz`)
 
-    const structure = trajectory.frames[0]?.structure
-    if (structure && `lattice` in structure) {
-      expect(structure.lattice).toBeDefined()
-      expect(structure.lattice?.matrix).toEqual([
-        [5.0, 0.0, 0.0],
-        [0.0, 5.0, 0.0],
-        [0.0, 0.0, 5.0],
-      ])
-    }
+    const structure = trajectory.frames[0].structure
+    expect(structure).toBeDefined()
+    expect(`lattice` in structure).toBe(true)
+    // @ts-expect-error - line above ensures lattice is defined but doesn't type narrow
+    expect(structure.lattice.matrix).toEqual([
+      [5.0, 0.0, 0.0],
+      [0.0, 5.0, 0.0],
+      [0.0, 0.0, 5.0],
+    ])
   })
 
   it(`should handle forces in extended XYZ format`, async () => {
@@ -241,7 +241,7 @@ describe(`HDF5 Format`, () => {
     )
   })
 
-  it(`should handle caching correctly`, async () => {
+  it(`should produce consistent results across separate parse operations`, async () => {
     const content = read_binary_test_file(`torch-sim-gold-cluster-55-atoms.h5`)
     const trajectory1 = await parse_trajectory_data(content, `test1.h5`)
     const trajectory2 = await parse_trajectory_data(content, `test2.h5`)
