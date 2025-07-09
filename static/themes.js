@@ -30,6 +30,27 @@ const colors = {
   acc_dark: `#60a5fa`, // Light blue
   acc_white: `#2563eb`, // Blue
   acc_black: `#7dd3fc`, // Cyan
+
+  // Error colors
+  error_text_light: `#dc2626`, // Red
+  error_text_dark: `#fca5a5`, // Light red
+  error_text_white: `#b91c1c`, // Dark red
+  error_text_black: `#f87171`, // Pink-red
+
+  error_border_light: `#fca5a5`, // Light red
+  error_border_dark: `#dc2626`, // Red
+  error_border_white: `#fecaca`, // Very light red
+  error_border_black: `#991b1b`, // Dark red
+
+  error_btn_light: `#dc2626`, // Red
+  error_btn_dark: `#7f1d1d`, // Dark red
+  error_btn_white: `#b91c1c`, // Dark red
+  error_btn_black: `#991b1b`, // Dark red
+
+  error_btn_hover_light: `#b91c1c`, // Dark red
+  error_btn_hover_dark: `#991b1b`, // Darker red
+  error_btn_hover_white: `#991b1b`, // Darker red
+  error_btn_hover_black: `#7f1d1d`, // Very dark red
 }
 
 // Helper functions for common patterns
@@ -228,6 +249,36 @@ const themes = {
     dark: `#e2e8f0`,
     white: colors.txt_white,
     black: `#f1f5f9`,
+  },
+  'trajectory-error-bg': {
+    light: colors.surf_light,
+    dark: colors.surf_dark,
+    white: colors.surf_white,
+    black: colors.surf_black,
+  },
+  'trajectory-error-color': {
+    light: colors.error_text_light,
+    dark: colors.error_text_dark,
+    white: colors.error_text_white,
+    black: colors.error_text_black,
+  },
+  'trajectory-error-border': {
+    light: colors.error_border_light,
+    dark: colors.error_border_dark,
+    white: colors.error_border_white,
+    black: colors.error_border_black,
+  },
+  'trajectory-error-button-bg': {
+    light: colors.error_btn_light,
+    dark: colors.error_btn_dark,
+    white: colors.error_btn_white,
+    black: colors.error_btn_black,
+  },
+  'trajectory-error-button-hover-bg': {
+    light: colors.error_btn_hover_light,
+    dark: colors.error_btn_hover_dark,
+    white: colors.error_btn_hover_white,
+    black: colors.error_btn_hover_black,
   },
   'trajectory-border': border_alpha(0.15),
   'trajectory-dropzone-border': {

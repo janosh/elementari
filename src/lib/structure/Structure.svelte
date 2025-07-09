@@ -124,8 +124,8 @@
   })
 
   let visible_buttons = $derived(
-    show_buttons == true ||
-      (typeof show_buttons == `number` && show_buttons < width),
+    show_buttons === true ||
+      (typeof show_buttons === `number` && show_buttons < width),
   )
 
   // only updates when structure or show_image_atoms change
@@ -311,53 +311,55 @@
     {...rest}
   >
     <section class:visible={visible_buttons} class="control-buttons">
-      {#if camera_has_moved}
-        <button class="reset-camera" onclick={reset_camera} title={reset_text}>
-          <!-- Target/Focus icon for reset camera -->
-          <Icon icon="Reset" />
-        </button>
-      {/if}
-      {#if fullscreen_toggle}
-        <button
-          onclick={toggle_fullscreen}
-          class="fullscreen-toggle"
-          title="{fullscreen ? `Exit` : `Enter`} fullscreen"
-        >
-          {#if typeof fullscreen_toggle === `function`}
-            {@render fullscreen_toggle()}
-          {:else}
-            <Icon
-              icon="{fullscreen ? `Exit` : ``}Fullscreen"
-              style="transform: scale(0.9)"
-            />
-          {/if}
-        </button>
-      {/if}
+      {#if visible_buttons}
+        {#if camera_has_moved}
+          <button class="reset-camera" onclick={reset_camera} title={reset_text}>
+            <!-- Target/Focus icon for reset camera -->
+            <Icon icon="Reset" />
+          </button>
+        {/if}
+        {#if fullscreen_toggle}
+          <button
+            onclick={toggle_fullscreen}
+            class="fullscreen-toggle"
+            title="{fullscreen ? `Exit` : `Enter`} fullscreen"
+          >
+            {#if typeof fullscreen_toggle === `function`}
+              {@render fullscreen_toggle()}
+            {:else}
+              <Icon
+                icon="{fullscreen ? `Exit` : ``}Fullscreen"
+                style="transform: scale(0.9)"
+              />
+            {/if}
+          </button>
+        {/if}
 
-      {#if enable_info && structure}
-        <StructureInfoPanel {structure} bind:info_open custom_toggle={toggle_info} />
-      {/if}
+        {#if enable_info && structure}
+          <StructureInfoPanel {structure} bind:info_open custom_toggle={toggle_info} />
+        {/if}
 
-      <StructureControls
-        bind:controls_open
-        bind:scene_props
-        bind:lattice_props
-        bind:show_image_atoms
-        bind:show_site_labels
-        bind:show_full_controls
-        bind:background_color
-        bind:background_opacity
-        bind:color_scheme
-        bind:png_dpi
-        {structure}
-        {wrapper}
-        {save_json_btn_text}
-        {save_png_btn_text}
-        {save_xyz_btn_text}
-        {scene}
-        {camera}
-        custom_toggle={toggle_controls}
-      />
+        <StructureControls
+          bind:controls_open
+          bind:scene_props
+          bind:lattice_props
+          bind:show_image_atoms
+          bind:show_site_labels
+          bind:show_full_controls
+          bind:background_color
+          bind:background_opacity
+          bind:color_scheme
+          bind:png_dpi
+          {structure}
+          {wrapper}
+          {save_json_btn_text}
+          {save_png_btn_text}
+          {save_xyz_btn_text}
+          {scene}
+          {camera}
+          custom_toggle={toggle_controls}
+        />
+      {/if}
     </section>
 
     <StructureLegend elements={get_elem_amounts(structure!)} />

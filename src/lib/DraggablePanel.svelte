@@ -187,56 +187,53 @@
     <Icon icon={show ? open_icon : closed_icon} style={icon_style} />
   </button>
 
-  {#if show}
-    {#key show}
-      <div
-        {@attach draggable({
-          handle_selector: `.drag-handle`,
-          on_drag_start: handle_drag_start,
-          on_drag_end: handle_drag_end,
-        })}
-        bind:this={panel_div}
-        role="dialog"
-        aria-label="Draggable panel"
-        aria-modal="false"
-        style:max-width={max_width}
-        style:top={initial_position.top}
-        style:left={initial_position.left}
-        {...panel_props}
-        class="draggable-panel {panel_props.class ?? ``}"
-      >
-        <div class="panel-header">
-          <div class="control-buttons">
-            {#if show_control_buttons}
-              <button
-                class="reset-button"
-                onclick={(event) => handle_button_click(event, reset_position)}
-                title="Reset panel position"
-                aria-label="Reset panel position"
-              >
-                <Icon icon="Reset" style="width: 1.25em; height: 1.25em" />
-              </button>
-              <button
-                class="close-button"
-                onclick={(event) => handle_button_click(event, close_panel)}
-                title="Close panel"
-                aria-label="Close panel"
-              >
-                <Icon icon="Cross" style="width: 1.25em; height: 1.25em" />
-              </button>
-            {/if}
-            <Icon
-              icon="DragIndicator"
-              class="drag-handle"
-              style="width: 1.25em; height: 1.25em"
-            />
-          </div>
-        </div>
-
-        {@render children()}
+  <div
+    {@attach draggable({
+      handle_selector: `.drag-handle`,
+      on_drag_start: handle_drag_start,
+      on_drag_end: handle_drag_end,
+    })}
+    bind:this={panel_div}
+    role="dialog"
+    aria-label="Draggable panel"
+    aria-modal="false"
+    style:max-width={max_width}
+    style:top={initial_position.top}
+    style:left={initial_position.left}
+    style:display={show ? `grid` : `none`}
+    {...panel_props}
+    class="draggable-panel {show ? `panel-open` : ``} {panel_props.class ?? ``}"
+  >
+    <div class="panel-header">
+      <div class="control-buttons">
+        {#if show_control_buttons}
+          <button
+            class="reset-button"
+            onclick={(event) => handle_button_click(event, reset_position)}
+            title="Reset panel position"
+            aria-label="Reset panel position"
+          >
+            <Icon icon="Reset" style="width: 1.25em; height: 1.25em" />
+          </button>
+          <button
+            class="close-button"
+            onclick={(event) => handle_button_click(event, close_panel)}
+            title="Close panel"
+            aria-label="Close panel"
+          >
+            <Icon icon="Cross" style="width: 1.25em; height: 1.25em" />
+          </button>
+        {/if}
+        <Icon
+          icon="DragIndicator"
+          class="drag-handle"
+          style="width: 1.25em; height: 1.25em"
+        />
       </div>
-    {/key}
-  {/if}
+    </div>
+
+    {@render children()}
+  </div>
 {/if}
 
 <style>

@@ -26,6 +26,7 @@ interface ParsedFrame {
 // Add interface for HDF5 group to replace 'any' type
 interface Hdf5Group {
   get(name: string): Hdf5Dataset | Hdf5Group | null
+  keys?(): string[] // Optional method for iterating through group contents
 }
 
 interface Hdf5Dataset {
@@ -241,89 +242,54 @@ const parse_torch_sim_hdf5 = async (
   const h5_file = new h5wasm.File(temp_filename, `r`)
 
   try {
-    // Helper function to get available datasets for debugging
-    const get_available_datasets = (): string[] => {
-      const datasets: string[] = []
-      const search_locations = [
-        { name: `root`, group: h5_file },
-        { name: `data`, group: h5_file.get(`data`) as Hdf5Group | null },
-        { name: `header`, group: h5_file.get(`header`) as Hdf5Group | null },
-        { name: `metadata`, group: h5_file.get(`metadata`) as Hdf5Group | null },
-        { name: `steps`, group: h5_file.get(`steps`) as Hdf5Group | null },
-      ]
+    // Cache for HDF5 dataset lookups to avoid redundant I/O operations
+    const cache = new Map<string, Hdf5Dataset | Hdf5Group | null>()
 
-      for (const { name, group } of search_locations) {
-        if (!group) continue
-        // This is a simplified check - in a real implementation we'd need to iterate through the group
-        const common_names = [
-          `positions`,
-          `atomic_numbers`,
-          `numbers`,
-          `Z`,
-          `species`,
-          `atoms`,
-          `elements`,
-          `atom_types`,
-          `atomic_number`,
-          `types`,
-          `cell`,
-          `cells`,
-          `lattice`,
-          `potential_energy`,
-          `energy`,
-          `pbc`,
-        ]
-        for (const dataset_name of common_names) {
-          if (group.get(dataset_name)) {
-            datasets.push(`${name}/${dataset_name}`)
-          }
-        }
+    const get_dataset = (
+      group: { get: (name: string) => unknown } | null,
+      name: string,
+      group_path: string,
+    ) => {
+      if (!group) return null
+      const key = `${group_path}/${name}`
+      if (cache.has(key)) {
+        const cached_result = cache.get(key)
+        return cached_result || null
       }
-      return datasets
+      const result = group.get(name) as Hdf5Dataset | Hdf5Group | null
+      cache.set(key, result)
+      return result
     }
 
-    // Try to find positions (required)
+    // Get main groups
+    const groups = {
+      root: h5_file,
+      data: get_dataset(h5_file, `data`, `root`) as Hdf5Group | null,
+      header: get_dataset(h5_file, `header`, `root`) as Hdf5Group | null,
+      metadata: get_dataset(h5_file, `metadata`, `root`) as Hdf5Group | null,
+      steps: get_dataset(h5_file, `steps`, `root`) as Hdf5Group | null,
+    }
+
+    // Find positions (required)
     let positions: number[][][] | null = null
-    const data_group = h5_file.get(`data`) as Hdf5Group | null
-
-    // Check data group first
-    if (data_group) {
-      const positions_dataset = data_group.get(`positions`)
-      if (is_hdf5_dataset(positions_dataset)) {
-        positions = positions_dataset.to_array() as number[][][]
-      }
-    }
-
-    // Fallback to root level
-    if (!positions) {
-      const positions_dataset = h5_file.get(`positions`) as Hdf5Dataset | null
-      if (is_hdf5_dataset(positions_dataset)) {
-        const raw_positions = positions_dataset.to_array() as number[][] | number[][][]
-        // Handle both 2D (single frame) and 3D (multi-frame) arrays
-        if (
-          raw_positions && Array.isArray(raw_positions[0]) &&
-          Array.isArray(raw_positions[0][0])
-        ) {
-          positions = raw_positions as number[][][]
-        } else {
-          positions = [raw_positions as number[][]]
-        }
+    for (const [path, group] of Object.entries(groups)) {
+      if (!group) continue
+      const dataset = get_dataset(group, `positions`, path)
+      if (is_hdf5_dataset(dataset)) {
+        const raw = dataset.to_array() as number[][] | number[][][]
+        positions = Array.isArray(raw[0]?.[0]) ? raw as number[][][] : [raw as number[][]]
+        break
       }
     }
 
     if (!positions) {
-      const available = get_available_datasets()
       throw new Error(
         `Missing required 'positions' dataset in HDF5 file. ` +
-          `Expected to find atomic positions in 'data/positions' or 'positions'. ` +
-          `Available datasets: ${
-            available.length ? available.join(`, `) : `none found`
-          }. ` +
-          `Please ensure your HDF5 file contains atomic position data.`,
+          `Expected 3D array of atomic coordinates.`,
       )
     }
 
-    // Try to find atomic numbers (required)
+    // Find atomic numbers (required)
     let atomic_numbers: number[][] | null = null
     const atomic_number_names = [
       `atomic_numbers`,
@@ -333,105 +299,58 @@ const parse_torch_sim_hdf5 = async (
       `atoms`,
       `elements`,
       `atom_types`,
-      `atomic_number`,
       `types`,
     ]
 
-    const search_locations = [
-      { name: `data`, group: data_group },
-      { name: `root`, group: h5_file },
-      { name: `header`, group: h5_file.get(`header`) as Hdf5Group | null },
-      { name: `metadata`, group: h5_file.get(`metadata`) as Hdf5Group | null },
-      { name: `steps`, group: h5_file.get(`steps`) as Hdf5Group | null },
-    ]
-
-    for (const { group } of search_locations) {
+    for (const [path, group] of Object.entries(groups)) {
       if (!group || atomic_numbers) continue
-
       for (const name of atomic_number_names) {
-        const dataset = group.get(name) as Hdf5Dataset | null
+        const dataset = get_dataset(group, name, path)
         if (is_hdf5_dataset(dataset)) {
-          const raw_data = dataset.to_array() as number[] | number[][]
-          // Handle both 1D and 2D arrays
-          if (Array.isArray(raw_data[0])) {
-            atomic_numbers = raw_data as number[][]
-          } else {
-            atomic_numbers = [raw_data as number[]]
-          }
+          const raw = dataset.to_array() as number[] | number[][]
+          atomic_numbers = Array.isArray(raw[0]) ? raw as number[][] : [raw as number[]]
           break
         }
       }
     }
 
     if (!atomic_numbers) {
-      const available = get_available_datasets()
-      const tried_names = atomic_number_names.map((name) => `'${name}'`).join(`, `)
       throw new Error(
         `Missing required atomic numbers in HDF5 file. ` +
-          `Searched for datasets: ${tried_names} in groups: data, root, header, metadata, steps. ` +
-          `Available datasets: ${
-            available.length ? available.join(`, `) : `none found`
-          }. ` +
-          `Please ensure your HDF5 file contains atomic number/species information.`,
+          `Expected dataset with atomic numbers/species information.`,
       )
     }
 
-    // Try to find cell data (optional)
-    let cells: number[][][] | null = null
-    if (data_group) {
-      const cells_dataset = data_group.get(`cell`)
-      if (is_hdf5_dataset(cells_dataset)) {
-        cells = cells_dataset.to_array() as number[][][]
-      }
-    }
-
-    if (!cells) {
-      const cells_dataset = (h5_file.get(`cell`) as Hdf5Dataset | null) ||
-        (h5_file.get(`cells`) as Hdf5Dataset | null) ||
-        (h5_file.get(`lattice`) as Hdf5Dataset | null)
-      if (is_hdf5_dataset(cells_dataset)) {
-        const raw_cells = cells_dataset.to_array() as number[][] | number[][][]
-        // Handle both 2D (single frame) and 3D (multi-frame) arrays
-        if (raw_cells && Array.isArray(raw_cells[0]) && Array.isArray(raw_cells[0][0])) {
-          cells = raw_cells as number[][][]
-        } else {
-          cells = [raw_cells as number[][]]
+    // Find optional datasets
+    const find_optional = (names: string[]) => {
+      for (const [path, group] of Object.entries(groups)) {
+        if (!group) continue
+        for (const name of names) {
+          const dataset = get_dataset(group, name, path)
+          if (is_hdf5_dataset(dataset)) return dataset.to_array()
         }
       }
+      return null
     }
 
-    // Try to find energy data (optional)
-    let potential_energies: number[][] | null = null
-    if (data_group) {
-      const potential_energies_dataset = data_group.get(`potential_energy`)
-      if (is_hdf5_dataset(potential_energies_dataset)) {
-        potential_energies = potential_energies_dataset.to_array() as number[][]
-      }
-    }
+    const cells = find_optional([`cell`, `cells`, `lattice`]) as number[][][] | null
+    const energies = find_optional([`potential_energy`, `energy`]) as number[][] | null
+    const pbc_data = find_optional([`pbc`]) as number[] | null
 
-    // Try to find PBC data (optional)
-    let pbc_data: number[] | null = null
-    if (data_group) {
-      const pbc_dataset = data_group.get(`pbc`)
-      if (is_hdf5_dataset(pbc_dataset)) {
-        pbc_data = pbc_dataset.to_array() as number[]
-      }
-    }
-
+    // Process data
     const elements = convert_atomic_numbers(atomic_numbers[0])
-    const pbc = pbc_data && pbc_data.length === 3
+    const pbc = pbc_data?.length === 3
       ? [!!pbc_data[0], !!pbc_data[1], !!pbc_data[2]] as [boolean, boolean, boolean]
       : [false, false, false] as [boolean, boolean, boolean]
 
     const frames = positions.map((frame_positions, idx) => {
       const lattice_matrix = cells?.[idx] as Matrix3x3 | undefined
+      const metadata: Record<string, unknown> = {}
 
-      // Handle case where cell information is missing (e.g., molecular dynamics in vacuum)
-      const metadata: Record<string, unknown> = {
-        ...(potential_energies && { energy: potential_energies[idx]?.[0] }),
+      const energy_value = energies?.[idx]?.[0]
+      if (energy_value !== null && energy_value !== undefined) {
+        metadata.energy = energy_value
       }
-
-      // Only add volume if we have a lattice matrix
       if (lattice_matrix) {
         metadata.volume = math.calc_lattice_params(lattice_matrix).volume
       }
@@ -466,7 +385,7 @@ const parse_torch_sim_hdf5 = async (
     try {
       FS.unlink(temp_filename)
     } catch {
-      // Ignore errors when cleaning up temporary file
+      // Ignore cleanup errors
     }
   }
 }
