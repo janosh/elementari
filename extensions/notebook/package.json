@@ -1,0 +1,63 @@
+{
+  "name": "matterviz-notebook",
+  "version": "0.1.0",
+  "description": "MatterViz Jupyter/Marimo notebook extension for visualizing crystal structures and MD trajectories",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist/",
+    "matterviz_notebook/"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/"
+  },
+  "keywords": [
+    "jupyter",
+    "marimo",
+    "anywidget",
+    "materials-science",
+    "crystal-structure",
+    "molecular-dynamics",
+    "visualization",
+    "chemistry",
+    "physics"
+  ],
+  "author": "Janosh Riebesell <janosh.riebesell@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/janosh/matterviz",
+    "directory": "extensions/notebook"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "@types/node": "^24.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-svelte": "^2.46.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-svelte": "^3.3.2",
+    "svelte": "^5.34.8",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@threlte/core": "^8.1.5",
+    "@threlte/extras": "^9.1.5",
+    "d3-scale": "^4.0.2",
+    "svelte-multiselect": "^10.4.0",
+    "svelte-zoo": "^0.5.4",
+    "three": "^0.171.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling", "hatch-nodejs-version"]
+build-backend = "hatchling.build"
+
+[project]
+name = "matterviz-notebook"
+dynamic = ["version"]
+description = "MatterViz Jupyter/Marimo notebook extension for visualizing crystal structures and MD trajectories"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Janosh Riebesell", email = "janosh.riebesell@gmail.com" },
+]
+keywords = [
+  "chemistry",
+  "materials",
+  "visualization", 
+  "jupyter",
+  "marimo",
+  "crystal-structure",
+  "molecular-dynamics",
+  "trajectory",
+  "ase",
+  "pymatgen",
+  "anywidget",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10", 
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Visualization",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "anywidget>=0.9.0",
+  "typing-extensions>=4.0.0",
+]
+
+[project.optional-dependencies]
+ase = ["ase>=3.22.0"]
+pymatgen = ["pymatgen>=2023.1.1"] 
+phonopy = ["phonopy>=2.18.0"]
+all = ["matterviz-notebook[ase,pymatgen,phonopy]"]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "jupyter>=1.0.0",
+  "marimo>=0.1.0",
+  "black>=23.0.0",
+  "ruff>=0.1.0",
+  "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/janosh/matterviz"
+Documentation = "https://matterviz.vercel.app"
+Repository = "https://github.com/janosh/matterviz"
+Issues = "https://github.com/janosh/matterviz/issues"
+
+[tool.hatch.version]
+source = "nodejs"
+path = "package.json"
+
+[tool.hatch.build]
+exclude = [
+  "*.config.*",
+  ".*",
+  "src/",
+  "tests/",
+  "examples/", 
+]
+artifacts = [
+  "matterviz_notebook/static/",
+]
+
+[tool.hatch.build.hooks.nodejs]
+path = "package.json"
+build-script = "build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+  "--cov=matterviz_notebook",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--strict-markers",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings  
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.ruff.isort]
+known-first-party = ["matterviz_notebook"]
