@@ -13,7 +13,7 @@
     current_file_path?: string | null
     file_size?: number | null
     file_object?: File | null
-    show_info?: boolean
+    panel_open?: boolean
   }
   let {
     trajectory,
@@ -22,7 +22,7 @@
     current_file_path,
     file_size,
     file_object,
-    show_info = $bindable(true),
+    panel_open = $bindable(false),
   }: Props = $props()
 
   let copied_items = $state<Set<string>>(new Set())
@@ -251,7 +251,7 @@
   })
 </script>
 
-{#if show_info}
+{#if panel_open}
   <DraggablePanel
     max_width="24em"
     toggle_props={{ class: `trajectory-info-toggle`, title: `Toggle trajectory info` }}

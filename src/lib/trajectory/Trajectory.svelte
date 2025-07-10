@@ -747,7 +747,7 @@
                 {current_file_path}
                 {file_size}
                 {file_object}
-                bind:info_open={info_panel_open}
+                bind:panel_open={info_panel_open}
               />
             {/if}
             <!-- Display mode dropdown -->

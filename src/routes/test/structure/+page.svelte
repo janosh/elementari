@@ -4,7 +4,7 @@
   import mp1_struct from '$site/structures/mp-1.json'
 
   let controls_open = $state(false)
-  let info_open = $state(false)
+  let info_panel_open = $state(false)
   let canvas = $state({ width: 600, height: 400 })
   let background_color = $state(`#1e1e1e`)
   let show_buttons = $state<boolean | number>(true)
@@ -164,7 +164,7 @@
   <Structure
     structure={mp1_struct as unknown as PymatgenStructure}
     bind:controls_open
-    bind:info_open
+    bind:info_panel_open
     bind:width={canvas.width}
     bind:height={canvas.height}
     {background_color}
