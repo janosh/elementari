@@ -95,6 +95,7 @@
       c?: string
       [key: string]: string | undefined
     }
+    [key: string]: unknown
   }
   let {
     trajectory = $bindable(undefined),
@@ -114,6 +115,7 @@
     show_fullscreen_button = true,
     display_mode = $bindable(`structure+scatter`),
     step_labels = 5,
+    ...rest
   }: Props = $props()
 
   let dragover = $state(false)
@@ -576,7 +578,6 @@
 />
 
 <div
-  class="trajectory-viewer {actual_layout}"
   class:dragover
   class:active={is_playing || controls_open.structure || controls_open.plot}
   bind:this={wrapper}
@@ -597,6 +598,8 @@
   }}
   onclick={handle_click_outside}
   {onkeydown}
+  {...rest}
+  class="trajectory-viewer {actual_layout} {rest.class ?? ``}"
 >
   {#if loading}
     {#if parsing_progress}

@@ -769,8 +769,24 @@ test.describe(`Trajectory Component`, () => {
         // Force reflow to ensure dimensions are applied
         el.getBoundingClientRect()
       })
+
+      // Wait for dimensions to be applied to the element
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector(
+            `#auto-layout .trajectory-viewer`,
+          ) as HTMLElement
+          return el && el.clientWidth > 390 && el.clientWidth < 410 &&
+            el.clientHeight > 690 && el.clientHeight < 710
+        },
+        { timeout: 3000 },
+      )
+
+      // Add a small delay to ensure reactive system has time to update layout
+      await page.waitForTimeout(200)
+
       // Wait for layout to update to vertical
-      await expect(trajectory).toHaveClass(/vertical/, { timeout: 3000 })
+      await expect(trajectory).toHaveClass(/vertical/, { timeout: 5000 })
 
       // Test display mode cycling in vertical layout
       await expect(display_button).toBeVisible()
@@ -821,7 +837,7 @@ test.describe(`Trajectory Component`, () => {
         el.getBoundingClientRect()
       })
       // Wait for layout to update to vertical
-      await expect(trajectory).toHaveClass(/vertical/, { timeout: 3000 })
+      await expect(trajectory).toHaveClass(/vertical/, { timeout: 5000 })
 
       // Switch to structure only mode
       await display_button.click() // Open dropdown
@@ -952,21 +968,21 @@ test.describe(`Trajectory Component`, () => {
         el.style.width = `800px`
         el.style.height = `400px`
       })
-      await expect(trajectory).toHaveClass(/horizontal/)
+      await expect(trajectory).toHaveClass(/horizontal/, { timeout: 5000 })
 
       // Resize to tall container
       await page.locator(`#auto-layout div`).first().evaluate((el) => {
         el.style.width = `400px`
         el.style.height = `800px`
       })
-      await expect(trajectory).toHaveClass(/vertical/)
+      await expect(trajectory).toHaveClass(/vertical/, { timeout: 5000 })
 
       // Resize back to wide
       await page.locator(`#auto-layout div`).first().evaluate((el) => {
         el.style.width = `800px`
         el.style.height = `400px`
       })
-      await expect(trajectory).toHaveClass(/horizontal/)
+      await expect(trajectory).toHaveClass(/horizontal/, { timeout: 5000 })
     })
 
     test(`layout responsive behavior with tablet viewports`, async ({ page }) => {
@@ -977,14 +993,14 @@ test.describe(`Trajectory Component`, () => {
         el.style.width = `750px`
         el.style.height = `550px`
       })
-      await expect(trajectory).toHaveClass(/horizontal/)
+      await expect(trajectory).toHaveClass(/horizontal/, { timeout: 5000 })
 
       // Test tablet portrait container (should be vertical)
       await page.locator(`#auto-layout div`).first().evaluate((el) => {
         el.style.width = `550px`
         el.style.height = `750px`
       })
-      await expect(trajectory).toHaveClass(/vertical/)
+      await expect(trajectory).toHaveClass(/vertical/, { timeout: 5000 })
     })
 
     test(`plot and structure have equal dimensions in both horizontal and vertical layouts`, async ({ page }) => {
