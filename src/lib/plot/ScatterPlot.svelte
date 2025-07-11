@@ -1883,6 +1883,9 @@
     <!-- Control Panel positioned in top-right corner -->
     {#if show_controls}
       <ScatterPlotControls
+        toggle_props={{
+          style: `position: absolute; top: 0; right: 0; background-color: transparent;`,
+        }}
         bind:this={controls_component}
         bind:show_controls
         bind:controls_open
@@ -1979,7 +1982,6 @@
     position: relative; /* Needed for absolute positioning of children like ColorBar */
     width: 100%;
     height: 100%;
-    display: flex;
     min-height: var(--scatter-min-height, 100px);
     container-type: inline-size;
     z-index: var(--scatter-z-index, 1);

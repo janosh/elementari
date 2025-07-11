@@ -977,8 +977,10 @@
   }
   .trajectory-viewer.horizontal .content-area {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
   }
   .trajectory-viewer.vertical .content-area {
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
   }
   /* When plot is hidden, structure takes full space */

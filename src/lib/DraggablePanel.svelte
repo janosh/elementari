@@ -237,7 +237,7 @@
 {/if}
 
 <style>
-  .panel-toggle {
+  button.panel-toggle {
     box-sizing: border-box;
     display: flex;
     place-items: center;
@@ -246,7 +246,7 @@
     background-color: transparent;
     transition: background-color 0.2s;
   }
-  .panel-toggle:hover {
+  button.panel-toggle:hover {
     background-color: color-mix(in srgb, currentColor 8%, transparent);
   }
   .draggable-panel {

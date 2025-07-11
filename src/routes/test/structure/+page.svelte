@@ -58,8 +58,7 @@
     }
   })
 
-  // Listen for custom events from tests
-  $effect(() => {
+  $effect(() => { // Listen for custom events from tests
     if (typeof window !== `undefined`) {
       const handle_lattice_props = (event: Event) => {
         const customEvent = event as CustomEvent
@@ -153,11 +152,8 @@
   </label>
 </section>
 
-<hr />
-
 <div
   id="structure-wrapper"
-  style="border: 1px solid #ccc; margin-top: 20px"
   style:width="{canvas.width}px"
   style:height="{canvas.height}px"
 >
@@ -182,20 +178,3 @@
 <div data-testid="canvas-height-status">Canvas Height Status: {canvas.height}</div>
 <div data-testid="gizmo-status">Gizmo Status: {scene_props.gizmo}</div>
 <div data-testid="show-buttons-status">Show Buttons Status: {show_buttons}</div>
-
-<style>
-  section {
-    margin-bottom: 20px;
-    padding: 10px;
-    border: 1px solid lightgray;
-    border-radius: 5px;
-  }
-  label {
-    display: inline-block;
-    margin-bottom: 5px;
-    margin-right: 15px;
-  }
-  input[type='number'] {
-    width: 60px;
-  }
-</style>

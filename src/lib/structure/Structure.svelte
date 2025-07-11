@@ -125,7 +125,7 @@
 
   let visible_buttons = $derived(
     show_buttons === true ||
-      (typeof show_buttons === `number` && show_buttons < width),
+      (typeof show_buttons === `number` && width > show_buttons),
   )
 
   // only updates when structure or show_image_atoms change
@@ -412,6 +412,7 @@
     border-radius: var(--struct-border-radius, 3pt);
     background: var(--struct-bg-override, var(--struct-bg));
     color: var(--struct-text-color);
+    container-type: inline-size;
   }
   .structure.active {
     z-index: var(--struct-active-z-index, 2);

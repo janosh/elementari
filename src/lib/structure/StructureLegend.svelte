@@ -62,22 +62,23 @@
   .structure-legend {
     display: flex;
     position: absolute;
-    bottom: var(--struct-legend-bottom, 8pt);
-    right: var(--struct-legend-right, 8pt);
-    gap: var(--struct-legend-gap, 8pt);
-    font-size: var(--struct-legend-font, 14pt);
+    bottom: var(--struct-legend-bottom, clamp(4pt, 2cqw, 8pt));
+    right: var(--struct-legend-right, clamp(4pt, 2cqw, 8pt));
+    gap: var(--struct-legend-gap, clamp(2pt, 1.5cqw, 5pt));
+    font-size: var(--struct-legend-font, clamp(8pt, 3cqw, 14pt));
     filter: var(--legend-filter, grayscale(10%) brightness(0.8) saturate(0.8));
     z-index: var(--struct-legend-z-index, 1);
     pointer-events: auto;
     visibility: visible;
   }
   .structure-legend label {
-    padding: var(--struct-legend-pad, 1pt 4pt);
+    padding: var(--struct-legend-padding, 0 4pt);
     border-radius: var(--struct-legend-radius, 3pt);
     position: relative;
     display: inline-block;
     cursor: pointer;
     visibility: visible;
+    white-space: nowrap;
   }
   .structure-legend label input[type='color'] {
     z-index: var(--struct-legend-input-z, 1);

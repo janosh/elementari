@@ -422,10 +422,6 @@
     white-space: normal;
   }
   section div.toggle-item {
-    background: var(--panel-bg, rgba(0, 0, 0, 0.1));
-    border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.2));
-    border-radius: 4pt;
-    padding: 4pt 8pt;
     margin: 2pt 0;
     font-weight: 600;
     cursor: pointer;

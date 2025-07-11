@@ -14,6 +14,7 @@
     file_size?: number | null
     file_object?: File | null
     panel_open?: boolean
+    [key: string]: unknown
   }
   let {
     trajectory,
@@ -23,6 +24,7 @@
     file_size,
     file_object,
     panel_open = $bindable(false),
+    ...rest
   }: Props = $props()
 
   let copied_items = $state<Set<string>>(new Set())
@@ -251,56 +253,56 @@
   })
 </script>
 
-{#if panel_open}
-  <DraggablePanel
-    max_width="24em"
-    toggle_props={{ class: `trajectory-info-toggle`, title: `Toggle trajectory info` }}
-    open_icon="Cross"
-    closed_icon="Info"
-    icon_style="transform: scale(1.3);"
-    panel_props={{
-      class: `trajectory-info-panel`,
-      style: `box-shadow: 0 5px 10px rgba(0, 0, 0, ${
-        theme_state.type === `dark` ? `0.5` : `0.1`
-      }); max-height: 80vh;`,
-    }}
-  >
-    <div class="info-content">
-      <h4>Trajectory Info</h4>
-      {#each info_sections as section, section_idx (section_idx)}
-        {#if section_idx > 0}
-          <hr class="section-divider" />
-        {/if}
-        {#each section as item (item.key)}
-          <div
-            class="info-item"
-            title="Click to copy: {item.label}: {item.value}"
-            onclick={() => copy_item(item.label, item.value, item.key)}
-            role="button"
-            tabindex="0"
-            onkeydown={(event) => {
-              if (event.key === `Enter` || event.key === ` `) {
-                event.preventDefault()
-                copy_item(item.label, item.value, item.key)
-              }
-            }}
-          >
-            <span>{item.label}</span>
-            <span title={item.tooltip} use:titles_as_tooltips>{@html item.value}</span>
-            {#if copied_items.has(item.key)}
-              <div class="copy-check">
-                <Icon
-                  icon="Check"
-                  style="color: var(--success-color, #10b981); width: 12px; height: 12px"
-                />
-              </div>
-            {/if}
-          </div>
-        {/each}
+<DraggablePanel
+  bind:show={panel_open}
+  max_width="24em"
+  toggle_props={{ class: `trajectory-info-toggle`, title: `Toggle trajectory info` }}
+  open_icon="Cross"
+  closed_icon="Info"
+  icon_style="transform: scale(1.3);"
+  panel_props={{
+    class: `trajectory-info-panel`,
+    style: `box-shadow: 0 5px 10px rgba(0, 0, 0, ${
+      theme_state.type === `dark` ? `0.5` : `0.1`
+    }); max-height: 80vh;`,
+  }}
+  {...rest}
+>
+  <div class="info-content">
+    <h4>Trajectory Info</h4>
+    {#each info_sections as section, section_idx (section_idx)}
+      {#if section_idx > 0}
+        <hr class="section-divider" />
+      {/if}
+      {#each section as item (item.key)}
+        <div
+          class="info-item"
+          title="Click to copy: {item.label}: {item.value}"
+          onclick={() => copy_item(item.label, item.value, item.key)}
+          role="button"
+          tabindex="0"
+          onkeydown={(event) => {
+            if (event.key === `Enter` || event.key === ` `) {
+              event.preventDefault()
+              copy_item(item.label, item.value, item.key)
+            }
+          }}
+        >
+          <span>{item.label}</span>
+          <span title={item.tooltip} use:titles_as_tooltips>{@html item.value}</span>
+          {#if copied_items.has(item.key)}
+            <div class="copy-check">
+              <Icon
+                icon="Check"
+                style="color: var(--success-color, #10b981); width: 12px; height: 12px"
+              />
+            </div>
+          {/if}
+        </div>
       {/each}
-    </div>
-  </DraggablePanel>
-{/if}
+    {/each}
+  </div>
+</DraggablePanel>
 
 <style>
   .info-content {

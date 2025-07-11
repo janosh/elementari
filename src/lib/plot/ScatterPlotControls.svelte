@@ -3,7 +3,7 @@
   import type { DataSeries } from '$lib/plot'
   import { format } from 'd3-format'
   import { timeFormat } from 'd3-time-format'
-  import type { Snippet } from 'svelte'
+  import type { ComponentProps, Snippet } from 'svelte'
 
   interface Props {
     // Control panel visibility
@@ -39,6 +39,8 @@
     show_points?: boolean
     show_lines?: boolean
     selected_series_idx?: number
+    toggle_props?: ComponentProps<typeof DraggablePanel>[`toggle_props`]
+    panel_props?: ComponentProps<typeof DraggablePanel>[`panel_props`]
   }
   let {
     show_controls = $bindable(false),
@@ -69,6 +71,8 @@
     show_points = $bindable(true),
     show_lines = $bindable(true),
     selected_series_idx = $bindable(0),
+    toggle_props = {},
+    panel_props = {},
   }: Props = $props()
 
   // Local variables for format inputs to prevent invalid values from reaching props
@@ -172,11 +176,12 @@
     closed_icon="Settings"
     open_icon="Cross"
     icon_style="transform: scale(1.2);"
-    toggle_props={{ class: `scatter-controls-toggle` }}
+    toggle_props={{ class: `scatter-controls-toggle`, ...toggle_props }}
     panel_props={{
       class: `scatter-controls-panel`,
       style:
         `--panel-width: 16em; max-height: 400px; overflow-y: auto; padding-right: 4px;`,
+      ...panel_props,
     }}
   >
     {#if plot_controls}

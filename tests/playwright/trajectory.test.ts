@@ -986,6 +986,53 @@ test.describe(`Trajectory Component`, () => {
       })
       await expect(trajectory).toHaveClass(/vertical/)
     })
+
+    test(`plot and structure have equal dimensions in both horizontal and vertical layouts`, async ({ page }) => {
+      // Helper function to get component dimensions
+      const get_dimensions = async (content_area: Locator) => {
+        return await content_area.evaluate((el: Element) => {
+          const structure = el.querySelector(`.structure`) as HTMLElement
+          const plot = el.querySelector(`.scatter`) as HTMLElement
+          return {
+            structure: structure?.getBoundingClientRect(),
+            plot: plot?.getBoundingClientRect(),
+          }
+        })
+      }
+
+      // Helper function to check dimension ratios
+      const check_ratios = (
+        dims: { structure?: DOMRect; plot?: DOMRect },
+        primary_dimension: `width` | `height`,
+      ) => {
+        if (!dims.structure || !dims.plot) return
+        const ratio = dims.structure[primary_dimension] / dims.plot[primary_dimension]
+        expect(ratio).toBeGreaterThan(0.9)
+        expect(ratio).toBeLessThan(1.1)
+      }
+
+      // Test horizontal layout
+      const horizontal_viewer = page.locator(`#auto-layout .trajectory-viewer`)
+      await expect(horizontal_viewer).toBeVisible()
+      await expect(horizontal_viewer).toHaveClass(/horizontal/)
+      await page.waitForTimeout(300)
+
+      const horizontal_dims = await get_dimensions(
+        horizontal_viewer.locator(`.content-area`),
+      )
+      check_ratios(horizontal_dims, `width`)
+      check_ratios(horizontal_dims, `height`)
+
+      // Test vertical layout
+      const vertical_viewer = page.locator(`#vertical-layout .trajectory-viewer`)
+      await expect(vertical_viewer).toBeVisible()
+      await expect(vertical_viewer).toHaveClass(/vertical/)
+      await page.waitForTimeout(300)
+
+      const vertical_dims = await get_dimensions(vertical_viewer.locator(`.content-area`))
+      check_ratios(vertical_dims, `height`)
+      check_ratios(vertical_dims, `width`)
+    })
   })
 })
 
