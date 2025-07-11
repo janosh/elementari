@@ -130,7 +130,7 @@ const themes = {
     black: `#0a0a0a`,
   },
   'pre-bg': {
-    light: `#e5e7eb`,
+    light: `#fcfcfc`,
     dark: `rgba(255, 255, 255, 0.05)`,
     white: `#fafafa`,
     black: `rgba(255, 255, 255, 0.02)`,
@@ -347,10 +347,10 @@ const themes = {
     black: `rgba(15, 15, 15, 0.98)`,
   },
 
-  // Demo nav
-  'demo-nav-link-bg': btn_bg(0.1, 0.08),
-  'demo-nav-link-hover-bg': btn_bg(0.15, 0.15),
-  'demo-nav-link-active-color': {
+  // Navigation links
+  'nav-link-bg': btn_bg(0.1, 0.08),
+  'nav-link-hover-bg': btn_bg(0.15, 0.15),
+  'nav-link-active-color': {
     light: `#dc2626`,
     dark: `mediumseagreen`,
     white: `coral`,
